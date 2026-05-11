@@ -110,19 +110,19 @@ API key is stored in iOS Keychain and shared with FoodFinder (same Keychain entr
 
 ## Data Sharing (DataLayer)
 
-LoopInsights includes an optional **DataLayer** module that can collect and share anonymized health data for research and provider sharing. **On first launch, data collection is enabled by default** with all categories (glucose, insulin, carbs, biometrics, AI behavioral, substances, activity) opted in.
+LoopInsights includes an optional **DataLayer** module that can collect and share anonymized health data for research and provider sharing. **DataLayer is OFF by default and every consent category is OFF by default.** Nothing is collected and nothing is uploaded until you opt in.
 
-**No data is uploaded unless an ingest endpoint is configured.** The open-source default has no endpoint set, so data stays on-device only. If you or your fork configures an ingest endpoint, data will be transmitted.
+A default ingest endpoint is bundled with the AllFeatures build so that opt-in data uploads work out of the box. You can override it with your own endpoint, or leave it blank for local-only collection.
 
-**To review or disable data sharing:**
+**To enable data sharing:**
 
 1. Open **Settings > LoopInsights**
 2. Tap **Data Sharing**
-3. Turn off the **Enable Data Sharing** master toggle to disable all collection, OR
-4. Toggle individual categories on/off for granular control
-5. Turn off **Contribute to Research** to stop research uploads while keeping provider sharing
+3. Turn on the **Enable Data Sharing** master toggle
+4. Toggle the individual categories you want to share (glucose, insulin, carbs, biometrics, AI behavioral, substances, activity)
+5. Turn on **Contribute to Research** if you want enabled categories uploaded to the project research backend
 
-All data is stored locally with a 90-day retention policy and can be deleted at any time from the Data Sharing screen.
+All data is stored locally first, retained 90 days, and can be deleted at any time from the Data Sharing screen via the **Delete All My Data** button.
 
 ## Safety
 

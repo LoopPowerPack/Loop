@@ -43,15 +43,14 @@ struct DataLayer_FeatureFlags {
     /// Default share endpoint for provider PDF / link generation.
     private static let bundledShareEndpoint = "https://share-ycnxwhqg2a-uc.a.run.app"
 
-    /// On first launch, enable data sharing, research, and all consent categories by default.
+    /// First-launch marker. All DataLayer state defaults to OFF — `isEnabled`,
+    /// `researchEnabled`, and every consent category. The user opts in
+    /// explicitly via Settings → LoopInsights → Data Sharing. This function
+    /// only stamps the marker key so future migrations can detect a first
+    /// launch on a given install. It deliberately does not enable anything.
     static func registerDefaultsIfNeeded() {
         guard !defaults.bool(forKey: defaultsInitializedKey) else { return }
         defaults.set(true, forKey: defaultsInitializedKey)
-        isEnabled = true
-        researchEnabled = true
-        for category in DataLayer_ConsentCategory.allCases {
-            DataLayer_ConsentManager.shared.setConsent(for: category, granted: true)
-        }
     }
 
     // MARK: - Master Toggle
