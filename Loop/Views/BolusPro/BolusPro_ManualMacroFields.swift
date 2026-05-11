@@ -1,12 +1,12 @@
 //
 //  BolusPro_ManualMacroFields.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  BolusPro — Two-field input row for fat (g) and protein (g), shown
 //  when the BolusPro toggle is ON and no FoodFinder macros are present.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import SwiftUI

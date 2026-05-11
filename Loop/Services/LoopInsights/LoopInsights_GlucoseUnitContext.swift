@@ -1,13 +1,13 @@
 //
 //  LoopInsights_GlucoseUnitContext.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  LoopInsights — Shared glucose unit helper for mg/dL vs mmol/L localization.
 //  Used by LoopInsights and AutoPresets to honor the user's HealthKit-derived
 //  display glucose unit in analysis, AI prompts, thresholds, and formatting.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import Foundation

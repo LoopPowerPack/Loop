@@ -1,12 +1,12 @@
 //
 //  LoopInsights_BehaviorInsightsAnalyzer.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  LoopInsights — Detects systematic user correction patterns in FoodFinder
 //  meal data and surfaces actionable insights about AI estimation accuracy.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import Foundation

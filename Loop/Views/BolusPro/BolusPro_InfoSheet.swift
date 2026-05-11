@@ -1,12 +1,12 @@
 //
 //  BolusPro_InfoSheet.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  BolusPro — In-context (i) explainer presented from CarbEntryView,
 //  Settings, and the first-run onboarding.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import SwiftUI

@@ -1,13 +1,13 @@
 //
 //  SiteAtlas_BodyMapView.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  SiteAtlas — Visual body map with age-colored pins.
 //  Shows front/back body outline with swipe navigation.
 //  Existing pins are draggable to adjust position.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import SwiftUI

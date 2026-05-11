@@ -1,12 +1,12 @@
 //
 //  SiteAtlas_SiteSelectionSheet.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  SiteAtlas — Modal sheet for logging a new site placement.
 //  Presented on pump deactivation or manual trigger from Settings.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import SwiftUI

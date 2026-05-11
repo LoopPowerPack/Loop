@@ -1,12 +1,12 @@
 //
 //  BolusPro_SettingsView.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  BolusPro — Settings subpage with master toggle, auto-detection
 //  preferences, advanced coverage tuning, and About / Reset actions.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import SwiftUI

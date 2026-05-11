@@ -1,12 +1,12 @@
 //
 //  LoopInsights_MealDebriefService.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  LoopInsights — Prediction capture on meal log, debrief generation via AI,
 //  and JSON storage for snapshots + debriefs.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import Foundation

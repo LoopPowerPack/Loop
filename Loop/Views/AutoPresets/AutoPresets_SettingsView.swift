@@ -1,11 +1,11 @@
 //
 //  AutoPresets_SettingsView.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  AutoPresets — Settings UI for configuring activity-based preset automation.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import LoopKit

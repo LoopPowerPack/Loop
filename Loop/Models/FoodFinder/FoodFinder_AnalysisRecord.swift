@@ -1,12 +1,12 @@
 //
 //  FoodFinder_AnalysisRecord.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  FoodFinder — Codable record for a single AI food analysis,
 //  used by the Analysis History feature for quick re-entry.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import Foundation

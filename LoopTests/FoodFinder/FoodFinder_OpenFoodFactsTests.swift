@@ -3,7 +3,7 @@
 //  LoopTests
 //
 //  Created by Claude Code for OpenFoodFacts Integration
-//  Copyright © 2023 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import XCTest

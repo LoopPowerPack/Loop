@@ -1,12 +1,12 @@
 //
 //  LoopInsights_EndoReportView.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  LoopInsights — Endo Visit Report Generator.
 //  Generates a branded, shareable PDF summary for endocrinologist appointments.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import SwiftUI

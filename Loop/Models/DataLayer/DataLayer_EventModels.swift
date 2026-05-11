@@ -1,11 +1,11 @@
 //
 //  DataLayer_EventModels.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  DataLayer — Event envelope, EventType enum, and all typed payloads.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import Foundation

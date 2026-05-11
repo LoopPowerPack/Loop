@@ -1,12 +1,12 @@
 //
 //  BolusPro_FeatureFlags.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  BolusPro — Feature toggle, settings keys, and tunable defaults.
 //  All BolusPro enable/disable + dosing-knob logic lives here.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import Foundation

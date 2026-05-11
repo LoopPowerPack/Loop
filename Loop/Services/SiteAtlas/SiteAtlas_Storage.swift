@@ -1,12 +1,12 @@
 //
 //  SiteAtlas_Storage.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  SiteAtlas — JSON-based persistence for site entries.
 //  Thread-safe read/write with automatic 365-day retention pruning.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import Foundation

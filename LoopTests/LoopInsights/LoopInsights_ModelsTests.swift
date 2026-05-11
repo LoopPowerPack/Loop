@@ -3,7 +3,7 @@
 //  LoopTests
 //
 //  Concept & design by Taylor Patterson. Coded & tested by Claude Code in February 2026.
-//  Copyright (c) 2025-2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import XCTest

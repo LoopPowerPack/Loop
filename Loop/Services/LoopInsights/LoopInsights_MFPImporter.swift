@@ -1,12 +1,12 @@
 //
 //  LoopInsights_MFPImporter.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  LoopInsights — MyFitnessPal authenticated diary importer service.
 //  Uses WKWebView login + v2 API with bearer token authentication.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import Foundation

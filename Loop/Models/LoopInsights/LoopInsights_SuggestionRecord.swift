@@ -1,9 +1,9 @@
 //
 //  LoopInsights_SuggestionRecord.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  Concept & design by Taylor Patterson. Coded & tested by Claude Code in February 2026.
-//  Copyright (c) 2025-2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import Foundation

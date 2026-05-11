@@ -1,13 +1,13 @@
 //
 //  LoopInsights_PreMealAdvisorCard.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  LoopInsights — Compact card shown in CarbEntryView (via FoodFinder_EntryPoint)
 //  when the user identifies a food they've eaten before. Shows historical stats
 //  and async AI advice.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import SwiftUI

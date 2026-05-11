@@ -1,13 +1,13 @@
 //
 //  BolusPro_BehaviorAnalyzer.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  BolusPro — Captures snapshots from saved entries, derives behavior
 //  patterns (slider drift, adoption rate, override rate, etc.) and feeds
 //  them into LoopInsights' Behavior Insights view.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import Foundation

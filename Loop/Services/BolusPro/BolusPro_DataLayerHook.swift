@@ -1,6 +1,6 @@
 //
 //  BolusPro_DataLayerHook.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  BolusPro — Broadcasts a per-meal analytics snapshot via
 //  NotificationCenter every time a BolusPro-aware carb entry is saved.
@@ -9,7 +9,7 @@
 //  onto `notificationName` from their own modules.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import Foundation

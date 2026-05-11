@@ -1,12 +1,12 @@
 //
 //  BolusPro_OnboardingView.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  BolusPro — First-run intro shown the first time the user toggles
 //  BolusPro on (or opens its Settings page before completing onboarding).
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import SwiftUI

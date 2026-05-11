@@ -1,12 +1,12 @@
 //
 //  LoopInsights_CaregiverDigestService.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  LoopInsights — Caregiver / Family Digest generator and scheduler.
 //  Generates shareable daily or weekly summaries for caregivers and family members.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import Foundation

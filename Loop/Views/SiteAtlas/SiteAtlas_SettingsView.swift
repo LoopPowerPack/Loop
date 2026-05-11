@@ -1,12 +1,12 @@
 //
 //  SiteAtlas_SettingsView.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  SiteAtlas — Settings and history view for site rotation tracking.
 //  Shows body map overview, history list grouped by month, and management options.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import SwiftUI

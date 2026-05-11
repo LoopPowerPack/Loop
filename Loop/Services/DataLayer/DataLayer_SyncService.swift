@@ -1,11 +1,11 @@
 //
 //  DataLayer_SyncService.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  DataLayer — Upload pipeline. Batches events and POSTs to GCP Cloud Run.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import Foundation

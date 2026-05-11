@@ -1,6 +1,6 @@
 //
 //  FoodFinder_CarbTrackingDashboard.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  FoodFinder — Carb tracking card and full dashboard.
 //  Card shows today's carbs with same-day-last-week comparison.
@@ -8,7 +8,7 @@
 //  patterns, and food type breakdown over a selectable time period.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import SwiftUI

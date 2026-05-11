@@ -1,12 +1,12 @@
 //
 //  LoopInsights_MealDebriefCard.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  LoopInsights — Expandable card showing predicted vs actual glucose,
 //  AI interpretation, effective carbs badge, and learnings.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import SwiftUI

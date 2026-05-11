@@ -1,12 +1,12 @@
 //
 //  LoopInsights_MealInsightsViewModel.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  LoopInsights — Extracted ViewModel for Meal Insights view.
 //  Manages meal data loading, debrief generation, and pre-meal advice state.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import Foundation

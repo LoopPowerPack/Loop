@@ -1,12 +1,12 @@
 //
 //  SiteAtlas_Coordinator.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  SiteAtlas — Central coordinator for site rotation tracking.
 //  Listens for pump deactivation notifications and prompts site logging.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import Foundation

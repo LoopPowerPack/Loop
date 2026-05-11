@@ -1,12 +1,12 @@
 //
 //  FoodFinder_FeatureFlags.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  FoodFinder — Feature toggle and configuration flags.
 //  All FoodFinder enable/disable logic lives here.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import Foundation

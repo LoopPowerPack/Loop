@@ -1,11 +1,11 @@
 //
 //  AutoPresets_GeofenceManager.swift
-//  Loop
+//  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  AutoPresets — Geofence location monitoring for automatic preset activation.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
-//  Copyright © 2026 LoopKit Authors. All rights reserved.
+//  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
 
 import Combine
