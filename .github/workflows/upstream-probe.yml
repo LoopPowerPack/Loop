@@ -1,10 +1,11 @@
 name: Upstream Probe
 
-# Weekly automated probe that pulls LoopKit/Loop:main into PowerPack's
+# Weekly automated probe that pulls LoopKit/Loop:dev into PowerPack's
 # feat/AllFeatures branch. Conflict-free merges are pushed automatically;
-# conflicts open an issue (or, if Issues are disabled on this repo, a
-# Discussion in the Announcements category) flagging that manual
-# resolution is needed.
+# conflicts open an issue flagging that manual resolution is needed.
+#
+# Tracking dev (not main) per Marion Barker (LoopKit maintainer):
+# LoopKit/Loop:main is no longer maintained; :dev is the active mainline.
 #
 # See DIVERGENCE.md "Upstream-merge cadence" for the published policy.
 
@@ -37,14 +38,14 @@ jobs:
       - name: Add upstream remote
         run: |
           git remote add upstream https://github.com/LoopKit/Loop.git
-          git fetch upstream main
+          git fetch upstream dev
 
       - name: Capture upstream HEAD info
         id: upstream
         run: |
-          UPSTREAM_SHA=$(git rev-parse upstream/main)
+          UPSTREAM_SHA=$(git rev-parse upstream/dev)
           UPSTREAM_SHORT=${UPSTREAM_SHA:0:7}
-          UPSTREAM_SUBJECT=$(git log -1 --pretty=%s upstream/main)
+          UPSTREAM_SUBJECT=$(git log -1 --pretty=%s upstream/dev)
           echo "sha=$UPSTREAM_SHA"               >> $GITHUB_OUTPUT
           echo "short=$UPSTREAM_SHORT"           >> $GITHUB_OUTPUT
           echo "subject<<EOF"                    >> $GITHUB_OUTPUT
@@ -54,9 +55,9 @@ jobs:
       - name: Skip if already merged
         id: ahead_check
         run: |
-          if git merge-base --is-ancestor upstream/main HEAD; then
+          if git merge-base --is-ancestor upstream/dev HEAD; then
             echo "already_merged=true" >> $GITHUB_OUTPUT
-            echo "Upstream main is already an ancestor of feat/AllFeatures — nothing to do."
+            echo "Upstream dev is already an ancestor of feat/AllFeatures — nothing to do."
           else
             echo "already_merged=false" >> $GITHUB_OUTPUT
           fi
@@ -67,7 +68,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
-          git merge --no-edit --no-ff upstream/main
+          git merge --no-edit --no-ff upstream/dev
           MERGE_RC=$?
           set -e
           if [ $MERGE_RC -ne 0 ]; then
@@ -92,7 +93,7 @@ jobs:
             const subject = `${{ steps.upstream.outputs.subject }}`;
             const title = `Upstream merge conflict — LoopKit/Loop@${short}`;
             const body = [
-              `Automated weekly upstream probe hit conflicts when merging \`LoopKit/Loop:main\` into \`feat/AllFeatures\`.`,
+              `Automated weekly upstream probe hit conflicts when merging \`LoopKit/Loop:dev\` into \`feat/AllFeatures\`.`,
               ``,
               `**Upstream commit:** [${sha}](https://github.com/LoopKit/Loop/commit/${sha})`,
               `**Subject:** ${subject}`,
@@ -101,8 +102,8 @@ jobs:
               `**Resolve manually:**`,
               `\`\`\`bash`,
               `git checkout feat/AllFeatures`,
-              `git fetch upstream main`,
-              `git merge upstream/main`,
+              `git fetch upstream dev`,
+              `git merge upstream/dev`,
               `# resolve conflicts`,
               `git push origin feat/AllFeatures`,
               `\`\`\``,
