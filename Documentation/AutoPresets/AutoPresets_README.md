@@ -108,17 +108,12 @@ Logs can be copied to clipboard, viewed in-app, or cleared. They auto-truncate a
 - **Non-target activity detection:** If CoreMotion detects automotive or cycling at high confidence during an active preset, the stop timer begins
 - **Requires at least one preset:** The feature can't be enabled until at least one activity type has a preset assigned
 
-## Architecture
-
-| File | Role |
-|------|------|
-| `AutoPresetsCoordinator.swift` | Main entry point, coordinates detection and preset activation |
-| `ActivityDetectionManager.swift` | CoreMotion pedometer + activity classifier logic |
-| `AutoPresetsModels.swift` | Data models, settings, enums, log entries |
-| `AutoPresetsStorage.swift` | UserDefaults persistence with legacy migration |
-| `AutoPresetsLogger.swift` | File-based debug logging |
-| `AutoPresetsSettingsView.swift` | SwiftUI settings UI |
-
 ## Permissions
 
-- **Motion & Fitness** — Required. Without it, the pedometer and activity classifier can't run. The feature checks permission status at startup and reports errors if denied.
+AutoPresets requires **Motion & Fitness** access. iOS prompts the first time you enable an activity type. If you deny it, AutoPresets shows an error and preserves your enabled preference but won't actually detect motion until you grant permission in iOS Settings.
+
+Calendar and Geofence triggers (advanced, off by default) require Calendar or Always-On Location access respectively. iOS prompts the first time you enable that trigger source.
+
+---
+
+*AutoPresets is part of Loop (AID) PowerPack. See [AutoPresets_DEVELOPER.md](AutoPresets_DEVELOPER.md) for architecture and developer notes.*

@@ -1,8 +1,8 @@
-# SiteAtlas — Developer Documentation
+# SiteAtlas — Developer Guide
 
-## Architecture Overview
+## Architecture
 
-SiteAtlas follows the same architectural pattern as AutoPresets and FoodFinder:
+SiteAtlas follows the same coordinator-driven pattern as AutoPresets and FoodFinder: a singleton coordinator owns lifecycle and notification observation, a JSON storage layer persists entries to `Documents/SiteAtlasEntries.json`, and SwiftUI views observe both. No LoopKit changes.
 
 ```
 Coordinator (singleton) → Storage (JSON) → Views (SwiftUI)

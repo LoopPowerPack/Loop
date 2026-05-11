@@ -1,8 +1,10 @@
-# Site Atlas — User Guide
+# SiteAtlas
 
-## What is Site Atlas?
+**Visual body-map tracker for pump infusion sets and CGM sensors.**
 
-Site Atlas helps you track where you place your insulin pump infusion sets and CGM sensors on your body. Proper site rotation prevents tissue damage (lipohypertrophy) that can affect insulin absorption and sensor accuracy.
+## What it does
+
+SiteAtlas helps you track where you place your insulin pump infusion sets and CGM sensors on your body. Proper site rotation prevents tissue damage (lipohypertrophy) that can affect insulin absorption and sensor accuracy.
 
 ## Why Site Rotation Matters
 
@@ -129,3 +131,13 @@ Hidden entries are not deleted — they're just excluded from the map and recomm
 - Site history is kept for 365 days, then automatically removed
 - Use "Delete All Site Data" in settings to clear everything
 - Data is NOT synced to iCloud or any external service
+
+## Privacy
+
+- All site placements live in `Documents/SiteAtlasEntries.json` on your device.
+- Nothing leaves the device.
+- A single `siteAtlasPlaced` event is broadcast on every save for DataLayer ingest. **That event is only recorded if you've separately enabled DataLayer + the Activity & Presets consent category.** Otherwise the broadcast is heard by no one.
+
+---
+
+*SiteAtlas is part of Loop (AID) PowerPack. See [SiteAtlas_DEVELOPER.md](SiteAtlas_DEVELOPER.md) for architecture and developer notes.*

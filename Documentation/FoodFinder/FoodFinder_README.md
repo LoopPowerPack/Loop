@@ -1,99 +1,130 @@
-# FoodFinder for Loop
+# FoodFinder
 
-FoodFinder adds AI-powered food identification and nutrition lookup to Loop's carb entry workflow. It supports barcode scanning (via OpenFoodFacts), AI camera analysis, voice search, and text-based food search — all integrated with a minimal footprint into Loop's existing codebase.
+**AI-assisted carb counting at the moment of meal entry.**
 
-## Features
+## What it does
 
-- **Barcode Scanner** — Scan product barcodes to look up nutrition data from OpenFoodFacts
-- **AI Camera Analysis** — Take a photo of food and get AI-powered carb estimates (supports Claude, OpenAI, Google Gemini, and custom BYO providers)
-- **Voice Search** — Speak a food name to search for nutrition information
-- **Text Search** — Type a food name for quick lookup
-- **Favorite Food Thumbnails** — Saved favorites display thumbnail images for easy identification
-- **Configurable AI Providers** — Choose between multiple AI backends or bring your own API endpoint
+Tap "Add Carb Entry" in Loop and FoodFinder gives you four ways to fill in the carbs field instead of guessing:
 
-## Architecture
+1. **AI Camera** — Take a photo of the meal. The AI returns an itemized breakdown with carbs, fat, protein, fiber, and calories per item.
+2. **Barcode Scan** — Scan a packaged food. OpenFoodFacts returns the nutrition panel.
+3. **Voice Search** — Speak the meal name ("two slices of pepperoni pizza") and a search returns matching nutrition data.
+4. **Text Search** — Type the meal name for the same lookup.
 
-FoodFinder follows the **minimal footprint principle**: all feature logic lives in dedicated `FoodFinder/` subdirectories, with fewer than 30 lines added to existing Loop files.
+Pick a result, adjust per-item portions if needed, and the carb total auto-populates the Add Carb Entry form. You hit Continue and Loop doses against it normally.
 
-### Directory Structure
+FoodFinder runs on a **bring-your-own API key** model. You configure your preferred AI provider (Claude, OpenAI, or Google Gemini) in Settings and your usage gets billed to your account. PowerPack does not proxy your photos or your data through any backend.
 
-```
-Loop/Loop/
-├── Views/FoodFinder/           (11 files — all UI components)
-├── Models/FoodFinder/          (3 files — data models)
-├── Services/FoodFinder/        (13 files — API clients, scanning, AI)
-├── View Models/FoodFinder/     (2 files — state management)
-├── Resources/FoodFinder/       (1 file — feature flags + settings keys)
-└── Documentation/FoodFinder/   (this file)
+## How to use it
 
-Loop/LoopTests/FoodFinder/      (3 files — unit tests)
-```
+### AI Camera
 
-### Integration Touchpoints
+1. **Open Add Carb Entry** in Loop. The FoodFinder bar appears at the top.
+2. **Tap the camera icon.**
+3. **Frame the meal** in the camera view. Hold steady; the AI does better with clear, well-lit photos.
+4. **Tap the shutter.** The AI runs (typically 3-8 seconds depending on provider).
+5. **Review the itemized breakdown.** Each item shows estimated portion, carbs, fat, protein, fiber, calories.
+6. **Adjust per-item portions** with the steppers if the AI over- or under-estimated portion size.
+7. **Delete items** the AI hallucinated (long-press → Remove) or that you didn't actually eat.
+8. **Tap Apply.** Carb total flows into the Add Carb Entry form.
 
-Only 3 existing Loop files are modified, totaling ~29 lines:
+### Barcode Scan
 
-| File | Lines Added | Purpose |
-|------|-------------|---------|
-| `CarbEntryView.swift` | ~9 | Inserts `FoodFinder_EntryPoint` view |
-| `SettingsView.swift` | ~16 | Adds FoodFinder Settings navigation link |
-| `FavoriteFoodDetailView.swift` | ~4 | Adds thumbnail display for favorites |
+1. **Tap the barcode icon** in the FoodFinder bar.
+2. **Point the camera** at the package barcode. It auto-detects.
+3. **Review the result** from OpenFoodFacts (carbs, serving size, full panel).
+4. **Adjust serving count** if you ate more or less than one serving.
+5. **Tap Apply.**
 
-### Key Files
+If a product isn't in OpenFoodFacts, the result screen offers a "Try AI Camera" fallback.
 
-| File | Role |
-|------|------|
-| `FoodFinder_FeatureFlags.swift` | Central on/off toggle and all UserDefaults keys |
-| `FoodFinder_EntryPoint.swift` | Self-contained carb entry UI (search, scan, results) |
-| `FoodFinder_SearchViewModel.swift` | All search/scan/AI state management |
-| `FoodFinder_SettingsView.swift` | AI provider configuration screen |
+### Voice Search
 
-## Enabling/Disabling
+1. **Tap the microphone icon.**
+2. **Speak the food** (e.g. "one cup of brown rice").
+3. **Pick a match** from the search results.
+4. **Adjust portions** with the stepper.
+5. **Tap Apply.**
 
-FoodFinder is controlled by a single toggle in `FoodFinder_FeatureFlags.swift`:
+### Text Search
 
-```swift
-FoodFinder_FeatureFlags.isEnabled  // returns Bool
-```
+Same as Voice but with the keyboard. Useful when you can't speak (meeting, restaurant) or when voice mishears you.
 
-When disabled, all FoodFinder UI is hidden and no FoodFinder code executes. The feature can be toggled via the `foodSearchEnabled` UserDefaults key.
+### Favorite Foods
 
-## AI Provider Configuration
+Any FoodFinder result can be saved as a Favorite from the result screen. Saved favorites display with a thumbnail in your Favorite Foods list, and re-applying a favorite is a single tap with no AI call.
 
-FoodFinder supports multiple AI providers for food photo analysis:
+## Familiar foods get smarter
 
-1. **Claude** (Anthropic) — Requires API key
-2. **OpenAI** (GPT-4 Vision) — Requires API key
-3. **Google Gemini** — Requires API key
-4. **BYO (Bring Your Own)** — Custom endpoint URL + API key
+After you've logged the same FoodFinder meal **two or more times**, a **Personal Insight** card appears on the result screen the next time you select it. The card shows your typical post-meal glucose response and suggests a tighter portion or pre-bolus timing based on your own history. This is the **Pre-Meal Advisor** running on your local DataLayer events. It's off by default and lives under Settings → LoopInsights → AI Features.
 
-Providers are configured in Settings > FoodFinder Settings. API keys are stored in UserDefaults with `foodFinder_` prefixed keys.
+## Location
 
-## Portability
+If you grant Location access, FoodFinder reverse-geocodes your current GPS coordinates to a place name (e.g. "Chipotle Mexican Grill, Brooklyn"). That place name is included in the AI prompt so the AI can refine its guess based on the restaurant's typical menu. Cuisine context turns out to matter — "burrito at Chipotle" produces a more accurate macro split than "burrito" in isolation.
 
-FoodFinder is designed for easy adoption into other Loop forks (Trio, IAPS, Tidepool Loop):
+Location is opt-in. Decline the prompt and FoodFinder works fine without it.
 
-- **No LoopKit submodule changes** — All code lives under the Loop/ submodule
-- **Self-contained feature flag** — Single file controls enable/disable
-- **Prefixed naming** — All files use `FoodFinder_` prefix to avoid naming conflicts
-- **Minimal touchpoints** — Only 3 files need small modifications in the host app
-- **Script-installable** — The `FoodFinder/` directories can be copied and the 3 touchpoints applied programmatically
+## Configuring it
 
-## Dependencies
+Settings → FoodFinder Settings:
 
-FoodFinder uses only Apple frameworks available on iOS:
+| Setting | Default | What it does |
+|---|---|---|
+| **Enable FoodFinder** | OFF | Master toggle. Off → no FoodFinder UI in Add Carb Entry. |
+| **AI Provider** | Claude | Choose Claude, OpenAI, Gemini, or BYO. |
+| **API Key** | (blank) | Pasted into iOS Keychain. Shared with LoopInsights. |
+| **Custom Endpoint URL** *(BYO only)* | (blank) | For self-hosted or alternate AI backends. |
+| **Use Location Context** | OFF | Asks for Location permission first time. Sends place name to AI prompt. |
+| **Allow Voice Input** | ON | Toggle off to hide the microphone button. |
+| **Allow Barcode Scanning** | ON | Toggle off to hide the barcode button. |
 
-- `Vision` — Barcode detection
-- `AVFoundation` — Camera access for scanning and AI analysis
-- `Speech` — Voice search recognition
-- `SwiftUI` / `UIKit` — User interface
+## API keys
 
-No third-party dependencies are required.
+You provide the key. PowerPack stores it in the iOS Keychain (not UserDefaults, not iCloud). The same Keychain entry is shared with LoopInsights so you only paste once.
 
-## Testing
+To get a key:
+- **Claude:** [console.anthropic.com](https://console.anthropic.com) → API Keys
+- **OpenAI:** [platform.openai.com](https://platform.openai.com) → API Keys
+- **Gemini:** [aistudio.google.com](https://aistudio.google.com) → Get API Key
 
-Unit tests are located in `LoopTests/FoodFinder/`:
+Typical cost per AI Camera analysis: **$0.005-$0.02** depending on provider and image size. A heavy user logging 60 photos a month pays well under $2/month.
 
-- `FoodFinder_OpenFoodFactsTests.swift` — API response parsing tests
-- `FoodFinder_BarcodeScannerTests.swift` — Barcode detection tests
-- `FoodFinder_VoiceSearchTests.swift` — Voice recognition tests
+## When the AI gets it wrong
+
+It will. We've shipped multiple bug-driven improvements (the late-April pizza-on-paper-menu OCR confusion is documented in MANIFESTO.md as a real example). General guidance:
+
+- **Adjust the portions before you Apply.** The AI's portion estimate is the largest source of error.
+- **Delete hallucinated items.** Sometimes the AI invents a side dish that's actually in the background. Long-press → Remove.
+- **Use barcode where possible.** OpenFoodFacts is exact for packaged foods.
+- **Save favorites for repeat meals.** A saved favorite has zero AI variance.
+- **Watch your glucose response.** If a particular kind of meal is consistently under-estimated, your typical correction pattern feeds back into Pre-Meal Advisor over time.
+
+## Privacy
+
+- **Your photos go to your chosen AI provider, not to PowerPack.** PowerPack has no servers in the AI request path.
+- **API keys live in the iOS Keychain** — same as Apple's password manager.
+- **Location is opt-in.** Reverse-geocoded place names are sent to the AI prompt only when Location Context is enabled.
+- **Barcode lookups go to OpenFoodFacts** — open public database, no account.
+- **Favorite Foods are local-only.** Saved favorites never leave the device.
+- **DataLayer ingestion is opt-in and gated separately.** FoodFinder broadcasts meal events on `NotificationCenter`, but DataLayer only records them if you've enabled both DataLayer and the Carbs & Meals consent category.
+
+## FAQ
+
+**Q: Can I use FoodFinder offline?**
+A: Barcode scan works offline only if the product is already in OpenFoodFacts' offline cache. AI Camera, Voice, and Text all require a network call to your chosen provider.
+
+**Q: Why isn't the carb count auto-applied?**
+A: You always tap Apply. By design — FoodFinder is a decision-support tool, not an auto-doser. You see the breakdown, you confirm, then Loop doses against the value you confirmed.
+
+**Q: Can I edit the AI's macro values manually?**
+A: Yes. Each row has steppers for portion. The carb total recalculates. Future versions may add per-item macro override.
+
+**Q: Does FoodFinder work without Loop's BolusPro feature?**
+A: Yes. They're independent. BolusPro reads FoodFinder's fat and protein when both are enabled, but FoodFinder works fine on its own.
+
+**Q: What happens if my AI provider returns garbage?**
+A: The result screen shows the raw AI response and an explanation. You can try a different provider, fall back to manual entry, or report the failure to the project.
+
+---
+
+*FoodFinder is part of Loop (AID) PowerPack. See [FoodFinder_DEVELOPER.md](FoodFinder_DEVELOPER.md) for architecture and developer notes.*
