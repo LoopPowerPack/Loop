@@ -26,10 +26,32 @@ final class GraphDetailViewModel: ObservableObject {
     /// avoid flooding HealthKit/DoseStore with overlapping queries.
     private let scrubThrottleInterval: TimeInterval = 0.15
 
+    /// Monotonic counter incremented on every reload. Each async load
+    /// captures the current value when it kicks off and only commits its
+    /// result if the counter is still equal at completion — late results
+    /// from earlier scrub positions are dropped instead of overwriting
+    /// the user's current position.
+    private var loadGeneration: Int = 0
+
+    /// Bucket size for snapping the scrub timestamp. CGM samples land every
+    /// 5 minutes, so re-fetching between sample boundaries shows the same
+    /// data and just causes visual churn. Round to the nearest 5-min mark
+    /// and skip reloads when the rounded value hasn't changed.
+    private let scrubBucketInterval: TimeInterval = 5 * 60
+
+    /// Last bucket the popup displayed. Used to no-op `update(for:)` when
+    /// the user is scrubbing within the same 5-min window.
+    private var lastBucketedDate: Date?
+
     init(date: Date, glucoseUnit: HKUnit, deviceManager: DeviceDataManager) {
         self.deviceManager = deviceManager
-        self.data = GraphDetailData(date: date, glucoseUnit: glucoseUnit)
-        loadData()
+        let t = date.timeIntervalSinceReferenceDate
+        let bucket: TimeInterval = 5 * 60
+        let initialDate = Date(timeIntervalSinceReferenceDate: (t / bucket).rounded() * bucket)
+        self.data = GraphDetailData(date: initialDate, glucoseUnit: glucoseUnit)
+        self.lastBucketedDate = initialDate
+        loadGeneration += 1
+        loadData(generation: loadGeneration, date: initialDate, unit: glucoseUnit)
     }
 
     /// Update to a new date and reload all data.
@@ -44,9 +66,19 @@ final class GraphDetailViewModel: ObservableObject {
     /// This replaces the previous pure-debounce behavior, which suppressed
     /// every reload until the user lifted their finger.
     func update(for date: Date) {
-        // Update the date display immediately so the timestamp tracks the
-        // user's finger even between data refreshes.
-        data.date = date
+        // Snap to the nearest 5-min mark — CGM samples land on this cadence
+        // so any finer resolution just re-fetches the same data and creates
+        // visual churn.
+        let bucketed = bucketed(date: date)
+
+        // If the user is still inside the same 5-min window as the last
+        // displayed bucket, do nothing — same data, same timestamp.
+        if let last = lastBucketedDate, last == bucketed { return }
+        lastBucketedDate = bucketed
+
+        // Update the displayed timestamp immediately so the user sees the
+        // popup jump to the new bucket as soon as they cross the boundary.
+        data.date = bucketed
 
         let now = Date()
         let elapsed = now.timeIntervalSince(lastReloadAt)
@@ -71,122 +103,168 @@ final class GraphDetailViewModel: ObservableObject {
         }
     }
 
-    /// Wipe stale values and re-fetch every series for `data.date`.
-    /// Clearing is intentional — the load* methods only set a value when
-    /// they find a sample near the new date, so without the wipe the
-    /// previous date's values would linger when no nearby sample exists.
+    /// Round a date to the nearest `scrubBucketInterval` boundary.
+    private func bucketed(date: Date) -> Date {
+        let t = date.timeIntervalSinceReferenceDate
+        let snapped = (t / scrubBucketInterval).rounded() * scrubBucketInterval
+        return Date(timeIntervalSinceReferenceDate: snapped)
+    }
+
+    /// Re-fetch every series for `data.date` without wiping the existing
+    /// values first. Wiping caused the popup to collapse to "just the
+    /// date" between reloads and re-expand as each async loader returned,
+    /// producing a visible flash on every scrub tick. Now the previous
+    /// values stay on screen, each loader overwrites its own field with
+    /// the new value (or nil if no nearby sample), and stale results from
+    /// prior scrub positions are dropped via the generation counter.
+    ///
+    /// All loaders write into a single `pendingData` accumulator and the
+    /// commit to the @Published `data` happens once per reload, so SwiftUI
+    /// re-renders the popup a single time per scrub tick rather than 8.
     private func reloadAtCurrentDate() {
+        loadGeneration += 1
+        let gen = loadGeneration
         let currentDate = data.date
-        data = GraphDetailData(date: currentDate, glucoseUnit: data.glucoseUnit)
-        loadData()
+        let unit = data.glucoseUnit
+        loadData(generation: gen, date: currentDate, unit: unit)
     }
 
     // MARK: - Data Loading
 
-    private func loadData() {
-        loadGlucose()
-        loadIOB()
-        loadCOB()
-        loadBolus()
-        loadBasalRate()
-        loadOverride()
-        loadAutoPreset()
-        loadHeartRate()
+    /// State accumulated across the 8 per-series loaders for a single reload.
+    /// Initialised from the currently-displayed values so that fields whose
+    /// loader hasn't completed yet keep showing their last value instead of
+    /// briefly blanking. Each loader sets its own field unconditionally —
+    /// to a value if a nearby sample is found, or nil if not — so values
+    /// don't linger after the user scrubs past the data that produced them.
+    private struct PendingLoad {
+        var data: GraphDetailData
+        var remaining: Int
+    }
+    private var pending: PendingLoad?
+
+    private func loadData(generation gen: Int, date: Date, unit: HKUnit) {
+        // Seed from current values so unfinished loaders show stale-but-near
+        // values instead of blanks. Each loader will overwrite its own field.
+        var seed = data
+        seed.date = date
+        seed.glucoseUnit = unit
+        pending = PendingLoad(data: seed, remaining: 8)
+
+        loadGlucose(generation: gen, date: date, unit: unit)
+        loadIOB(generation: gen, date: date)
+        loadCOB(generation: gen, date: date)
+        loadBolus(generation: gen, date: date)
+        loadBasalRate(generation: gen, date: date)
+        loadOverride(generation: gen, date: date)
+        loadAutoPreset(generation: gen, date: date)
+        loadHeartRate(generation: gen, date: date)
     }
 
-    private func loadGlucose() {
+    /// Commit one loader's result into the pending accumulator. When all 8
+    /// loaders for this generation have reported, publish the full snapshot
+    /// to `data` in a single SwiftUI update. Stale generations are dropped.
+    private func commit(generation gen: Int, _ mutate: @escaping (inout GraphDetailData) -> Void) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            guard gen == self.loadGeneration, var pending = self.pending else { return }
+            mutate(&pending.data)
+            pending.remaining -= 1
+            if pending.remaining <= 0 {
+                self.data = pending.data
+                self.pending = nil
+            } else {
+                self.pending = pending
+            }
+        }
+    }
+
+    private func loadGlucose(generation gen: Int, date: Date, unit: HKUnit) {
         let window: TimeInterval = 5 * 60 // ±5 minutes
-        let start = data.date.addingTimeInterval(-window)
-        let end = data.date.addingTimeInterval(window)
+        let start = date.addingTimeInterval(-window)
+        let end = date.addingTimeInterval(window)
 
         deviceManager.glucoseStore.getGlucoseSamples(start: start, end: end) { [weak self] result in
-            guard let self = self, case .success(let samples) = result else { return }
-            // Find closest sample to the target date
-            let closest = samples.min(by: {
-                abs($0.startDate.timeIntervalSince(self.data.date)) < abs($1.startDate.timeIntervalSince(self.data.date))
-            })
-            if let sample = closest {
-                let value = sample.quantity.doubleValue(for: self.data.glucoseUnit)
-                DispatchQueue.main.async {
-                    self.data.glucoseValue = value
+            guard let self = self else { return }
+            var value: Double? = nil
+            if case .success(let samples) = result {
+                let closest = samples.min(by: {
+                    abs($0.startDate.timeIntervalSince(date)) < abs($1.startDate.timeIntervalSince(date))
+                })
+                if let sample = closest {
+                    value = sample.quantity.doubleValue(for: unit)
                 }
             }
+            self.commit(generation: gen) { $0.glucoseValue = value }
         }
     }
 
-    private func loadIOB() {
-        let start = data.date.addingTimeInterval(-5 * 60)
-        let end = data.date.addingTimeInterval(5 * 60)
+    private func loadIOB(generation gen: Int, date: Date) {
+        let start = date.addingTimeInterval(-5 * 60)
+        let end = date.addingTimeInterval(5 * 60)
 
         deviceManager.doseStore.getInsulinOnBoardValues(start: start, end: end, basalDosingEnd: nil) { [weak self] result in
-            guard let self = self, case .success(let values) = result else { return }
-            let closest = values.min(by: {
-                abs($0.startDate.timeIntervalSince(self.data.date)) < abs($1.startDate.timeIntervalSince(self.data.date))
-            })
-            if let iob = closest {
-                DispatchQueue.main.async {
-                    self.data.insulinOnBoard = iob.value
-                }
+            guard let self = self else { return }
+            var value: Double? = nil
+            if case .success(let values) = result {
+                let closest = values.min(by: {
+                    abs($0.startDate.timeIntervalSince(date)) < abs($1.startDate.timeIntervalSince(date))
+                })
+                value = closest?.value
             }
+            self.commit(generation: gen) { $0.insulinOnBoard = value }
         }
     }
 
-    private func loadCOB() {
-        // COB requires counteraction effects from loop state, so we use a simpler approach
-        // Query carb entries near this time to estimate
+    private func loadCOB(generation gen: Int, date: Date) {
+        // COB only meaningful for the live present — historical COB would
+        // require replaying counteraction effects, which is more work than
+        // this popup justifies. Return the current value only when the
+        // scrubbed time is within the recent window.
+        guard abs(date.timeIntervalSinceNow) < 10 * 60 else {
+            self.commit(generation: gen) { $0.carbsOnBoard = nil }
+            return
+        }
         deviceManager.loopManager.getLoopState { [weak self] (_, state) in
             guard let self = self else { return }
-            if let cobValue = state.carbsOnBoard {
-                // This is current COB — for historical, we approximate from the values array
-                DispatchQueue.main.async {
-                    // Only show if the date is recent (within last few minutes)
-                    if abs(self.data.date.timeIntervalSinceNow) < 10 * 60 {
-                        self.data.carbsOnBoard = cobValue.quantity.doubleValue(for: .gram())
+            let value = state.carbsOnBoard?.quantity.doubleValue(for: .gram())
+            self.commit(generation: gen) { $0.carbsOnBoard = value }
+        }
+    }
+
+    private func loadBolus(generation gen: Int, date: Date) {
+        let window: TimeInterval = 15 * 60
+        let start = date.addingTimeInterval(-window)
+        let end = date.addingTimeInterval(window)
+
+        deviceManager.doseStore.getNormalizedDoseEntries(start: start, end: end) { [weak self] result in
+            guard let self = self else { return }
+            var value: (units: Double, date: Date)? = nil
+            if case .success(let entries) = result {
+                let boluses = entries.filter { $0.type == .bolus }
+                let closest = boluses.min(by: {
+                    abs($0.startDate.timeIntervalSince(date)) < abs($1.startDate.timeIntervalSince(date))
+                })
+                if let bolus = closest {
+                    let units = bolus.deliveredUnits ?? bolus.programmedUnits
+                    if units > 0 {
+                        value = (units: units, date: bolus.startDate)
                     }
                 }
             }
+            self.commit(generation: gen) { $0.recentBolus = value }
         }
     }
 
-    private func loadBolus() {
-        // Find boluses within ±15 minutes of the target time
-        let window: TimeInterval = 15 * 60
-        let start = data.date.addingTimeInterval(-window)
-        let end = data.date.addingTimeInterval(window)
-
-        deviceManager.doseStore.getNormalizedDoseEntries(start: start, end: end) { [weak self] result in
-            guard let self = self, case .success(let entries) = result else { return }
-            // Find the closest bolus
-            let boluses = entries.filter { $0.type == .bolus }
-            let closest = boluses.min(by: {
-                abs($0.startDate.timeIntervalSince(self.data.date)) < abs($1.startDate.timeIntervalSince(self.data.date))
-            })
-            if let bolus = closest, bolus.deliveredUnits ?? bolus.programmedUnits > 0 {
-                DispatchQueue.main.async {
-                    self.data.recentBolus = (
-                        units: bolus.deliveredUnits ?? bolus.programmedUnits,
-                        date: bolus.startDate
-                    )
-                }
-            }
-        }
+    private func loadBasalRate(generation gen: Int, date: Date) {
+        let rate = deviceManager.loopManager.settings.basalRateSchedule?.value(at: date)
+        commit(generation: gen) { $0.basalRate = rate }
     }
 
-    private func loadBasalRate() {
-        // Get the scheduled basal rate at this time
-        if let schedule = deviceManager.loopManager.settings.basalRateSchedule {
-            let rate = schedule.value(at: data.date)
-            DispatchQueue.main.async {
-                self.data.basalRate = rate
-            }
-        }
-    }
-
-    private func loadOverride() {
-        // Check if an override was active at this time
+    private func loadOverride(generation gen: Int, date: Date) {
+        var name: String? = nil
         if let override = deviceManager.loopManager.settings.scheduleOverride,
-           override.isActive(at: data.date) {
-            let name: String
+           override.isActive(at: date) {
             switch override.context {
             case .preset(let preset):
                 name = "\(preset.symbol) \(preset.name)"
@@ -197,18 +275,17 @@ final class GraphDetailViewModel: ObservableObject {
             case .custom:
                 name = "⚙️ Custom Override"
             }
-            DispatchQueue.main.async {
-                self.data.activePreset = name
-            }
         }
+        commit(generation: gen) { $0.activePreset = name }
     }
 
-    private func loadAutoPreset() {
-        // Read AutoPresets activity log directly from UserDefaults (no compile-time dependency)
+    private func loadAutoPreset(generation gen: Int, date: Date) {
+        var name: String? = nil
+        defer { commit(generation: gen) { $0.activeAutoPreset = name } }
+
         guard let defaults = UserDefaults(suiteName: "com.loopkit.Loop.AutoPresets"),
               let settingsData = defaults.data(forKey: "settings") else { return }
 
-        // Decode only the fields we need
         struct MinimalLogEntry: Decodable {
             let date: Date
             let event: String
@@ -225,7 +302,7 @@ final class GraphDetailViewModel: ObservableObject {
         var lastDeactivation: Date?
 
         for entry in entries.sorted(by: { $0.date < $1.date }) {
-            guard entry.date <= data.date else { break }
+            guard entry.date <= date else { break }
             if entry.event == "presetActivated" {
                 lastActivation = (entry.presetName ?? "Active", entry.date)
             } else if entry.event == "presetDeactivated" {
@@ -236,21 +313,22 @@ final class GraphDetailViewModel: ObservableObject {
         if let activation = lastActivation {
             let isStillActive = lastDeactivation == nil || lastDeactivation! < activation.date
             if isStillActive {
-                DispatchQueue.main.async {
-                    self.data.activeAutoPreset = activation.name
-                }
+                name = activation.name
             }
         }
     }
 
-    private func loadHeartRate() {
-        let healthStore = HKHealthStore()
-        guard HKHealthStore.isHealthDataAvailable() else { return }
+    private func loadHeartRate(generation gen: Int, date: Date) {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            commit(generation: gen) { $0.heartRate = nil }
+            return
+        }
 
+        let healthStore = HKHealthStore()
         let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate)!
         let window: TimeInterval = 5 * 60
-        let start = data.date.addingTimeInterval(-window)
-        let end = data.date.addingTimeInterval(window)
+        let start = date.addingTimeInterval(-window)
+        let end = date.addingTimeInterval(window)
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
 
         let query = HKSampleQuery(
@@ -259,20 +337,17 @@ final class GraphDetailViewModel: ObservableObject {
             limit: 10,
             sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]
         ) { [weak self] _, samples, _ in
-            guard let self = self,
-                  let samples = samples as? [HKQuantitySample],
-                  !samples.isEmpty else { return }
-
-            // Find closest to target date
-            let closest = samples.min(by: {
-                abs($0.startDate.timeIntervalSince(self.data.date)) < abs($1.startDate.timeIntervalSince(self.data.date))
-            })
-            if let hr = closest {
-                let bpm = hr.quantity.doubleValue(for: HKUnit(from: "count/min"))
-                DispatchQueue.main.async {
-                    self.data.heartRate = bpm
+            guard let self = self else { return }
+            var bpm: Double? = nil
+            if let samples = samples as? [HKQuantitySample] {
+                let closest = samples.min(by: {
+                    abs($0.startDate.timeIntervalSince(date)) < abs($1.startDate.timeIntervalSince(date))
+                })
+                if let hr = closest {
+                    bpm = hr.quantity.doubleValue(for: HKUnit(from: "count/min"))
                 }
             }
+            self.commit(generation: gen) { $0.heartRate = bpm }
         }
         healthStore.execute(query)
     }

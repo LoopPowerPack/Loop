@@ -55,6 +55,12 @@ final class StatusTableViewController: LoopChartsTableViewController {
     private var graphDetailDismissTap: UITapGestureRecognizer?
     private var graphDetailAutoFadeTimer: Timer?
 
+    /// Whether the popup is currently sitting above or below the user's
+    /// finger. Tracked so the placement logic can apply hysteresis and not
+    /// flip on tiny vertical touch wobbles. Cleared between scrub sessions.
+    private enum GraphDetailOrientation { case above, below }
+    private var graphDetailPopupOrientation: GraphDetailOrientation?
+
     override func viewDidLoad() {
 
         super.viewDidLoad()
@@ -2634,6 +2640,10 @@ extension StatusTableViewController: ServicesViewModelDelegate {
 
     private func updateGraphDetailPosition(touchX: CGFloat, touchY: CGFloat, in containerView: UIView) {
         let padding: CGFloat = 12
+        // Hysteresis band: a tiny finger wobble near the above/below boundary
+        // shouldn't flip the popup. We require the touch to move at least this
+        // many points past the flip threshold before changing orientation.
+        let flipHysteresis: CGFloat = 40
 
         // Use the actual popup size (let it layout first if needed)
         let popupView = graphDetailHostingController?.view
@@ -2644,11 +2654,38 @@ extension StatusTableViewController: ServicesViewModelDelegate {
         // Use window-level safe area insets — always reflects device cutout
         let safeInsets = containerView.window?.safeAreaInsets ?? containerView.safeAreaInsets
         let minY = safeInsets.top + padding
+        let maxY = containerView.bounds.height - popupHeight - max(padding, safeInsets.bottom)
 
-        // Try above the touch first; if it won't fit, go below
-        var popupY = touchY - padding - popupHeight
-        if popupY < minY {
-            popupY = touchY + padding
+        // Decide which side to render on, using hysteresis to suppress
+        // oscillation when the user's finger wobbles near the boundary.
+        let abovePopupY = touchY - padding - popupHeight    // top of popup when above
+        let belowPopupY = touchY + padding                  // top of popup when below
+        let aboveFitsTightly = abovePopupY >= minY
+        let aboveFitsWithRoom = abovePopupY >= minY + flipHysteresis
+        let belowFitsTightly = belowPopupY <= maxY
+
+        let orientation: GraphDetailOrientation
+        switch graphDetailPopupOrientation {
+        case .above:
+            // Stay above unless we'd clip the top safe area at all.
+            orientation = aboveFitsTightly ? .above : .below
+        case .below:
+            // Stay below unless there's clearly room above (more than the
+            // hysteresis band). Prevents flipping back on micro-movements.
+            orientation = aboveFitsWithRoom ? .above : .below
+        case nil:
+            // First placement of this scrub session: prefer above unless it
+            // clips, in which case fall to below.
+            orientation = aboveFitsTightly ? .above : .below
+        }
+        graphDetailPopupOrientation = orientation
+
+        var popupY: CGFloat
+        switch orientation {
+        case .above:
+            popupY = abovePopupY
+        case .below:
+            popupY = belowFitsTightly ? belowPopupY : min(belowPopupY, maxY)
         }
 
         // Place to the right of the touch
@@ -2683,6 +2720,7 @@ extension StatusTableViewController: ServicesViewModelDelegate {
         graphDetailViewModel = nil
         graphDetailLeadingConstraint = nil
         graphDetailTopConstraint = nil
+        graphDetailPopupOrientation = nil
 
         let cleanup = {
             hostingController.willMove(toParent: nil)
