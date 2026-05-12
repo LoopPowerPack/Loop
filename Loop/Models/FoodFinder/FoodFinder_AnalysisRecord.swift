@@ -55,4 +55,26 @@ struct FoodFinder_AnalysisRecord: Codable, Identifiable, Equatable {
         case barcode
         case mfpImport
     }
+
+    /// Returns a copy with a new UUID (and optional updated date). Used when
+    /// re-using a past analysis: dedup-by-ID would otherwise treat the new
+    /// meal as already archived and silently drop it.
+    func withFreshID(date: Date? = nil) -> FoodFinder_AnalysisRecord {
+        FoodFinder_AnalysisRecord(
+            id: UUID().uuidString,
+            name: name,
+            carbsGrams: carbsGrams,
+            foodType: foodType,
+            absorptionTime: absorptionTime,
+            analysisType: analysisType,
+            date: date ?? self.date,
+            thumbnailID: thumbnailID,
+            analysisResult: analysisResult,
+            originalAICarbs: originalAICarbs,
+            aiConfidencePercent: aiConfidencePercent,
+            latitude: latitude,
+            longitude: longitude,
+            locationName: locationName
+        )
+    }
 }

@@ -186,8 +186,13 @@ final class LoopInsights_MealInsightsViewModel: ObservableObject {
             self.mealEvents = events.sorted { $0.date > $1.date }
             self.foodPatterns = patterns
             self.isLoading = false
+
+            LoopInsights_FeatureFlags.log.info(
+                "loadMealData: archiveMeals=\(archiveMeals.count) glucoseEvents=\(glucoseEvents.count) carbEntries=\(carbEntries.count) bolusEntries=\(bolusEntries.count) → events=\(events.count)"
+            )
         } catch {
             self.isLoading = false
+            LoopInsights_FeatureFlags.log.error("loadMealData failed: \(String(describing: error))")
         }
     }
 

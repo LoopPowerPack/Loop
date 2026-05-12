@@ -92,9 +92,26 @@ enum FoodFinder_AnalysisHistoryStore {
 
     /// Called when the user confirms they are eating (continues to bolus).
     /// Archives the pending record to MealArchive and posts the notification.
+    /// Legacy entry point — falls back to the static `pendingRecord`. New
+    /// callers should pass the record explicitly via `confirmMeal(_:)` so the
+    /// archive cannot silently miss when the static var is nil.
     static func confirmMeal() {
         guard let record = pendingRecord else { return }
         pendingRecord = nil
+        archiveAndPostNotifications(record)
+    }
+
+    /// Archive a specific record. Use this when the caller already knows the
+    /// exact record the user is committing (e.g., CarbEntryViewModel holding
+    /// the FoodFinder analysis on its own state). Avoids the silent-miss
+    /// failure mode of the static `pendingRecord` handoff.
+    static func confirmMeal(_ record: FoodFinder_AnalysisRecord) {
+        // Clear the static fallback so a stale value can't double-archive.
+        pendingRecord = nil
+        archiveAndPostNotifications(record)
+    }
+
+    private static func archiveAndPostNotifications(_ record: FoodFinder_AnalysisRecord) {
         MealArchive.archive(record)
         NotificationCenter.default.post(
             name: .foodFinderMealLogged,

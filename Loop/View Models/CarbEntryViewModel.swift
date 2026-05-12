@@ -87,6 +87,16 @@ final class CarbEntryViewModel: ObservableObject {
     @Published var restoredAnalysisResult: AIFoodAnalysisResult?
     @Published var restoredThumbnailID: String?
 
+    /// The FoodFinder analysis record tied to the meal the user is about to
+    /// commit. Set when FoodFinder records an analysis, the user picks from
+    /// the Recent Analyses dropdown, or Re-use restores a past record. Read
+    /// by `continueToBolus()` and archived to `MealArchive` so that
+    /// LoopInsights' Recent Meals tab can surface the meal with its
+    /// thumbnail and nutritional context. Lives on the VM (not a global
+    /// static) so it cannot be clobbered by a parallel CarbEntryView or
+    /// lost on background → foreground.
+    var pendingFoodFinderRecord: FoodFinder_AnalysisRecord?
+
     /// BolusPro per-entry state (toggle, macros, slider position).
     /// Mutated by `BolusPro_CarbEntrySection` and the FoodFinder
     /// auto-populate hook. Consumed in `setBolusViewModel()` to build
@@ -207,8 +217,17 @@ final class CarbEntryViewModel: ObservableObject {
             return
         }
 
-        // User confirmed they're eating — archive to MealArchive for LoopInsights
-        FoodFinder_AnalysisHistoryStore.confirmMeal()
+        // User confirmed they're eating — archive to MealArchive for LoopInsights.
+        // The VM-scoped record covers all FoodFinder paths (AI, barcode, text
+        // search, Recent Analyses dropdown, Re-use). Static `confirmMeal()`
+        // stays as a fallback so any legacy caller that only set the static
+        // pendingRecord still gets archived.
+        if let record = pendingFoodFinderRecord {
+            FoodFinder_AnalysisHistoryStore.confirmMeal(record)
+            pendingFoodFinderRecord = nil
+        } else {
+            FoodFinder_AnalysisHistoryStore.confirmMeal()
+        }
 
         validateInputAndContinue()
     }
@@ -368,6 +387,10 @@ final class CarbEntryViewModel: ObservableObject {
         self.absorptionTimeWasEdited = true
         self.usesCustomFoodType = true
         self.restoredThumbnailID = record.thumbnailID
+        // Re-used record represents the meal the user is about to commit —
+        // archive it on Continue so it shows up in LoopInsights Recent Meals.
+        // Reissue the ID so dedup-by-ID treats it as a fresh meal.
+        self.pendingFoodFinderRecord = record.withFreshID(date: Date())
         // Set restoredAnalysisResult after a brief delay to ensure the view's
         // .onChange observer is registered and can trigger the full UI restore.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -395,6 +418,7 @@ final class CarbEntryViewModel: ObservableObject {
             self.usesCustomFoodType = false
             self.restoredAnalysisResult = nil
             self.restoredThumbnailID = nil
+            self.pendingFoodFinderRecord = nil
         } else {
             let record = analysisHistory[index]
             self.carbsQuantity = record.carbsGrams
@@ -404,6 +428,9 @@ final class CarbEntryViewModel: ObservableObject {
             self.usesCustomFoodType = true
             self.restoredThumbnailID = record.thumbnailID
             self.restoredAnalysisResult = record.analysisResult
+            // Treat the picked record as the meal-to-be-committed for archival.
+            // Reissue the ID so dedup-by-ID treats it as a fresh meal.
+            self.pendingFoodFinderRecord = record.withFreshID(date: Date())
         }
     }
 

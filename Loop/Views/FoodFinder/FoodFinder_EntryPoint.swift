@@ -72,6 +72,13 @@ struct FoodFinder_EntryPoint: View {
     /// `source` is one of `"ai"`, `"product"`, `"favorite"`.
     var onMacrosResolved: ((_ fat: Double, _ protein: Double, _ source: String) -> Void)? = nil
 
+    /// Fires whenever this entry point persists a new FoodFinder analysis to
+    /// the short-term history store (AI image, dictation, barcode, text search).
+    /// CarbEntryView uses this to hold the record on `CarbEntryViewModel` so
+    /// the meal can be archived to `MealArchive` on Continue without relying
+    /// on the static `FoodFinder_AnalysisHistoryStore.pendingRecord` handoff.
+    var onAnalysisRecorded: ((FoodFinder_AnalysisRecord) -> Void)? = nil
+
     // MARK: - Internal State
 
     @StateObject private var searchVM: FoodFinder_SearchViewModel
@@ -124,7 +131,8 @@ struct FoodFinder_EntryPoint: View {
         aiAbsorptionReasoning: Binding<String?> = .constant(nil),
         aiCarbRangeMin: Binding<Double?> = .constant(nil),
         aiCarbRangeMax: Binding<Double?> = .constant(nil),
-        onMacrosResolved: ((_ fat: Double, _ protein: Double, _ source: String) -> Void)? = nil
+        onMacrosResolved: ((_ fat: Double, _ protein: Double, _ source: String) -> Void)? = nil,
+        onAnalysisRecorded: ((FoodFinder_AnalysisRecord) -> Void)? = nil
     ) {
         self._carbsQuantity = carbsQuantity
         self._foodType = foodType
@@ -143,6 +151,7 @@ struct FoodFinder_EntryPoint: View {
         self._aiCarbRangeMin = aiCarbRangeMin
         self._aiCarbRangeMax = aiCarbRangeMax
         self.onMacrosResolved = onMacrosResolved
+        self.onAnalysisRecorded = onAnalysisRecorded
 
         let initialEnabled = UserDefaults.standard.foodFinderEnabled
         self._isFoodSearchEnabled = State(initialValue: initialEnabled)
@@ -1248,6 +1257,7 @@ extension FoodFinder_EntryPoint {
             locationName: locService.locationName
         )
         FoodFinder_AnalysisHistoryStore.record(record)
+        onAnalysisRecorded?(record)
     }
 
     /// Record a barcode or text-search product to the history store and MealArchive.
@@ -1338,6 +1348,7 @@ extension FoodFinder_EntryPoint {
                     locationName: locService.locationName
                 )
                 FoodFinder_AnalysisHistoryStore.record(record)
+                onAnalysisRecorded?(record)
             }
         }
     }

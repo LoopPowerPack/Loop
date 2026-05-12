@@ -157,6 +157,9 @@ struct CarbEntryView: View, HorizontalSizeClassOverride {
                     aiCarbRangeMax: $aiCarbRangeMax,
                     onMacrosResolved: { fat, protein, source in
                         viewModel.applyBolusProMacrosFromFoodFinder(fat: fat, protein: protein, source: source)
+                    },
+                    onAnalysisRecorded: { record in
+                        viewModel.pendingFoodFinderRecord = record
                     }
                 )
             }

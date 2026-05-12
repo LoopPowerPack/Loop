@@ -1741,7 +1741,19 @@ final class StatusTableViewController: LoopChartsTableViewController {
                                               let writer: LoopInsightsSettingsWriter = { mutate in
                                                   dm.loopManager.mutateSettings(mutate)
                                               }
-                                              return (dm.glucoseStore, dm.doseStore, dm.carbStore, dm.settingsManager, dm.displayGlucosePreference, writer)
+                                              // Build the tuple with protocol-typed elements so the
+                                              // `as? (GlucoseStoreProtocol, ..., LatestStoredSettingsProvider, ...)`
+                                              // cast at the receiving end succeeds. Returning concrete
+                                              // class types makes the wrapped Any's runtime tuple type
+                                              // `(GlucoseStore, DoseStore, CarbStore, SettingsManager, ...)`,
+                                              // which Swift's tuple-of-existentials cast won't accept —
+                                              // and the fallback drops LoopInsights into test-data mode
+                                              // with a nil data provider bridge.
+                                              let glucose: GlucoseStoreProtocol = dm.glucoseStore
+                                              let dose: DoseStoreProtocol = dm.doseStore
+                                              let carb: CarbStoreProtocol = dm.carbStore
+                                              let settings: LatestStoredSettingsProvider = dm.settingsManager
+                                              return (glucose, dose, carb, settings, dm.displayGlucosePreference, writer)
                                           },
                                           delegate: self)
         let hostingController = DismissibleHostingController(
@@ -2250,7 +2262,14 @@ extension StatusTableViewController {
             let writer: LoopInsightsSettingsWriter = { mutate in
                 dm.loopManager.mutateSettings(mutate)
             }
-            return (dm.glucoseStore, dm.doseStore, dm.carbStore, dm.settingsManager, writer)
+            // Must match the 6-tuple shape that LoopInsights_SettingsView casts to,
+            // and must be built with protocol-typed elements (see the other
+            // loopInsightsDataStores closure above for the why).
+            let glucose: GlucoseStoreProtocol = dm.glucoseStore
+            let dose: DoseStoreProtocol = dm.doseStore
+            let carb: CarbStoreProtocol = dm.carbStore
+            let settings: LatestStoredSettingsProvider = dm.settingsManager
+            return (glucose, dose, carb, settings, dm.displayGlucosePreference, writer)
         })
 
         let hostingController = UIHostingController(
