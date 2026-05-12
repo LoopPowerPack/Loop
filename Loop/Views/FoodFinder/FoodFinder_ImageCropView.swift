@@ -19,6 +19,11 @@ struct FoodFinder_ImageCropView: View {
     let image: UIImage
     let onCrop: (UIImage) -> Void
     let onSkip: (UIImage) -> Void
+    /// Incremented by the host (`AICameraView`) when the user taps the
+    /// "Reset Crop" toolbar button on the outer nav bar. We observe changes
+    /// and reset the crop rect — this lets the host's toolbar drive a
+    /// reset without us needing our own NavigationView/toolbar.
+    var resetTrigger: Int = 0
 
     // MARK: - Crop State
 
@@ -35,9 +40,8 @@ struct FoodFinder_ImageCropView: View {
     private let minCropSize: CGFloat = 60
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                Color.black.ignoresSafeArea()
+        ZStack {
+            Color.black.ignoresSafeArea()
 
                 VStack(spacing: 0) {
                     // Image + crop overlay
@@ -121,20 +125,10 @@ struct FoodFinder_ImageCropView: View {
                     .padding(.vertical, 12)
                     .background(Color(.systemBackground))
                 }
-            }
-            .navigationTitle("Crop Image")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(true)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Reset") {
-                        resetCropRect(in: imageFrame)
-                    }
-                    .foregroundColor(.blue)
-                }
-            }
         }
-        .navigationViewStyle(StackNavigationViewStyle())
+        .onChange(of: resetTrigger) { _ in
+            resetCropRect(in: imageFrame)
+        }
     }
 
     // MARK: - Image Fitting

@@ -10,6 +10,7 @@
 
 import SwiftUI
 import UIKit
+import Photos
 
 /// Camera view for AI-powered food analysis
 struct AICameraView: View {
@@ -27,6 +28,9 @@ struct AICameraView: View {
     @State private var telemetryLogs: [String] = []
     @State private var showTelemetry = false
     @State private var showingTips = false
+    /// Incremented when the user taps the "Reset Crop" toolbar button.
+    /// `FoodFinder_ImageCropView` observes the change and resets its crop rect.
+    @State private var cropResetCounter: Int = 0
 
     var body: some View {
         NavigationView {
@@ -63,40 +67,24 @@ struct AICameraView: View {
 
                         Spacer()
 
-                        // Action buttons pinned to bottom
-                        VStack(spacing: 12) {
-                            Button(action: {
-                                imageSourceType = .camera
-                                showingImagePicker = true
-                            }) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "sparkles")
-                                        .font(.system(size: 16, weight: .semibold))
-                                    Text("Take a Photo")
-                                        .fontWeight(.semibold)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(Color(red: 0.85, green: 0.25, blue: 0.85))
-                                .foregroundColor(.white)
-                                .cornerRadius(14)
+                        // Take a Photo — the library-thumbnail button lives
+                        // inside the camera overlay (mirrors iOS Camera app),
+                        // so no separate "Choose from Library" button here.
+                        Button(action: {
+                            imageSourceType = .camera
+                            showingImagePicker = true
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text("Take a Photo")
+                                    .fontWeight(.semibold)
                             }
-
-                            Button(action: {
-                                imageSourceType = .photoLibrary
-                                showingImagePicker = true
-                            }) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "photo.fill")
-                                    Text("Choose from Library")
-                                        .fontWeight(.medium)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(Color(.systemGray5))
-                                .foregroundColor(.primary)
-                                .cornerRadius(14)
-                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color(red: 0.85, green: 0.25, blue: 0.85))
+                            .foregroundColor(.white)
+                            .cornerRadius(14)
                         }
                         .padding(.horizontal)
                         .padding(.bottom, 30)
@@ -140,7 +128,10 @@ struct AICameraView: View {
                         }
                     }
                 } else {
-                    // Crop step — shown after image capture, before analysis
+                    // Crop step — shown after image capture, before analysis.
+                    // `resetTrigger` lets the outer toolbar's "Reset Crop"
+                    // button drive a reset so we don't need a nested
+                    // NavigationView inside the crop view.
                     FoodFinder_ImageCropView(
                         image: capturedImage!,
                         onCrop: { croppedImage in
@@ -148,11 +139,12 @@ struct AICameraView: View {
                         },
                         onSkip: { originalImage in
                             imageForAnalysis = originalImage
-                        }
+                        },
+                        resetTrigger: cropResetCounter
                     )
                 }
             }
-            .navigationTitle("AI Food Analysis")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
             .toolbar {
@@ -161,11 +153,34 @@ struct AICameraView: View {
                         onCancel()
                     }
                 }
+                // Conditional ToolbarItems via `if` inside `.toolbar` need
+                // iOS 16 (ToolbarContentBuilder.buildIf). Loop targets iOS
+                // 15, so keep one ToolbarItem and conditionally render the
+                // Button vs an EmptyView inside its body (regular
+                // ViewBuilder — supported on iOS 15).
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if capturedImage != nil && imageForAnalysis == nil {
+                        Button("Reset Crop") {
+                            cropResetCounter += 1
+                        }
+                    } else {
+                        EmptyView()
+                    }
+                }
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .sheet(isPresented: $showingImagePicker) {
-            ImagePicker(image: $capturedImage, sourceType: $imageSourceType)
+            ImagePicker(
+                image: $capturedImage,
+                sourceType: $imageSourceType,
+                onLibraryRequested: {
+                    // Tapping the camera overlay's thumbnail flips the source
+                    // type, triggering ImagePicker.updateUIViewController to
+                    // switch the active picker into library mode in place.
+                    imageSourceType = .photoLibrary
+                }
+            )
         }
         .alert("Analysis Error", isPresented: $showingErrorAlert) {
             // Credit/quota exhaustion errors - provide direct guidance
@@ -351,6 +366,11 @@ private struct CameraTipRow: View {
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
     @Binding var sourceType: UIImagePickerController.SourceType
+    /// Optional callback fired when the user taps the library-thumbnail
+    /// button in the camera overlay. The host flips `sourceType` to
+    /// `.photoLibrary`, which triggers `updateUIViewController` to switch
+    /// the picker's mode in place.
+    var onLibraryRequested: (() -> Void)? = nil
     @Environment(\.presentationMode) var presentationMode
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
@@ -412,8 +432,31 @@ struct ImagePicker: UIViewControllerRepresentable {
             // fires `didFinishPickingMediaWithInfo` directly — no review.
             picker.showsCameraControls = false
             if !(picker.cameraOverlayView is FoodFinder_CameraOverlay) {
-                picker.cameraOverlayView = FoodFinder_CameraOverlay(picker: picker)
+                let callback = onLibraryRequested
+                picker.cameraOverlayView = FoodFinder_CameraOverlay(
+                    picker: picker,
+                    onLibraryRequested: callback
+                )
             }
+            // Scale + translate the live camera preview so it fills the
+            // entire screen (matches iOS native Camera). Without this the
+            // preview is a 4:3 letterbox and the bottom of the screen is the
+            // picker's solid black background — a translucent overlay bar
+            // over that region just looks fully black, and the seam where
+            // the preview ends shows as a thin grey line.
+            //
+            // Scaling alone anchors at the view's center, so the scaled
+            // preview's bottom only reaches y ≈ screen.height -
+            // (screen.height - previewHeight)/2 — short of the screen edge.
+            // Add a downward translation of half that gap to push the bottom
+            // edge flush with the screen bottom. Captured image is
+            // unaffected (still the full 4:3 sensor frame).
+            let screen = UIScreen.main.bounds.size
+            let unscaledPreviewHeight = screen.width * 4.0 / 3.0
+            let scale = screen.height / unscaledPreviewHeight
+            let translateY = (screen.height - unscaledPreviewHeight) / 2
+            picker.cameraViewTransform = CGAffineTransform(translationX: 0, y: translateY)
+                .scaledBy(x: scale, y: scale)
         }
         // Note: do NOT touch `showsCameraControls` or `cameraOverlayView`
         // when sourceType != .camera — those properties are camera-only and
@@ -599,72 +642,219 @@ struct TelemetryWindow_Previews: PreviewProvider {
 /// `didFinishPickingMediaWithInfo` directly.
 final class FoodFinder_CameraOverlay: UIView {
     private weak var picker: UIImagePickerController?
+    /// Fires when the user taps the bottom-left library thumbnail. The host
+    /// SwiftUI view flips `imageSourceType` to `.photoLibrary`, which causes
+    /// `updateUIViewController` to re-configure the picker in library mode.
+    private let onLibraryRequested: (() -> Void)?
 
-    init(picker: UIImagePickerController) {
+    // Stored references so `layoutSubviews` can position each view against
+    // the overlay's current real bounds (not whatever bounds we guessed at
+    // init). The cameraOverlayView ends up sized to the picker's visible
+    // content area, which on a SwiftUI sheet is shorter than the full screen
+    // — positioning against UIScreen.main.bounds at init drove the bottom
+    // controls below the visible region.
+    private let bottomBar = UIView()
+    private let shutterButton = UIButton(type: .custom)
+    private let shutterInnerDisc = UIView()
+    private let cancelButton = UIButton(type: .system)
+    private let flipButton = UIButton(type: .custom)
+    private let libraryThumbnailButton = UIButton(type: .custom)
+
+    // Layout constants
+    private let shutterSize: CGFloat = 72
+    private let innerDiscSize: CGFloat = 56
+    private let shutterBottomInset: CGFloat = 175
+    private let topInset: CGFloat = 56
+    private let bottomControlsBottomPadding: CGFloat = 130
+    private let thumbSize: CGFloat = 48
+    private let flipSize: CGFloat = 44
+
+    init(picker: UIImagePickerController, onLibraryRequested: (() -> Void)? = nil) {
         self.picker = picker
-        // Explicit screen-sized frame — `cameraOverlayView` does not auto-size
-        // from .zero, and Auto Layout / safeAreaLayoutGuide are both
-        // unreliable on this view (they often resolve to coordinates outside
-        // the visible region). Use frame-based positioning instead.
-        let screen = UIScreen.main.bounds
-        super.init(frame: screen)
+        self.onLibraryRequested = onLibraryRequested
+        super.init(frame: UIScreen.main.bounds)
         autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        autoresizesSubviews = false
         backgroundColor = .clear
-        setupSubviews(in: screen)
+        buildSubviews()
+        loadLatestLibraryThumbnail()
     }
 
     required init?(coder: NSCoder) {
         fatalError("FoodFinder_CameraOverlay does not support NSCoder")
     }
 
-    private func setupSubviews(in bounds: CGRect) {
-        // Hardcoded layout constants. Bottom inset is generous (~95pt) so the
-        // shutter clears the home indicator on tall iPhones without needing
-        // safeAreaLayoutGuide (which is unreliable inside cameraOverlayView).
-        let shutterSize: CGFloat = 72
-        let innerDiscSize: CGFloat = 56
-        let bottomInset: CGFloat = 175
-        let topInset: CGFloat = 56     // clears the status bar / Dynamic Island
+    // Build (style + add) the subviews once. Positioning happens in
+    // `layoutSubviews` so it tracks the overlay's actual bounds.
+    private func buildSubviews() {
+        // Semi-transparent black bar behind the bottom controls — preview
+        // shows through faintly (iOS native Camera look). Added first so
+        // the buttons render on top.
+        bottomBar.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        bottomBar.isUserInteractionEnabled = false
+        addSubview(bottomBar)
 
-        // Shutter — center bottom, white ring + inner disc (iOS-native look).
-        let shutterX = (bounds.width - shutterSize) / 2
-        let shutterY = bounds.height - shutterSize - bottomInset
-        let shutter = UIButton(type: .custom)
-        shutter.frame = CGRect(x: shutterX, y: shutterY, width: shutterSize, height: shutterSize)
-        shutter.backgroundColor = .clear
-        shutter.layer.borderWidth = 4
-        shutter.layer.borderColor = UIColor.white.cgColor
-        shutter.layer.cornerRadius = shutterSize / 2
-        let discOffset = (shutterSize - innerDiscSize) / 2
-        let innerDisc = UIView(frame: CGRect(x: discOffset, y: discOffset, width: innerDiscSize, height: innerDiscSize))
-        innerDisc.backgroundColor = .white
-        innerDisc.layer.cornerRadius = innerDiscSize / 2
-        innerDisc.isUserInteractionEnabled = false
-        shutter.addSubview(innerDisc)
-        shutter.addTarget(self, action: #selector(shutterTapped), for: .touchUpInside)
-        addSubview(shutter)
+        // Shutter — white ring + inner disc.
+        shutterButton.backgroundColor = .clear
+        shutterButton.layer.borderWidth = 4
+        shutterButton.layer.borderColor = UIColor.white.cgColor
+        shutterButton.layer.cornerRadius = shutterSize / 2
+        shutterButton.addTarget(self, action: #selector(shutterTapped), for: .touchUpInside)
+        shutterInnerDisc.backgroundColor = .white
+        shutterInnerDisc.layer.cornerRadius = innerDiscSize / 2
+        shutterInnerDisc.isUserInteractionEnabled = false
+        shutterButton.addSubview(shutterInnerDisc)
+        addSubview(shutterButton)
 
         // Cancel — top-left below status bar.
-        let cancel = UIButton(type: .system)
-        cancel.frame = CGRect(x: 16, y: topInset, width: 80, height: 36)
-        cancel.contentHorizontalAlignment = .left
-        cancel.setTitle(NSLocalizedString("Cancel", comment: "Camera cancel button"), for: .normal)
-        cancel.setTitleColor(.white, for: .normal)
-        cancel.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
-        cancel.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
-        addSubview(cancel)
+        cancelButton.contentHorizontalAlignment = .left
+        cancelButton.setTitle(NSLocalizedString("Cancel", comment: "Camera cancel button"), for: .normal)
+        cancelButton.setTitleColor(.white, for: .normal)
+        cancelButton.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
+        cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
+        addSubview(cancelButton)
 
-        // Flip — bottom-right, vertically aligned with shutter center.
-        let flipSize: CGFloat = 44
-        let flipX = bounds.width - flipSize - 28
-        let flipY = shutterY + (shutterSize - flipSize) / 2
-        let flip = UIButton(type: .system)
-        flip.frame = CGRect(x: flipX, y: flipY, width: flipSize, height: flipSize)
-        flip.setImage(UIImage(systemName: "camera.rotate.fill"), for: .normal)
-        flip.tintColor = .white
-        flip.addTarget(self, action: #selector(flipTapped), for: .touchUpInside)
-        addSubview(flip)
+        // Flip — bottom-right, circular chip with circular-arrows icon.
+        flipButton.backgroundColor = UIColor.black.withAlphaComponent(0.35)
+        flipButton.layer.cornerRadius = flipSize / 2
+        let flipSymbolConfig = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
+        let flipIcon = UIImage(systemName: "arrow.triangle.2.circlepath", withConfiguration: flipSymbolConfig)?
+            .withTintColor(.white, renderingMode: .alwaysOriginal)
+        flipButton.setImage(flipIcon, for: .normal)
+        flipButton.addTarget(self, action: #selector(flipTapped), for: .touchUpInside)
+        addSubview(flipButton)
+
+        // Library thumbnail — bottom-left, mirrors iOS native Camera app.
+        // `.custom` (not `.system`) because `.system` would tint a real
+        // photo with `tintColor` and turn it into a solid white dot.
+        libraryThumbnailButton.backgroundColor = UIColor.black.withAlphaComponent(0.35)
+        let symbolConfig = UIImage.SymbolConfiguration(pointSize: 22, weight: .regular)
+        let fallbackIcon = UIImage(systemName: "photo.on.rectangle", withConfiguration: symbolConfig)?
+            .withTintColor(.white, renderingMode: .alwaysOriginal)
+        libraryThumbnailButton.setImage(fallbackIcon, for: .normal)
+        libraryThumbnailButton.imageView?.contentMode = .scaleAspectFit
+        libraryThumbnailButton.layer.cornerRadius = thumbSize / 2
+        libraryThumbnailButton.clipsToBounds = true
+        libraryThumbnailButton.addTarget(self, action: #selector(libraryTapped), for: .touchUpInside)
+        addSubview(libraryThumbnailButton)
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let bounds = self.bounds
+        guard bounds.width > 0 && bounds.height > 0 else { return }
+
+        // Bar height: from a little above the shutter to the bottom of the
+        // overlay. Anchoring to bounds.height means it always reaches the
+        // actual visible bottom, even when the picker shrinks the overlay.
+        let barHeight = shutterBottomInset + shutterSize / 2 + 60
+        bottomBar.frame = CGRect(
+            x: 0,
+            y: bounds.height - barHeight,
+            width: bounds.width,
+            height: barHeight
+        )
+
+        // Shutter — center horizontally, anchored to bounds.bottom.
+        let shutterX = (bounds.width - shutterSize) / 2
+        let shutterY = bounds.height - shutterSize - shutterBottomInset
+        shutterButton.frame = CGRect(x: shutterX, y: shutterY, width: shutterSize, height: shutterSize)
+        let discOffset = (shutterSize - innerDiscSize) / 2
+        shutterInnerDisc.frame = CGRect(x: discOffset, y: discOffset, width: innerDiscSize, height: innerDiscSize)
+
+        // Cancel — top-left below status bar.
+        cancelButton.frame = CGRect(x: 16, y: topInset, width: 80, height: 36)
+
+        // Flip + thumbnail — pinned to bounds.bottom so they always land
+        // inside the visible region.
+        let bottomControlY = bounds.height - bottomControlsBottomPadding
+        flipButton.frame = CGRect(
+            x: bounds.width - flipSize - 28,
+            y: bottomControlY - flipSize,
+            width: flipSize,
+            height: flipSize
+        )
+        libraryThumbnailButton.frame = CGRect(
+            x: 28,
+            y: bottomControlY - thumbSize,
+            width: thumbSize,
+            height: thumbSize
+        )
+    }
+
+    // MARK: - Library Thumbnail Fetch
+
+    /// Fetch the most recently created photo from the user's library and set
+    /// it as the thumbnail-button image. Requests Photos authorization on
+    /// first use; falls back to the generic SF Symbol if denied or empty.
+    private func loadLatestLibraryThumbnail() {
+        let apply: (UIImage?) -> Void = { [weak self] image in
+            guard let self = self, let image = image else { return }
+            DispatchQueue.main.async {
+                // `setBackgroundImage` fills the entire button frame, where
+                // `setImage` would just place the photo at its intrinsic
+                // size in the content area (most of the photo cropped off
+                // and reduced to a tiny tile). Clear the foreground SF
+                // Symbol so it doesn't overlay the photo. Use alwaysOriginal
+                // so the photo isn't recolored by tintColor.
+                self.libraryThumbnailButton.setImage(nil, for: .normal)
+                self.libraryThumbnailButton.setBackgroundImage(
+                    image.withRenderingMode(.alwaysOriginal),
+                    for: .normal
+                )
+            }
+        }
+
+        let status: PHAuthorizationStatus
+        if #available(iOS 14, *) {
+            status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        } else {
+            status = PHPhotoLibrary.authorizationStatus()
+        }
+
+        switch status {
+        case .authorized, .limited:
+            fetchLatestAsset(apply: apply)
+        case .notDetermined:
+            if #available(iOS 14, *) {
+                PHPhotoLibrary.requestAuthorization(for: .readWrite) { [weak self] newStatus in
+                    guard let self = self, newStatus == .authorized || newStatus == .limited else { return }
+                    self.fetchLatestAsset(apply: apply)
+                }
+            } else {
+                PHPhotoLibrary.requestAuthorization { [weak self] newStatus in
+                    guard let self = self, newStatus == .authorized else { return }
+                    self.fetchLatestAsset(apply: apply)
+                }
+            }
+        default:
+            // Denied / restricted — keep the generic icon. The tap still
+            // works because UIImagePickerController(.photoLibrary) doesn't
+            // require Photos authorization.
+            break
+        }
+    }
+
+    private func fetchLatestAsset(apply: @escaping (UIImage?) -> Void) {
+        let options = PHFetchOptions()
+        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        options.fetchLimit = 1
+        let result = PHAsset.fetchAssets(with: .image, options: options)
+        guard let asset = result.firstObject else { return }
+
+        let scale = UIScreen.main.scale
+        let target = CGSize(width: 48 * scale, height: 48 * scale)
+        let requestOpts = PHImageRequestOptions()
+        requestOpts.deliveryMode = .opportunistic
+        requestOpts.isNetworkAccessAllowed = false
+        requestOpts.resizeMode = .fast
+        PHImageManager.default().requestImage(
+            for: asset,
+            targetSize: target,
+            contentMode: .aspectFill,
+            options: requestOpts
+        ) { image, _ in
+            apply(image)
+        }
     }
 
     @objc private func shutterTapped() {
@@ -686,5 +876,9 @@ final class FoodFinder_CameraOverlay: UIView {
     @objc private func flipTapped() {
         guard let picker = picker else { return }
         picker.cameraDevice = (picker.cameraDevice == .rear) ? .front : .rear
+    }
+
+    @objc private func libraryTapped() {
+        onLibraryRequested?()
     }
 }

@@ -67,6 +67,8 @@
 	<string>AutoPresets reads your calendar to automatically activate presets before scheduled activities like gym sessions or runs. Calendar data stays on your device.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Camera is used to scan barcodes of devices.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>FoodFinder previews your most recent photo on the camera screen so you can pick a photo for analysis without leaving the capture view.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>FoodFinder uses your location to tag meals with where you ate. AutoPresets uses location to activate presets when you arrive at or leave saved places like the gym.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
