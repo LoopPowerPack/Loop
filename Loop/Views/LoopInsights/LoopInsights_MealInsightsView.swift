@@ -331,29 +331,36 @@ struct LoopInsights_MealInsightsView: View {
 
                     ForEach(viewModel.foodPatterns) { pattern in
                         foodPatternCard(pattern)
-                    }
-
-                    if let advice = viewModel.aiAdvice {
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "sparkles")
-                                    .foregroundColor(.accentColor)
-                                Text(NSLocalizedString("AI Advice", comment: "LoopInsights AI advice header"))
-                                    .font(.subheadline.weight(.semibold))
-                            }
-                            Text(advice)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                        // Render the AI Advice card immediately below the
+                        // selected pattern so it's visually anchored to the
+                        // food it describes, not stranded under the last row.
+                        if viewModel.selectedPattern?.id == pattern.id,
+                           let advice = viewModel.aiAdvice {
+                            aiAdviceCard(advice)
                         }
-                        .padding()
-                        .background(Color(.secondarySystemGroupedBackground))
-                        .cornerRadius(12)
-                        .padding(.horizontal)
                     }
                 }
             }
             .padding(.vertical)
         }
+    }
+
+    private func aiAdviceCard(_ advice: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .foregroundColor(.accentColor)
+                Text(NSLocalizedString("AI Advice", comment: "LoopInsights AI advice header"))
+                    .font(.subheadline.weight(.semibold))
+            }
+            Text(advice)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+        .padding(.horizontal)
     }
 
     private func foodPatternCard(_ pattern: LoopInsightsFoodResponsePattern) -> some View {
