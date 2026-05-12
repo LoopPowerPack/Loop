@@ -391,9 +391,11 @@ struct ImagePicker: UIViewControllerRepresentable {
 
         let wasCamera = picker.sourceType == .camera
 
-        // When leaving camera mode, clear overlays before we switch types (camera only API)
+        // When leaving camera mode, clear overlays and restore native chrome
+        // before we switch types (camera-only APIs).
         if wasCamera && desiredType != .camera {
             picker.cameraOverlayView = nil
+            picker.showsCameraControls = true
         }
 
         if picker.sourceType != desiredType {
@@ -403,9 +405,20 @@ struct ImagePicker: UIViewControllerRepresentable {
         picker.allowsEditing = false
 
         if desiredType == .camera {
-            picker.cameraOverlayView = nil
-            setupCameraButtonStyling(picker)
+            // Replace iOS's standard camera chrome (which forces a Retake /
+            // Use Photo review screen after capture) with our own overlay so
+            // the captured image goes straight to FoodFinder_ImageCropView.
+            // With `showsCameraControls = false`, `picker.takePicture()`
+            // fires `didFinishPickingMediaWithInfo` directly — no review.
+            picker.showsCameraControls = false
+            if !(picker.cameraOverlayView is FoodFinder_CameraOverlay) {
+                picker.cameraOverlayView = FoodFinder_CameraOverlay(picker: picker)
+            }
         }
+        // Note: do NOT touch `showsCameraControls` or `cameraOverlayView`
+        // when sourceType != .camera — those properties are camera-only and
+        // setting them on a `.photoLibrary` picker can freeze the system
+        // picker. The non-camera path uses the OS-native chrome unchanged.
     }
 
     private func setupCameraButtonStyling(_ picker: UIImagePickerController) {
@@ -575,3 +588,103 @@ struct TelemetryWindow_Previews: PreviewProvider {
     }
 }
 #endif
+
+// MARK: - Custom Camera Overlay
+
+/// Custom chrome that replaces UIImagePickerController's built-in camera
+/// controls. We use this so the captured photo bypasses iOS's mandatory
+/// "Retake / Use Photo" review screen and goes straight to the crop step.
+/// `UIImagePickerController.showsCameraControls = false` suppresses the
+/// review; calling `picker.takePicture()` from our shutter button fires
+/// `didFinishPickingMediaWithInfo` directly.
+final class FoodFinder_CameraOverlay: UIView {
+    private weak var picker: UIImagePickerController?
+
+    init(picker: UIImagePickerController) {
+        self.picker = picker
+        // Explicit screen-sized frame — `cameraOverlayView` does not auto-size
+        // from .zero, and Auto Layout / safeAreaLayoutGuide are both
+        // unreliable on this view (they often resolve to coordinates outside
+        // the visible region). Use frame-based positioning instead.
+        let screen = UIScreen.main.bounds
+        super.init(frame: screen)
+        autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        autoresizesSubviews = false
+        backgroundColor = .clear
+        setupSubviews(in: screen)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("FoodFinder_CameraOverlay does not support NSCoder")
+    }
+
+    private func setupSubviews(in bounds: CGRect) {
+        // Hardcoded layout constants. Bottom inset is generous (~95pt) so the
+        // shutter clears the home indicator on tall iPhones without needing
+        // safeAreaLayoutGuide (which is unreliable inside cameraOverlayView).
+        let shutterSize: CGFloat = 72
+        let innerDiscSize: CGFloat = 56
+        let bottomInset: CGFloat = 175
+        let topInset: CGFloat = 56     // clears the status bar / Dynamic Island
+
+        // Shutter — center bottom, white ring + inner disc (iOS-native look).
+        let shutterX = (bounds.width - shutterSize) / 2
+        let shutterY = bounds.height - shutterSize - bottomInset
+        let shutter = UIButton(type: .custom)
+        shutter.frame = CGRect(x: shutterX, y: shutterY, width: shutterSize, height: shutterSize)
+        shutter.backgroundColor = .clear
+        shutter.layer.borderWidth = 4
+        shutter.layer.borderColor = UIColor.white.cgColor
+        shutter.layer.cornerRadius = shutterSize / 2
+        let discOffset = (shutterSize - innerDiscSize) / 2
+        let innerDisc = UIView(frame: CGRect(x: discOffset, y: discOffset, width: innerDiscSize, height: innerDiscSize))
+        innerDisc.backgroundColor = .white
+        innerDisc.layer.cornerRadius = innerDiscSize / 2
+        innerDisc.isUserInteractionEnabled = false
+        shutter.addSubview(innerDisc)
+        shutter.addTarget(self, action: #selector(shutterTapped), for: .touchUpInside)
+        addSubview(shutter)
+
+        // Cancel — top-left below status bar.
+        let cancel = UIButton(type: .system)
+        cancel.frame = CGRect(x: 16, y: topInset, width: 80, height: 36)
+        cancel.contentHorizontalAlignment = .left
+        cancel.setTitle(NSLocalizedString("Cancel", comment: "Camera cancel button"), for: .normal)
+        cancel.setTitleColor(.white, for: .normal)
+        cancel.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
+        cancel.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
+        addSubview(cancel)
+
+        // Flip — bottom-right, vertically aligned with shutter center.
+        let flipSize: CGFloat = 44
+        let flipX = bounds.width - flipSize - 28
+        let flipY = shutterY + (shutterSize - flipSize) / 2
+        let flip = UIButton(type: .system)
+        flip.frame = CGRect(x: flipX, y: flipY, width: flipSize, height: flipSize)
+        flip.setImage(UIImage(systemName: "camera.rotate.fill"), for: .normal)
+        flip.tintColor = .white
+        flip.addTarget(self, action: #selector(flipTapped), for: .touchUpInside)
+        addSubview(flip)
+    }
+
+    @objc private func shutterTapped() {
+        // Light haptic to mirror the iOS native camera feel.
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        picker?.takePicture()
+    }
+
+    @objc private func cancelTapped() {
+        guard let picker = picker else { return }
+        // Notify delegate first so the SwiftUI host can clean up `@State`
+        // values (e.g. `showingImagePicker = false`), then dismiss the
+        // picker directly so we don't rely on the host's @Environment
+        // presentation mode being captured correctly inside a sheet.
+        picker.delegate?.imagePickerControllerDidCancel?(picker)
+        picker.dismiss(animated: true)
+    }
+
+    @objc private func flipTapped() {
+        guard let picker = picker else { return }
+        picker.cameraDevice = (picker.cameraDevice == .rear) ? .front : .rear
+    }
+}
