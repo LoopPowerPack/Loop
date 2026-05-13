@@ -298,6 +298,19 @@ class LoopAppManager: NSObject {
                 self?.deviceDataManager.loopManager.mutateSettings(mutate)
             }
         )
+        // Inject a closure that pulls the predicted glucose curve directly
+        // from LoopDataManager — race-free vs. the StatusExtensionContext
+        // bridge that the legacy snapshot path read from. Used by Meal
+        // Debrief prediction capture on .LoopDataUpdated.
+        coordinator.predictedGlucoseProvider = { [weak self] completion in
+            guard let self = self else {
+                completion(nil)
+                return
+            }
+            self.deviceDataManager.loopManager.getLoopState { _, state in
+                completion(state.predictedGlucoseIncludingPendingInsulin)
+            }
+        }
         if LoopInsights_FeatureFlags.backgroundMonitorEnabled {
             coordinator.startBackgroundMonitoring()
         }

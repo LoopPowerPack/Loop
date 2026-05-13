@@ -16,6 +16,13 @@ import HealthKit
 /// Accepts a mutation block that modifies LoopSettings in place.
 typealias LoopInsightsSettingsWriter = ((_ mutate: (inout LoopSettings) -> Void) -> Void)
 
+/// Closure type for fetching the *fresh* predicted glucose curve directly
+/// from LoopDataManager — bypasses the StatusExtensionContext bridge, which
+/// is updated asynchronously on .LoopDataUpdated and can be stale or nil
+/// at the exact moment our observer runs. Returns nil when LoopDataManager
+/// has no predicted glucose to report (e.g., settings just reset).
+typealias LoopInsightsPredictedGlucoseProvider = (@escaping ([PredictedGlucoseValue]?) -> Void) -> Void
+
 /// Orchestrates all LoopInsights services and manages the feature lifecycle.
 /// Created when LoopInsights is accessed from Settings. Owns the DataAggregator,
 /// SuggestionStore, and AIAnalysis service, and provides the data access bridge
@@ -48,39 +55,53 @@ final class LoopInsights_Coordinator: ObservableObject {
     /// mutation so a force-quit or crash between meal-logged and the next
     /// algorithm cycle doesn't lose the queued capture — the next launch's
     /// coordinator rehydrates and resumes waiting.
-    private var pendingSnapshotMealIDs: [(id: String, queuedAt: Date)] = []
+    ///
+    /// Each entry carries an `attempts` counter so we can retry across
+    /// multiple LoopDataUpdated cycles when the first attempt finds no
+    /// predicted glucose (the StatusExtensionContext bridge updates
+    /// asynchronously and can race our capture). After `maxSnapshotAttempts`
+    /// failures we drop the entry to keep the queue from growing forever.
+    private var pendingSnapshotMealIDs: [PendingSnapshotEntry] = []
 
-    private static let pendingSnapshotKey = "LoopInsights.pendingSnapshotMealIDs.v1"
+    private static let pendingSnapshotKey = "LoopInsights.pendingSnapshotMealIDs.v2"
     /// Drop entries older than this on rehydrate — if LoopDataUpdated hasn't
     /// fired in this window the meal is no longer "the most recent input"
     /// and a captured prediction wouldn't reflect it meaningfully.
     private static let pendingSnapshotTTL: TimeInterval = 60 * 60 // 1 hour
+    /// Give up after this many LoopDataUpdated cycles. ~5 attempts × ~5 min
+    /// cycle = 25 min, well beyond the typical first-cycle-with-carbs window.
+    private static let maxSnapshotAttempts = 5
+
+    /// Optional injected closure that returns LoopDataManager's authoritative
+    /// predicted glucose — bypasses the StatusExtensionContext race. Set by
+    /// `LoopAppManager` when the coordinator is created with real stores.
+    var predictedGlucoseProvider: LoopInsightsPredictedGlucoseProvider?
 
     /// Mutate `pendingSnapshotMealIDs` and persist the result atomically.
-    private func mutatePendingSnapshots(_ mutate: (inout [(id: String, queuedAt: Date)]) -> Void) {
+    private func mutatePendingSnapshots(_ mutate: (inout [PendingSnapshotEntry]) -> Void) {
         mutate(&pendingSnapshotMealIDs)
         Self.persistPendingSnapshots(pendingSnapshotMealIDs)
     }
 
-    private static func hydratePendingSnapshots() -> [(id: String, queuedAt: Date)] {
+    private static func hydratePendingSnapshots() -> [PendingSnapshotEntry] {
         guard let data = UserDefaults.standard.data(forKey: pendingSnapshotKey),
               let raw = try? JSONDecoder().decode([PendingSnapshotEntry].self, from: data) else {
             return []
         }
         let cutoff = Date().addingTimeInterval(-pendingSnapshotTTL)
-        return raw.filter { $0.queuedAt > cutoff }.map { (id: $0.id, queuedAt: $0.queuedAt) }
+        return raw.filter { $0.queuedAt > cutoff }
     }
 
-    private static func persistPendingSnapshots(_ entries: [(id: String, queuedAt: Date)]) {
-        let codable = entries.map { PendingSnapshotEntry(id: $0.id, queuedAt: $0.queuedAt) }
-        if let data = try? JSONEncoder().encode(codable) {
+    private static func persistPendingSnapshots(_ entries: [PendingSnapshotEntry]) {
+        if let data = try? JSONEncoder().encode(entries) {
             UserDefaults.standard.set(data, forKey: pendingSnapshotKey)
         }
     }
 
-    private struct PendingSnapshotEntry: Codable {
+    struct PendingSnapshotEntry: Codable {
         let id: String
         let queuedAt: Date
+        var attempts: Int = 0
     }
 
     // MARK: - Data Provider Bridge
@@ -212,37 +233,70 @@ final class LoopInsights_Coordinator: ObservableObject {
             queue: .main
         ) { [weak self] notification in
             guard let self, let mealRecordID = notification.userInfo?["recordID"] as? String else { return }
-            self.mutatePendingSnapshots { $0.append((id: mealRecordID, queuedAt: Date())) }
-
-            // Safety net: if LoopDataUpdated doesn't fire within 90 seconds, capture with
-            // whatever prediction data is available (better stale than nothing).
-            DispatchQueue.main.asyncAfter(deadline: .now() + 90) { [weak self] in
-                guard let self else { return }
-                var didRemove = false
-                self.mutatePendingSnapshots { list in
-                    if let idx = list.firstIndex(where: { $0.id == mealRecordID }) {
-                        list.remove(at: idx)
-                        didRemove = true
-                    }
-                }
-                if didRemove {
-                    self.mealDebriefService.capturePredictionSnapshot(mealRecordID: mealRecordID)
-                }
+            self.mutatePendingSnapshots { list in
+                // Replace any stale entry with the same id (e.g., from
+                // rehydrate) so the freshly-logged meal starts at attempt 0.
+                list.removeAll { $0.id == mealRecordID }
+                list.append(PendingSnapshotEntry(id: mealRecordID, queuedAt: Date()))
             }
         }
 
-        // Observe LoopDataUpdated to capture snapshots once predictions are fresh
+        // Observe LoopDataUpdated to capture snapshots once predictions are
+        // fresh. We try the LoopDataManager-backed provider first (race-free)
+        // and fall back to StatusExtensionContext; failures get re-queued
+        // with an incremented attempt count for the next cycle.
         loopDataUpdatedObserver = NotificationCenter.default.addObserver(
             forName: .LoopDataUpdated,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            guard let self, !self.pendingSnapshotMealIDs.isEmpty else { return }
-            let pending = self.pendingSnapshotMealIDs
-            self.mutatePendingSnapshots { $0.removeAll() }
-            for entry in pending {
-                self.mealDebriefService.capturePredictionSnapshot(mealRecordID: entry.id)
+            guard let self else { return }
+            self.tryCaptureAllPending()
+        }
+    }
+
+    /// Attempt to capture prediction snapshots for every entry currently in
+    /// the pending queue. Drains the in-memory queue, asks LoopDataManager
+    /// for a fresh predicted glucose curve, then for each entry tries the
+    /// fresh values first and falls back to `MealDebriefService`'s built-in
+    /// StatusExtensionContext source. Failed entries are re-queued (with
+    /// `attempts` incremented) up to `maxSnapshotAttempts` total tries.
+    private func tryCaptureAllPending() {
+        guard !pendingSnapshotMealIDs.isEmpty else { return }
+        let pending = pendingSnapshotMealIDs
+        mutatePendingSnapshots { $0.removeAll() }
+
+        // Ask LoopDataManager for the current predicted glucose curve. The
+        // callback fires on whatever queue LoopDataManager dispatches on;
+        // hop back to main before mutating our state.
+        let provider = self.predictedGlucoseProvider
+        let captureBlock: ([PredictedGlucoseValue]?) -> Void = { [weak self] freshValues in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                for entry in pending {
+                    let didStore = self.mealDebriefService.capturePredictionSnapshot(
+                        mealRecordID: entry.id,
+                        freshValues: freshValues
+                    )
+                    if didStore { continue }
+                    if entry.attempts + 1 >= Self.maxSnapshotAttempts {
+                        LoopInsights_FeatureFlags.log.info(
+                            "Giving up on prediction snapshot for meal \(entry.id) after \(entry.attempts + 1) attempts"
+                        )
+                        continue
+                    }
+                    // Re-queue with incremented attempts for the next cycle.
+                    var retry = entry
+                    retry.attempts += 1
+                    self.mutatePendingSnapshots { $0.append(retry) }
+                }
             }
+        }
+
+        if let provider = provider {
+            provider(captureBlock)
+        } else {
+            captureBlock(nil) // No provider — capture will fall back to StatusExtensionContext
         }
     }
 

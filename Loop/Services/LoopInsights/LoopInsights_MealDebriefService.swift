@@ -11,6 +11,7 @@
 
 import Foundation
 import HealthKit
+import LoopKit
 import os.log
 
 /// Captures Loop's predicted glucose at meal time, then later generates
@@ -23,21 +24,61 @@ final class LoopInsights_MealDebriefService {
 
     // MARK: - Prediction Capture
 
-    /// Called when `.foodFinderMealLogged` fires. Reads the current predicted glucose
-    /// from StatusExtensionContext and persists it alongside the meal record ID.
-    func capturePredictionSnapshot(mealRecordID: String) {
-        guard LoopInsights_FeatureFlags.mealDebriefEnabled else { return }
+    /// Called when `.foodFinderMealLogged` fires. Persists the current predicted
+    /// glucose curve alongside the meal record ID.
+    ///
+    /// Two sources, in order of preference:
+    /// 1. `freshValues` — pulled directly from LoopDataManager by the
+    ///    coordinator just before this call. Race-free.
+    /// 2. `UserDefaults.appGroup?.statusExtensionContext.predictedGlucose` —
+    ///    the legacy bridge. Updated asynchronously on .LoopDataUpdated and
+    ///    therefore can be stale or nil at the moment we'd otherwise capture.
+    ///
+    /// Returns `true` if a snapshot was actually stored. The coordinator
+    /// uses this to decide whether to re-queue the meal for another attempt
+    /// on the next LoopDataUpdated cycle.
+    @discardableResult
+    func capturePredictionSnapshot(mealRecordID: String, freshValues: [PredictedGlucoseValue]? = nil) -> Bool {
+        guard LoopInsights_FeatureFlags.mealDebriefEnabled else { return false }
 
+        // Already captured for this meal? Treat as success so the coordinator
+        // doesn't keep retrying. (append() is also dedup'd by mealRecordID
+        // but we'd rather not log every duplicate attempt.)
+        if LoopInsights_PredictionSnapshotStore.snapshot(forMealID: mealRecordID) != nil {
+            return true
+        }
+
+        // Source 1: direct from LoopDataManager.
+        if let values = freshValues, values.count > 1 {
+            let mgdl = HKUnit.milligramsPerDeciliter
+            let valuesArr = values.map { $0.quantity.doubleValue(for: mgdl) }
+            let first = values[0]
+            let interval = values[1].startDate.timeIntervalSince(values[0].startDate)
+            let snapshot = LoopInsights_PredictionSnapshot(
+                id: mealRecordID,
+                capturedAt: Date(),
+                mealRecordID: mealRecordID,
+                predictedValues: valuesArr,
+                intervalSeconds: interval,
+                startDate: first.startDate,
+                preMealGlucose: first.quantity.doubleValue(for: mgdl)
+            )
+            LoopInsights_PredictionSnapshotStore.append(snapshot)
+            log.info("Captured prediction snapshot (fresh) for meal \(mealRecordID): \(valuesArr.count) points, pre-meal \(String(format: "%.0f", snapshot.preMealGlucose)) mg/dL")
+            return true
+        }
+
+        // Source 2: StatusExtensionContext fallback.
         guard let statusCtx = UserDefaults.appGroup?.statusExtensionContext,
               let predicted = statusCtx.predictedGlucose else {
-            log.info("No predicted glucose available for snapshot (mealID: \(mealRecordID))")
-            return
+            log.info("No predicted glucose available for snapshot (mealID: \(mealRecordID)) — will retry on next LoopDataUpdated")
+            return false
         }
 
         let samples = predicted.samples
         guard let first = samples.first else {
-            log.info("Empty predicted glucose samples for snapshot (mealID: \(mealRecordID))")
-            return
+            log.info("Empty predicted glucose samples for snapshot (mealID: \(mealRecordID)) — will retry on next LoopDataUpdated")
+            return false
         }
 
         let snapshot = LoopInsights_PredictionSnapshot(
@@ -51,7 +92,8 @@ final class LoopInsights_MealDebriefService {
         )
 
         LoopInsights_PredictionSnapshotStore.append(snapshot)
-        log.info("Captured prediction snapshot for meal \(mealRecordID): \(predicted.values.count) points, pre-meal \(String(format: "%.0f", first.value)) mg/dL")
+        log.info("Captured prediction snapshot (status-ctx) for meal \(mealRecordID): \(predicted.values.count) points, pre-meal \(String(format: "%.0f", first.value)) mg/dL")
+        return true
     }
 
     // MARK: - Debrief Generation
