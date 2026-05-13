@@ -278,10 +278,15 @@ class LoopAppManager: NSObject {
     }
 
     private func startLoopInsightsMonitorIfNeeded() {
-        guard LoopInsights_FeatureFlags.isEnabled,
-              LoopInsights_FeatureFlags.backgroundMonitorEnabled else {
-            return
-        }
+        // The coordinator is always created when LoopInsights is enabled —
+        // independent of `backgroundMonitorEnabled`. Its `observeMealLogged()`
+        // is the *only* always-on path that captures Meal Debrief prediction
+        // snapshots when the user logs a FoodFinder meal. If we only created
+        // the coordinator when background monitoring was on, a meal logged
+        // before the user ever opened LoopInsights Settings would fire its
+        // `.foodFinderMealLogged` notification into the void and that meal
+        // could never get a debrief.
+        guard LoopInsights_FeatureFlags.isEnabled else { return }
 
         let coordinator = LoopInsights_Coordinator(
             glucoseStore: deviceDataManager.glucoseStore,
@@ -293,7 +298,9 @@ class LoopAppManager: NSObject {
                 self?.deviceDataManager.loopManager.mutateSettings(mutate)
             }
         )
-        coordinator.startBackgroundMonitoring()
+        if LoopInsights_FeatureFlags.backgroundMonitorEnabled {
+            coordinator.startBackgroundMonitoring()
+        }
         loopInsightsCoordinator = coordinator
     }
 

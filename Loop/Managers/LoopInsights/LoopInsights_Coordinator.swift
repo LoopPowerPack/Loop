@@ -43,8 +43,45 @@ final class LoopInsights_Coordinator: ObservableObject {
     /// Observation token for LoopDataUpdated (deferred snapshot capture)
     private var loopDataUpdatedObserver: NSObjectProtocol?
 
-    /// Meal record IDs awaiting the next LoopDataUpdated to capture prediction snapshots
+    /// Meal record IDs awaiting the next LoopDataUpdated to capture prediction
+    /// snapshots. In-memory for fast read; mirrored to UserDefaults on every
+    /// mutation so a force-quit or crash between meal-logged and the next
+    /// algorithm cycle doesn't lose the queued capture — the next launch's
+    /// coordinator rehydrates and resumes waiting.
     private var pendingSnapshotMealIDs: [(id: String, queuedAt: Date)] = []
+
+    private static let pendingSnapshotKey = "LoopInsights.pendingSnapshotMealIDs.v1"
+    /// Drop entries older than this on rehydrate — if LoopDataUpdated hasn't
+    /// fired in this window the meal is no longer "the most recent input"
+    /// and a captured prediction wouldn't reflect it meaningfully.
+    private static let pendingSnapshotTTL: TimeInterval = 60 * 60 // 1 hour
+
+    /// Mutate `pendingSnapshotMealIDs` and persist the result atomically.
+    private func mutatePendingSnapshots(_ mutate: (inout [(id: String, queuedAt: Date)]) -> Void) {
+        mutate(&pendingSnapshotMealIDs)
+        Self.persistPendingSnapshots(pendingSnapshotMealIDs)
+    }
+
+    private static func hydratePendingSnapshots() -> [(id: String, queuedAt: Date)] {
+        guard let data = UserDefaults.standard.data(forKey: pendingSnapshotKey),
+              let raw = try? JSONDecoder().decode([PendingSnapshotEntry].self, from: data) else {
+            return []
+        }
+        let cutoff = Date().addingTimeInterval(-pendingSnapshotTTL)
+        return raw.filter { $0.queuedAt > cutoff }.map { (id: $0.id, queuedAt: $0.queuedAt) }
+    }
+
+    private static func persistPendingSnapshots(_ entries: [(id: String, queuedAt: Date)]) {
+        let codable = entries.map { PendingSnapshotEntry(id: $0.id, queuedAt: $0.queuedAt) }
+        if let data = try? JSONEncoder().encode(codable) {
+            UserDefaults.standard.set(data, forKey: pendingSnapshotKey)
+        }
+    }
+
+    private struct PendingSnapshotEntry: Codable {
+        let id: String
+        let queuedAt: Date
+    }
 
     // MARK: - Data Provider Bridge
 
@@ -163,20 +200,32 @@ final class LoopInsights_Coordinator: ObservableObject {
     /// that fires after the next Loop algorithm cycle (~5 min). Capturing immediately would
     /// read stale predictions that don't account for the just-entered carbs.
     private func observeMealLogged() {
+        // Rehydrate any pending captures left behind by a previous launch
+        // (force-quit/crash between meal-logged and the next algorithm
+        // cycle). Stale entries past `pendingSnapshotTTL` are dropped inside
+        // `hydratePendingSnapshots`.
+        pendingSnapshotMealIDs = Self.hydratePendingSnapshots()
+
         mealLoggedObserver = NotificationCenter.default.addObserver(
             forName: .foodFinderMealLogged,
             object: nil,
             queue: .main
         ) { [weak self] notification in
             guard let self, let mealRecordID = notification.userInfo?["recordID"] as? String else { return }
-            self.pendingSnapshotMealIDs.append((id: mealRecordID, queuedAt: Date()))
+            self.mutatePendingSnapshots { $0.append((id: mealRecordID, queuedAt: Date())) }
 
             // Safety net: if LoopDataUpdated doesn't fire within 90 seconds, capture with
             // whatever prediction data is available (better stale than nothing).
             DispatchQueue.main.asyncAfter(deadline: .now() + 90) { [weak self] in
                 guard let self else { return }
-                if let idx = self.pendingSnapshotMealIDs.firstIndex(where: { $0.id == mealRecordID }) {
-                    self.pendingSnapshotMealIDs.remove(at: idx)
+                var didRemove = false
+                self.mutatePendingSnapshots { list in
+                    if let idx = list.firstIndex(where: { $0.id == mealRecordID }) {
+                        list.remove(at: idx)
+                        didRemove = true
+                    }
+                }
+                if didRemove {
                     self.mealDebriefService.capturePredictionSnapshot(mealRecordID: mealRecordID)
                 }
             }
@@ -190,7 +239,7 @@ final class LoopInsights_Coordinator: ObservableObject {
         ) { [weak self] _ in
             guard let self, !self.pendingSnapshotMealIDs.isEmpty else { return }
             let pending = self.pendingSnapshotMealIDs
-            self.pendingSnapshotMealIDs.removeAll()
+            self.mutatePendingSnapshots { $0.removeAll() }
             for entry in pending {
                 self.mealDebriefService.capturePredictionSnapshot(mealRecordID: entry.id)
             }

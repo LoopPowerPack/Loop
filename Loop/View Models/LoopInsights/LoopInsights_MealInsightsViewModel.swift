@@ -81,12 +81,23 @@ final class LoopInsights_MealInsightsViewModel: ObservableObject {
             for record in archiveMeals {
                 let result = record.analysisResult
 
-                // Find the glucose event that matches this archive record
-                let matchIdx = glucoseEvents.indices.first { idx in
-                    !consumedGlucoseEventIndices.contains(idx) &&
-                    abs(glucoseEvents[idx].date.timeIntervalSince(record.date)) < 300 &&
-                    abs(glucoseEvents[idx].carbs - record.carbsGrams) < 1
+                // Two-stage match. The archive's `date` is captured at the
+                // moment the user taps Continue, but the CarbStore entry's
+                // startDate/carbs can drift if the user edits the time
+                // picker or the carb slider between FoodFinder analysis and
+                // Continue. The tight stage prevents wrong-meal collisions
+                // when meals are close in time; the wide stage rescues meals
+                // where the user nudged carbs or shifted the time within a
+                // realistic window.
+                func findGlucoseMatch(dateTolerance: TimeInterval, carbTolerance: Double) -> Int? {
+                    glucoseEvents.indices.first { idx in
+                        !consumedGlucoseEventIndices.contains(idx) &&
+                        abs(glucoseEvents[idx].date.timeIntervalSince(record.date)) < dateTolerance &&
+                        abs(glucoseEvents[idx].carbs - record.carbsGrams) < carbTolerance
+                    }
                 }
+                let matchIdx = findGlucoseMatch(dateTolerance: 300, carbTolerance: 1)   // ±5 min, ±1g
+                    ?? findGlucoseMatch(dateTolerance: 900, carbTolerance: 5)            // ±15 min, ±5g
 
                 let dose = Self.matchBoluses(for: record.date, from: bolusEntries)
 
@@ -165,9 +176,12 @@ final class LoopInsights_MealInsightsViewModel: ObservableObject {
                 let entryCarbs = entry.quantity.doubleValue(for: .gram())
                 guard entryCarbs > 0 else { continue }
 
+                // Match the wider window used above so a CarbStore entry that
+                // already matched an archive record via the forgiving stage
+                // doesn't get re-added as a duplicate row.
                 let alreadyRepresented = events.contains { event in
-                    abs(event.date.timeIntervalSince(entryDate)) < 300 &&
-                    abs(event.carbs - entryCarbs) < 1
+                    abs(event.date.timeIntervalSince(entryDate)) < 900 &&   // ±15 min
+                    abs(event.carbs - entryCarbs) < 5                       // ±5 g
                 }
                 guard !alreadyRepresented else { continue }
 
