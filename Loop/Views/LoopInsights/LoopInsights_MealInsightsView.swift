@@ -79,9 +79,11 @@ struct LoopInsights_MealInsightsView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        // Color key
+                // List (not ScrollView) for native swipeActions support.
+                // `.plain` style + clear row backgrounds keep the card look
+                // we had before while giving us the swipe behavior.
+                List {
+                    Section {
                         let riseThresholdStr = coordinator.unitContext.formatMgdl(50)
                         HStack(spacing: 16) {
                             HStack(spacing: 4) {
@@ -98,14 +100,58 @@ struct LoopInsights_MealInsightsView: View {
                             }
                             Spacer()
                         }
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                        .listRowSeparator(.hidden)
+                    }
 
+                    Section {
                         ForEach(viewModel.mealEvents) { event in
                             mealCard(event)
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                                .listRowSeparator(.hidden)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        viewModel.pendingDeleteEvent = event
+                                    } label: {
+                                        Label(NSLocalizedString("Delete", comment: "Meal Insights swipe-to-delete"), systemImage: "trash")
+                                    }
+                                }
                         }
                     }
-                    .padding()
                 }
+                .listStyle(.plain)
+                .hiddenListBackgroundIfAvailable()
             }
+        }
+        .alert(
+            NSLocalizedString("Delete meal?", comment: "Meal Insights delete confirmation title"),
+            isPresented: Binding(
+                get: { viewModel.pendingDeleteEvent != nil },
+                set: { if !$0 { viewModel.pendingDeleteEvent = nil } }
+            ),
+            presenting: viewModel.pendingDeleteEvent
+        ) { event in
+            Button(NSLocalizedString("Delete", comment: "Meal Insights delete confirm"), role: .destructive) {
+                let target = event
+                Task { await viewModel.deleteMeal(target) }
+            }
+            Button(NSLocalizedString("Cancel", comment: "Meal Insights delete cancel"), role: .cancel) {}
+        } message: { _ in
+            Text(NSLocalizedString("This permanently removes the carb entry from Loop and all analysis data for this meal. Loop's next prediction will recalculate without these carbs.", comment: "Meal Insights delete warning"))
+        }
+        .alert(
+            NSLocalizedString("Couldn't delete carb entry", comment: "Meal Insights delete error title"),
+            isPresented: Binding(
+                get: { viewModel.deleteError != nil },
+                set: { if !$0 { viewModel.deleteError = nil } }
+            ),
+            presenting: viewModel.deleteError
+        ) { _ in
+            Button(NSLocalizedString("OK", comment: "")) {}
+        } message: { message in
+            Text(message)
         }
     }
 
@@ -441,4 +487,17 @@ struct LoopInsights_MealInsightsView: View {
         f.timeStyle = .short
         return f
     }()
+}
+
+private extension View {
+    /// `scrollContentBackground` is iOS 16+. Loop targets iOS 15, so we gate
+    /// the call and let iOS 15 fall back to the default List background.
+    @ViewBuilder
+    func hiddenListBackgroundIfAvailable() -> some View {
+        if #available(iOS 16.0, *) {
+            self.scrollContentBackground(.hidden)
+        } else {
+            self
+        }
+    }
 }

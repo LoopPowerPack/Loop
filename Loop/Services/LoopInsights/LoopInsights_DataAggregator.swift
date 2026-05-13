@@ -15,6 +15,11 @@ import HealthKit
 protocol LoopInsightsDataProviderProtocol: AnyObject {
     func getGlucoseSamples(start: Date, end: Date) async throws -> [StoredGlucoseSample]
     func getCarbEntries(start: Date, end: Date) async throws -> [StoredCarbEntry]
+    /// Delete a single carb entry. Used by Meal Insights swipe-to-delete to
+    /// also remove the underlying CarbStore record (not just the LoopInsights
+    /// metadata) so Loop's algorithm forgets the carbs. Returns true if
+    /// anything was removed.
+    func deleteCarbEntry(_ entry: StoredCarbEntry) async throws -> Bool
     func getNormalizedDoseEntries(start: Date, end: Date) async throws -> [DoseEntry]
     func getLatestStoredSettings() -> StoredSettings
 }

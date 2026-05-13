@@ -830,6 +830,16 @@ final class LoopInsights_Coordinator: ObservableObject {
         return try await bridge.getCarbEntries(start: start, end: end)
     }
 
+    /// Delete a carb entry from Loop's CarbStore (HealthKit). Removes it
+    /// from carb absorption history so subsequent algorithm cycles forget
+    /// the carbs. Used by Meal Insights swipe-to-delete.
+    func deleteCarbEntry(_ entry: StoredCarbEntry) async throws -> Bool {
+        guard let bridge = dataProviderBridge else {
+            throw LoopInsightsError.insufficientData("Data provider not available")
+        }
+        return try await bridge.deleteCarbEntry(entry)
+    }
+
     // MARK: - Live Loop Status for Chat
 
     /// Build a live status context string for the chat, pulling IOB, COB, active
@@ -1141,6 +1151,22 @@ private final class DataProviderBridge: LoopInsightsDataProviderProtocol {
                 switch result {
                 case .success(let entries):
                     continuation.resume(returning: entries)
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    func deleteCarbEntry(_ entry: StoredCarbEntry) async throws -> Bool {
+        guard let store = carbStore as? CarbStore else {
+            throw LoopInsightsError.insufficientData("CarbStore not available")
+        }
+        return try await withCheckedThrowingContinuation { continuation in
+            store.deleteCarbEntry(entry) { result in
+                switch result {
+                case .success(let removed):
+                    continuation.resume(returning: removed)
                 case .failure(let error):
                     continuation.resume(throwing: error)
                 }

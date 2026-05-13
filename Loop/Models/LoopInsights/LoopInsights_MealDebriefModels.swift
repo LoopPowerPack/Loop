@@ -108,6 +108,18 @@ enum LoopInsights_PredictionSnapshotStore {
         save(all)
     }
 
+    /// Remove the snapshot for a specific meal. Used by Meal Insights
+    /// swipe-to-delete so the deleted meal can't be debriefed later.
+    @discardableResult
+    static func remove(forMealID id: String) -> Bool {
+        var all = loadAll()
+        let before = all.count
+        all.removeAll { $0.mealRecordID == id }
+        guard all.count != before else { return false }
+        save(all)
+        return true
+    }
+
     /// Remove snapshots older than 90 days
     static func pruneStale() {
         let all = loadAll()
@@ -156,6 +168,18 @@ enum LoopInsights_MealDebriefCache {
         guard !all.contains(where: { $0.mealRecordID == debrief.mealRecordID }) else { return }
         all.append(debrief)
         save(all)
+    }
+
+    /// Remove the cached debrief for a specific meal. Used by Meal Insights
+    /// swipe-to-delete.
+    @discardableResult
+    static func remove(forMealID id: String) -> Bool {
+        var all = loadAll()
+        let before = all.count
+        all.removeAll { $0.mealRecordID == id }
+        guard all.count != before else { return false }
+        save(all)
+        return true
     }
 
     /// Remove debriefs older than 90 days

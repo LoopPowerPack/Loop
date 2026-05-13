@@ -34,6 +34,10 @@ final class LoopInsights_MealInsightsViewModel: ObservableObject {
     @Published var debriefLoadingIDs: Set<String> = []
     @Published var debriefErrors: [String: String] = [:]
 
+    // Swipe-to-delete state — the View binds an .alert to these.
+    @Published var pendingDeleteEvent: LoopInsightsMealEvent?
+    @Published var deleteError: String?
+
     // MARK: - Dependencies
 
     let coordinator: LoopInsights_Coordinator
@@ -357,5 +361,83 @@ final class LoopInsights_MealInsightsViewModel: ObservableObject {
         let candidates = MealArchive.meals(from: windowStart, to: windowEnd)
         return candidates.first { abs($0.carbsGrams - event.carbs) < 1 }
             ?? candidates.first // Fall back to closest match
+    }
+
+    // MARK: - Delete
+
+    /// Permanently delete a meal everywhere it touches our data:
+    /// - Loop's CarbStore (so the algorithm forgets the carbs)
+    /// - The matched BolusPro secondary entry, if any (foodType "🥩" within
+    ///   +30 to +120 min of the primary)
+    /// - MealArchive (FoodFinder long-term record + thumbnail)
+    /// - FoodFinder short-term analysis history (re-use dropdown source)
+    /// - Prediction snapshot
+    /// - Cached debrief
+    ///
+    /// The view binds an `.alert` to `pendingDeleteEvent`; the user
+    /// confirms there and we call this method.
+    func deleteMeal(_ event: LoopInsightsMealEvent) async {
+        // Carb entries to delete: the primary that matches the event, plus
+        // any BolusPro secondary entry that was generated alongside it.
+        do {
+            // Fetch a window wide enough to also catch the BolusPro
+            // secondary (typically +60 min).
+            let windowStart = event.date.addingTimeInterval(-15 * 60)
+            let windowEnd = event.date.addingTimeInterval(150 * 60)
+            let carbEntries = try await coordinator.fetchCarbEntries(start: windowStart, end: windowEnd)
+
+            // Primary: closest match on date + carbs.
+            let primary = carbEntries.first { entry in
+                abs(entry.startDate.timeIntervalSince(event.date)) < 900 &&    // ±15 min
+                abs(entry.quantity.doubleValue(for: .gram()) - event.carbs) < 5 // ±5 g
+            }
+
+            // BolusPro secondary: foodType emoji "🥩", later than the primary
+            // by ~30-120 min, smaller carbs. Tolerate either the new-style
+            // emoji-only foodType or older formats.
+            let secondary = carbEntries.first { entry in
+                guard let foodType = entry.foodType, foodType.contains("🥩") else { return false }
+                let offset = entry.startDate.timeIntervalSince(event.date)
+                return offset >= 30 * 60 && offset <= 120 * 60
+            }
+
+            for entry in [primary, secondary].compactMap({ $0 }) {
+                _ = try await coordinator.deleteCarbEntry(entry)
+            }
+        } catch {
+            // Don't bail out — still remove our own metadata so the row
+            // disappears from the list. Surface the error to the user via
+            // the alert state.
+            deleteError = "Couldn't remove the carb entry from Loop. The meal's analysis data was still removed."
+        }
+
+        // Remove the FoodFinder/LoopInsights side records.
+        if let archiveRecord = findArchiveRecord(for: event) {
+            MealArchive.remove(id: archiveRecord.id)
+            FoodFinder_AnalysisHistoryStore.remove(id: archiveRecord.id)
+            LoopInsights_PredictionSnapshotStore.remove(forMealID: archiveRecord.id)
+            LoopInsights_MealDebriefCache.remove(forMealID: archiveRecord.id)
+        } else if let recordID = event.archiveRecordID {
+            // findArchiveRecord didn't match but the event remembers an ID
+            // — clean up by ID directly.
+            MealArchive.remove(id: recordID)
+            FoodFinder_AnalysisHistoryStore.remove(id: recordID)
+            LoopInsights_PredictionSnapshotStore.remove(forMealID: recordID)
+            LoopInsights_MealDebriefCache.remove(forMealID: recordID)
+        } else {
+            // Event came from a CarbStore entry that never made it to
+            // MealArchive. Best-effort cleanup by date + carbs.
+            MealArchive.removeMatching(date: event.date, carbs: event.carbs)
+        }
+
+        // Drop any in-memory debrief state for this event.
+        let eventKey = event.id.uuidString
+        debriefResults.removeValue(forKey: eventKey)
+        debriefLoadingIDs.remove(eventKey)
+        debriefErrors.removeValue(forKey: eventKey)
+        if expandedDebriefID == eventKey { expandedDebriefID = nil }
+
+        // Refresh the list so the row disappears.
+        await loadMealData()
     }
 }

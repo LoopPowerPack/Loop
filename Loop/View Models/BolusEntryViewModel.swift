@@ -124,6 +124,14 @@ final class BolusEntryViewModel: ObservableObject {
     /// per-entry toggle was on. Populated by CarbEntryViewModel.
     var bolusProAnalyticsSnapshot: BolusProAnalyticsSnapshot?
 
+    /// Fires immediately after the *primary* carb entry has been persisted
+    /// to CarbStore (i.e., the user committed the carbs — not when they
+    /// merely tapped Continue and then cancelled the bolus screen).
+    /// `CarbEntryViewModel.setBolusViewModel()` uses this to archive the
+    /// FoodFinder analysis to MealArchive only on actual commit. Receives
+    /// the persisted entry so the caller can use its real syncIdentifier.
+    var onCarbEntrySaved: ((StoredCarbEntry) -> Void)?
+
     @Published var recommendedBolus: HKQuantity?
     var recommendedBolusAmount: Double? {
         recommendedBolus?.doubleValue(for: .internationalUnit())
@@ -419,6 +427,11 @@ final class BolusEntryViewModel: ObservableObject {
             if let storedCarbEntry = await saveCarbEntry(carbEntry, replacingEntry: originalCarbEntry) {
                 self.dosingDecision.carbEntry = storedCarbEntry
                 self.analyticsServicesManager?.didAddCarbs(source: "Phone", amount: storedCarbEntry.quantity.doubleValue(for: .gram()))
+
+                // FoodFinder/MealInsights archive only fires on actual carb
+                // persistence — tapping Continue and then cancelling the
+                // bolus screen no longer leaves a phantom Meal Insights row.
+                self.onCarbEntrySaved?(storedCarbEntry)
 
                 // BolusPro — save the optional secondary FPU entry alongside
                 // the primary. Failure here doesn't roll back the primary

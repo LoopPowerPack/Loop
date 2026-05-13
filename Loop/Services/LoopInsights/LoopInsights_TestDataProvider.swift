@@ -83,6 +83,11 @@ final class LoopInsights_TestDataProvider: LoopInsightsDataProviderProtocol {
         return carbEntries.filter { $0.startDate >= start && $0.startDate <= end }
     }
 
+    func deleteCarbEntry(_ entry: StoredCarbEntry) async throws -> Bool {
+        // Test data is read-only fixtures; deletion is not supported.
+        return false
+    }
+
     func getNormalizedDoseEntries(start: Date, end: Date) async throws -> [DoseEntry] {
         return doseEntries.filter { $0.startDate >= start && $0.startDate <= end }
     }

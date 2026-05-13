@@ -163,32 +163,59 @@ enum FoodFinder_AnalysisHistoryStore {
             }
         }
 
-        // Delete thumbnails for expired records
-        for record in expired {
-            if let thumbID = record.thumbnailID {
+        guard !expired.isEmpty else { return }
+        save(keep)
+
+        // Save the new (smaller) record set first, THEN check the
+        // reference tracker — that way `isReferenced` doesn't return
+        // true for the very records we just removed.
+        for thumbID in Set(expired.compactMap { $0.thumbnailID }) {
+            if !FoodFinder_ThumbnailReferenceTracker.isReferenced(thumbnailID: thumbID) {
                 FavoriteFoodImageStore.deleteThumbnail(id: thumbID)
             }
         }
 
-        if expired.count > 0 {
-            save(keep)
-            #if DEBUG
-            print("FoodFinder: Pruned \(expired.count) expired analysis records, \(keep.count) remain")
-            #endif
+        #if DEBUG
+        print("FoodFinder: Pruned \(expired.count) expired analysis records, \(keep.count) remain")
+        #endif
+    }
+
+    // MARK: - Remove One
+
+    /// Remove a single short-term history record by ID. Reference-counts
+    /// the thumbnail — only deletes the file when no other record (this
+    /// store, MealArchive) or favorite still points at the same
+    /// thumbnailID. No-op if not found. Used by Meal Insights'
+    /// swipe-to-delete so the deleted meal can't reappear from the
+    /// re-use dropdown.
+    @discardableResult
+    static func remove(id: String) -> Bool {
+        var records = allRecords()
+        guard let idx = records.firstIndex(where: { $0.id == id }) else { return false }
+        let thumbID = records[idx].thumbnailID
+        records.remove(at: idx)
+        save(records)
+        if let thumbID, !FoodFinder_ThumbnailReferenceTracker.isReferenced(thumbnailID: thumbID) {
+            FavoriteFoodImageStore.deleteThumbnail(id: thumbID)
         }
+        return true
     }
 
     // MARK: - Clear All
 
-    /// Remove all analysis history records and their thumbnails.
+    /// Remove all analysis history records. Reference-counts thumbnails —
+    /// only deletes a thumbnail file when no MealArchive record or favorite
+    /// still references it. Otherwise surviving rows in Meal Insights or
+    /// the Favorites list would render with broken images.
     static func clearAll() {
         let records = allRecords()
-        for record in records {
-            if let thumbID = record.thumbnailID {
+        let thumbIDs = Set(records.compactMap { $0.thumbnailID })
+        save([])
+        for thumbID in thumbIDs {
+            if !FoodFinder_ThumbnailReferenceTracker.isReferenced(thumbnailID: thumbID) {
                 FavoriteFoodImageStore.deleteThumbnail(id: thumbID)
             }
         }
-        save([])
         #if DEBUG
         print("FoodFinder: Cleared all \(records.count) analysis history records")
         #endif
@@ -198,7 +225,9 @@ enum FoodFinder_AnalysisHistoryStore {
 
     private static let key = FoodFinder_FeatureFlags.Keys.analysisHistory
 
-    private static func allRecords() -> [FoodFinder_AnalysisRecord] {
+    /// All short-term history records (unfiltered). Internal access so
+    /// `MealArchive` and ref-counted thumbnail deletion can consult it.
+    static func allRecords() -> [FoodFinder_AnalysisRecord] {
         guard let data = UserDefaults.standard.data(forKey: key) else { return [] }
         return (try? JSONDecoder().decode([FoodFinder_AnalysisRecord].self, from: data)) ?? []
     }
@@ -206,6 +235,36 @@ enum FoodFinder_AnalysisHistoryStore {
     private static func save(_ records: [FoodFinder_AnalysisRecord]) {
         guard let data = try? JSONEncoder().encode(records) else { return }
         UserDefaults.standard.set(data, forKey: key)
+    }
+}
+
+// MARK: - Thumbnail Reference Tracker
+//
+// FoodFinder thumbnails are shared by `thumbnailID` across multiple records
+// (e.g., re-used analyses, duplicates from cross-source dedup, favorites
+// derived from the same photo). Deleting a single record must NOT delete
+// the underlying thumbnail file if other records or favorites still need
+// it — otherwise the surviving rows would render with broken images.
+//
+// Callers consult this tracker after they've removed their record from
+// their own store. If `isReferenced` returns false, the thumbnail file
+// can be safely deleted.
+
+enum FoodFinder_ThumbnailReferenceTracker {
+    /// True if any FoodFinder short-term history record, any MealArchive
+    /// record, or any favorite-food mapping still references the given
+    /// thumbnail ID.
+    static func isReferenced(thumbnailID: String) -> Bool {
+        if FoodFinder_AnalysisHistoryStore.allRecords().contains(where: { $0.thumbnailID == thumbnailID }) {
+            return true
+        }
+        if MealArchive.loadAll().contains(where: { $0.thumbnailID == thumbnailID }) {
+            return true
+        }
+        if UserDefaults.standard.favoriteFoodImageIDs.values.contains(thumbnailID) {
+            return true
+        }
+        return false
     }
 }
 
@@ -242,6 +301,35 @@ enum MealArchive {
         let dir = appSupport.appendingPathComponent("LoopInsights")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appendingPathComponent(filename)
+    }
+
+    /// Remove a single record by ID. Reference-counts the thumbnail — only
+    /// deletes the file when no other record (this store, the FoodFinder
+    /// short-term history) or favorite still points at the same
+    /// thumbnailID. Returns true if a record was removed.
+    @discardableResult
+    static func remove(id: String) -> Bool {
+        var existing = loadAll()
+        guard let idx = existing.firstIndex(where: { $0.id == id }) else { return false }
+        let thumbID = existing[idx].thumbnailID
+        existing.remove(at: idx)
+        saveAll(existing)
+        if let thumbID, !FoodFinder_ThumbnailReferenceTracker.isReferenced(thumbnailID: thumbID) {
+            FavoriteFoodImageStore.deleteThumbnail(id: thumbID)
+        }
+        return true
+    }
+
+    /// Remove a record matching the given date (±2 min) and carbs (±1 g).
+    /// Used when we have a meal event without a stored archive UUID (e.g.,
+    /// a manual carb entry that ended up in MealArchive via dedup priority).
+    @discardableResult
+    static func removeMatching(date: Date, carbs: Double) -> Bool {
+        let existing = loadAll()
+        guard let match = existing.first(where: {
+            abs($0.date.timeIntervalSince(date)) < 120 && abs($0.carbsGrams - carbs) < 1
+        }) else { return false }
+        return remove(id: match.id)
     }
 
     /// Archive a single record (append to the JSON file on disk).

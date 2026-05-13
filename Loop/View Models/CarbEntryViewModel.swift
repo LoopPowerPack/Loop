@@ -216,19 +216,11 @@ final class CarbEntryViewModel: ObservableObject {
         guard updatedCarbEntry != nil else {
             return
         }
-
-        // User confirmed they're eating — archive to MealArchive for LoopInsights.
-        // The VM-scoped record covers all FoodFinder paths (AI, barcode, text
-        // search, Recent Analyses dropdown, Re-use). Static `confirmMeal()`
-        // stays as a fallback so any legacy caller that only set the static
-        // pendingRecord still gets archived.
-        if let record = pendingFoodFinderRecord {
-            FoodFinder_AnalysisHistoryStore.confirmMeal(record)
-            pendingFoodFinderRecord = nil
-        } else {
-            FoodFinder_AnalysisHistoryStore.confirmMeal()
-        }
-
+        // We used to archive the FoodFinder analysis to MealArchive here,
+        // but tapping Continue is NOT a commit — the user can still cancel
+        // the bolus screen and the carb entry never actually lands in
+        // CarbStore. Archive is now deferred to `BolusEntryViewModel`'s
+        // `onCarbEntrySaved` callback, wired up in `setBolusViewModel()`.
         validateInputAndContinue()
     }
     
@@ -261,6 +253,24 @@ final class CarbEntryViewModel: ObservableObject {
             potentialCarbEntry: updatedCarbEntry,
             selectedCarbAbsorptionTimeEmoji: selectedDefaultAbsorptionTimeEmoji
         )
+
+        // Snapshot the pending FoodFinder record now and hand off the
+        // archive responsibility to BolusEntryViewModel. The archive only
+        // fires after the carb entry persists to CarbStore — cancelling
+        // the bolus screen leaves nothing behind in Meal Insights.
+        let pendingRecord = pendingFoodFinderRecord
+        pendingFoodFinderRecord = nil
+        viewModel.onCarbEntrySaved = { _ in
+            if let record = pendingRecord {
+                FoodFinder_AnalysisHistoryStore.confirmMeal(record)
+            } else {
+                // Legacy static-handoff fallback — used by paths that set
+                // `FoodFinder_AnalysisHistoryStore.pendingRecord` but never
+                // populated the VM (e.g., a flow that bypasses
+                // `onAnalysisRecorded`). No-op when nothing is pending.
+                FoodFinder_AnalysisHistoryStore.confirmMeal()
+            }
+        }
 
         // BolusPro — attach optional secondary FPU entry + analytics
         // snapshot. Snapshot fires on every save when the master flag is
