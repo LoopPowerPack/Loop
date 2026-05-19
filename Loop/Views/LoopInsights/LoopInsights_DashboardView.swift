@@ -107,12 +107,19 @@ struct LoopInsights_DashboardView: View {
             // One-time Substack onboarding sheet — fires the first time the
             // user lands on the dashboard. Persistent dismissal via
             // UserDefaults. Subsequent access lives in the footer below.
-            if !LoopInsights_SubstackPromo.hasSeenOnboarding {
+            // Also auto-suppressed if the user has marked themselves as
+            // already subscribed (via the footer's "I've already subscribed"
+            // link or any prior post-Safari "Did you subscribe?" prompt).
+            let shouldShowOnboarding =
+                !LoopInsights_SubstackPromo.hasSeenOnboarding &&
+                !LoopInsights_SubstackPromo.isSubscribed
+            if shouldShowOnboarding {
                 // Delay so the sheet doesn't fight the dashboard's own
                 // initial layout (which already triggers several sheets in
                 // edge cases).
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                    if !LoopInsights_SubstackPromo.hasSeenOnboarding {
+                    if !LoopInsights_SubstackPromo.hasSeenOnboarding &&
+                       !LoopInsights_SubstackPromo.isSubscribed {
                         showingSubstackOnboarding = true
                     }
                 }
