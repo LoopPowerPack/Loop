@@ -771,7 +771,7 @@ extension AISettingsView {
         Section {
             HStack {
                 Spacer()
-                Text(FoodFinder_PowerPackVersion.displayString)
+                Text(PowerPack_BuildInfo.displayString)
                     .font(.caption2)
                     .foregroundColor(.secondary)
                 Spacer()
@@ -783,18 +783,10 @@ extension AISettingsView {
 }
 
 // MARK: - PowerPack Version Helper
-
-/// Formats the running app's version + build number for user-facing display.
-/// Used in the FoodFinder Settings footer so users can tell support which
-/// build they're on.
-///
-/// Same logic lives in `LoopInsights_DashboardView.swift` under a different
-/// fileprivate name to avoid cross-feature symbol clashes — both pull from
-/// the same Bundle keys, so the displayed value is identical.
-fileprivate enum FoodFinder_PowerPackVersion {
-    static var displayString: String {
-        let v = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
-        let b = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
-        return "PowerPack v\(v) (\(b))"
-    }
-}
+//
+// The old fileprivate FoodFinder_PowerPackVersion enum that mirrored
+// Loop's CFBundleVersion lived here. Replaced with the shared
+// PowerPack_BuildInfo helper in Loop/Resources/LoopInsights/, which
+// renders the same footer text but with PowerPack's own semver + the
+// Loop submodule commit short SHA so user-reported versions can be
+// mapped back to specific commits.

@@ -1453,7 +1453,7 @@ struct LoopInsights_DashboardView: View {
         Section {
             HStack {
                 Spacer()
-                Text(PowerPackVersion.displayString)
+                Text(PowerPack_BuildInfo.displayString)
                     .font(.caption2)
                     .foregroundColor(.secondary)
                 Spacer()
@@ -1975,17 +1975,11 @@ struct LoopInsights_DebugLogView: View {
 
 
 // MARK: - PowerPack Version Helper
-
-/// Formats the running app's version + build number for user-facing display.
-/// Used in the dashboard footer so users can tell support which build they're on.
-///
-/// Values come from `CFBundleShortVersionString` and `CFBundleVersion` in
-/// the main bundle's Info.plist, which the installer stamps via
-/// VersionOverride.xcconfig during Phase 3b.
-fileprivate enum PowerPackVersion {
-    static var displayString: String {
-        let v = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
-        let b = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
-        return "PowerPack v\(v) (\(b))"
-    }
-}
+//
+// The old fileprivate PowerPackVersion enum that mirrored Loop's
+// CFBundleShortVersionString lived here. It was removed when PowerPack
+// gained its own version stamping — see PowerPack_BuildInfo.swift in
+// Loop/Resources/LoopInsights/. PowerPack_BuildInfo.displayString
+// renders the same footer text but with PowerPack's own semver + the
+// Loop submodule commit short SHA, so user-reported versions can be
+// mapped back to specific commits.
