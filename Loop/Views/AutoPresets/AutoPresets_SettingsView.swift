@@ -53,6 +53,7 @@ struct AutoPresets_SettingsView: View {
             }
 
             LoopInsights_SubstackPromoFooter()
+            PowerPack_VersionFooter()
         }
         .navigationTitle("AutoPresets")
         .navigationBarTitleDisplayMode(.inline)

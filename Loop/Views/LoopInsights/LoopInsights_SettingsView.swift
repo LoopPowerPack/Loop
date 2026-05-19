@@ -148,6 +148,7 @@ struct LoopInsights_SettingsView: View {
             }
 
             LoopInsights_SubstackPromoFooter()
+            PowerPack_VersionFooter()
         }
         .navigationTitle(NSLocalizedString("LoopInsights Settings", comment: "LoopInsights settings title"))
         .navigationBarTitleDisplayMode(.inline)

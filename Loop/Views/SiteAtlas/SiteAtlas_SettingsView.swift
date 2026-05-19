@@ -39,6 +39,7 @@ struct SiteAtlas_SettingsView: View {
             }
 
             LoopInsights_SubstackPromoFooter()
+            PowerPack_VersionFooter()
         }
         .navigationTitle("Site Atlas")
         .onAppear { entries = coordinator.allEntries() }

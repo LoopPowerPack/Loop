@@ -28,6 +28,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 enum PowerPack_BuildInfo {
     /// Semver string. Manually bumped in install_features.sh at release
@@ -52,5 +53,37 @@ enum PowerPack_BuildInfo {
             return "PowerPack v\(version)-dev"
         }
         return "PowerPack v\(version) (\(commitShortSHA))"
+    }
+}
+
+// MARK: - Reusable footer view
+
+/// Drop-in version footer for any feature's settings screen. Renders a
+/// small grey "PowerPack v0.1.0 (8bd0a85)" line as the last Section of
+/// a Form/List. Every PowerPack feature should include this at the
+/// bottom of its settings view so a user can read the version off any
+/// PowerPack surface — current features (FoodFinder, LoopInsights,
+/// AutoPresets, BolusPro, SiteAtlas) and any future ones.
+///
+/// Usage:
+///     Form {
+///         featureToggleSection
+///         // ... other sections ...
+///         LoopInsights_SubstackPromoFooter()   // optional
+///         PowerPack_VersionFooter()            // always last
+///     }
+struct PowerPack_VersionFooter: View {
+    var body: some View {
+        Section {
+            HStack {
+                Spacer()
+                Text(PowerPack_BuildInfo.displayString)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+        }
     }
 }

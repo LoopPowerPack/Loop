@@ -99,7 +99,7 @@ struct LoopInsights_DashboardView: View {
             }
             navigationSection
             LoopInsights_SubstackPromoFooter()
-            versionFooterSection
+            PowerPack_VersionFooter()
         }
         .modifier(ListSectionSpacingModifier())
         .navigationTitle(NSLocalizedString("LoopInsights", comment: "LoopInsights dashboard title"))
@@ -1443,25 +1443,12 @@ struct LoopInsights_DashboardView: View {
     }
 
     // MARK: - Version Footer
-
-    /// Small "PowerPack vX.Y.Z (build)" line at the bottom of the dashboard.
-    /// Lets users tell support which version they're running.
-    /// Values come from the app bundle — `CFBundleShortVersionString` and
-    /// `CFBundleVersion` are stamped by the installer via VersionOverride.xcconfig
-    /// (see `install_features.sh` Phase 3b).
-    private var versionFooterSection: some View {
-        Section {
-            HStack {
-                Spacer()
-                Text(PowerPack_BuildInfo.displayString)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                Spacer()
-            }
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
-        }
-    }
+    //
+    // The dashboard's inline versionFooterSection that used to live here
+    // was replaced by `PowerPack_VersionFooter()` — a reusable widget in
+    // `Loop/Resources/LoopInsights/PowerPack_BuildInfo.swift` shared by
+    // every PowerPack feature's settings view. See the call site near the
+    // top of `var body` for the dashboard's use.
 
     // MARK: - CGM Signal Quality Card
 

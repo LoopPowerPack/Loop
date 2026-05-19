@@ -59,7 +59,7 @@ struct AISettingsView: View {
                 advancedSettingsSection
             }
             LoopInsights_SubstackPromoFooter()
-            versionFooterSection
+            PowerPack_VersionFooter()
         }
         .navigationTitle("FoodFinder")
         .navigationBarTitleDisplayMode(.inline)
@@ -760,27 +760,12 @@ struct AISettingsView_Previews: PreviewProvider {
 #endif
 
 // MARK: - Version Footer
-
-extension AISettingsView {
-    /// Small "PowerPack vX.Y.Z (build)" line at the bottom of FoodFinder
-    /// Settings. Lets users tell support which build they're running.
-    /// Values come from the app bundle — `CFBundleShortVersionString` and
-    /// `CFBundleVersion` are stamped by the installer via
-    /// VersionOverride.xcconfig during Phase 3b.
-    fileprivate var versionFooterSection: some View {
-        Section {
-            HStack {
-                Spacer()
-                Text(PowerPack_BuildInfo.displayString)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                Spacer()
-            }
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
-        }
-    }
-}
+//
+// The FoodFinder-specific versionFooterSection that used to live here was
+// replaced by `PowerPack_VersionFooter()` — a reusable widget shared by
+// every PowerPack feature's settings view. Single source of truth, drops
+// into any Form/List, ensures new features pick up the same version
+// surface without per-file duplication.
 
 // MARK: - PowerPack Version Helper
 //
