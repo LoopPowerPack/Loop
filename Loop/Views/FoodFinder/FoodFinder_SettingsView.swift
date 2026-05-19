@@ -58,6 +58,7 @@ struct AISettingsView: View {
                 aiConfigSection
                 advancedSettingsSection
             }
+            versionFooterSection
         }
         .navigationTitle("FoodFinder")
         .navigationBarTitleDisplayMode(.inline)
@@ -756,3 +757,43 @@ struct AISettingsView_Previews: PreviewProvider {
     }
 }
 #endif
+
+// MARK: - Version Footer
+
+extension AISettingsView {
+    /// Small "PowerPack vX.Y.Z (build)" line at the bottom of FoodFinder
+    /// Settings. Lets users tell support which build they're running.
+    /// Values come from the app bundle — `CFBundleShortVersionString` and
+    /// `CFBundleVersion` are stamped by the installer via
+    /// VersionOverride.xcconfig during Phase 3b.
+    fileprivate var versionFooterSection: some View {
+        Section {
+            HStack {
+                Spacer()
+                Text(FoodFinder_PowerPackVersion.displayString)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+        }
+    }
+}
+
+// MARK: - PowerPack Version Helper
+
+/// Formats the running app's version + build number for user-facing display.
+/// Used in the FoodFinder Settings footer so users can tell support which
+/// build they're on.
+///
+/// Same logic lives in `LoopInsights_DashboardView.swift` under a different
+/// fileprivate name to avoid cross-feature symbol clashes — both pull from
+/// the same Bundle keys, so the displayed value is identical.
+fileprivate enum FoodFinder_PowerPackVersion {
+    static var displayString: String {
+        let v = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        let b = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+        return "PowerPack v\(v) (\(b))"
+    }
+}
