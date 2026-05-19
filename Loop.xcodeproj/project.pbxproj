@@ -851,7 +851,6 @@
 		EBF56903B5932834DF35599E /* LoopInsights_DataAggregatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B9798E5BC182FCB5A9B18BB /* LoopInsights_DataAggregatorTests.swift */; };
 		6F8D19EECE4E792342E07948 /* LoopInsights_ModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B59242D8B9C330608E795CA /* LoopInsights_ModelsTests.swift */; };
 		F06F348BBB58A7D7CDE9517F /* LoopInsights_SuggestionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22E9E5FE02C94F490DD246 /* LoopInsights_SuggestionStoreTests.swift */; };
-		48BF9CCC5A86BB2D426457F8 /* LoopInsights_GlucoseUnitContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCDB43605E57B0C8D17EEF2A /* LoopInsights_GlucoseUnitContext.swift */; };
 		20E102D95123954D8F4384DB /* LoopInsights_SignalGapHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF73753CC874F5F7A949034D /* LoopInsights_SignalGapHistoryView.swift */; };
 		486F9BD26CAB676035797E87 /* LoopInsights_SubstackPromo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B506730D8EFFA8AAEFA7B07 /* LoopInsights_SubstackPromo.swift */; };
 /* End PBXBuildFile section */
@@ -1940,7 +1939,6 @@
 		1B9798E5BC182FCB5A9B18BB /* LoopInsights_DataAggregatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_DataAggregatorTests.swift; sourceTree = "<group>"; };
 		4B59242D8B9C330608E795CA /* LoopInsights_ModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_ModelsTests.swift; sourceTree = "<group>"; };
 		AA22E9E5FE02C94F490DD246 /* LoopInsights_SuggestionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_SuggestionStoreTests.swift; sourceTree = "<group>"; };
-		FCDB43605E57B0C8D17EEF2A /* LoopInsights_GlucoseUnitContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_GlucoseUnitContext.swift; sourceTree = "<group>"; };
 		AF73753CC874F5F7A949034D /* LoopInsights_SignalGapHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_SignalGapHistoryView.swift; sourceTree = "<group>"; };
 		8B506730D8EFFA8AAEFA7B07 /* LoopInsights_SubstackPromo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_SubstackPromo.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -5068,7 +5066,6 @@
 				0BEF9B56D9BF491F2392550F /* DataLayer_ProviderProtocol.swift in Sources */,
 				5B762A5BD7D1D9B5170C72C1 /* DataLayer_ConsentView.swift in Sources */,
 				6F5FEB4509B4644C020BD08D /* DataLayer_DashboardView.swift in Sources */,
-				48BF9CCC5A86BB2D426457F8 /* LoopInsights_GlucoseUnitContext.swift in Sources */,
 				20E102D95123954D8F4384DB /* LoopInsights_SignalGapHistoryView.swift in Sources */,
 				486F9BD26CAB676035797E87 /* LoopInsights_SubstackPromo.swift in Sources */,
 			);
