@@ -3327,7 +3327,10 @@
 				5C18F5D863D949E4259A3DCB /* LoopInsights_ChatHistoryView.swift */,
 
 				4705B24EF9A41FF18208064E /* LoopInsights_MealDebriefCard.swift */,
-				3E6840708C1AB09AB159E796 /* LoopInsights_PreMealAdvisorCard.swift */,);
+				3E6840708C1AB09AB159E796 /* LoopInsights_PreMealAdvisorCard.swift */,
+				AF73753CC874F5F7A949034D /* LoopInsights_SignalGapHistoryView.swift */,
+				8B506730D8EFFA8AAEFA7B07 /* LoopInsights_SubstackPromo.swift */,
+			);
 			path = LoopInsights;
 			sourceTree = "<group>";
 		};
