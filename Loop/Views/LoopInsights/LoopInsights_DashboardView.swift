@@ -97,6 +97,7 @@ struct LoopInsights_DashboardView: View {
                 behaviorDiscoverySection
             }
             navigationSection
+            versionFooterSection
         }
         .modifier(ListSectionSpacingModifier())
         .navigationTitle(NSLocalizedString("LoopInsights", comment: "LoopInsights dashboard title"))
@@ -118,6 +119,8 @@ struct LoopInsights_DashboardView: View {
             }
         }
         .sheet(isPresented: $showingDebugLog) {
+            // Debug log sheet — developer mode only. Button to trigger this
+            // is gated separately in navigationSection.
             if let log = viewModel.lastDebugLog {
                 NavigationView {
                     LoopInsights_DebugLogView(log: log)
@@ -1271,6 +1274,10 @@ struct LoopInsights_DashboardView: View {
 
     private var navigationSection: some View {
         Section {
+            if LoopInsights_FeatureFlags.cgmBackfillDetectionEnabled {
+                cgmSignalQualityCard
+            }
+
             Button(action: { showingChat = true }) {
                 HStack {
                     Text("🌀")
@@ -1308,10 +1315,6 @@ struct LoopInsights_DashboardView: View {
                             .foregroundColor(.secondary)
                     }
                 }
-            }
-
-            if LoopInsights_FeatureFlags.cgmBackfillDetectionEnabled {
-                cgmSignalQualityCard
             }
 
             Button(action: { showingGoals = true }) {
@@ -1375,7 +1378,9 @@ struct LoopInsights_DashboardView: View {
                 }
             }
 
-            // Debug log (developer mode only)
+            // Debug log — developer mode only. Hidden from normal users.
+            // Two-condition gate: developer mode flag must be on AND a debug
+            // log must exist on the view model. Either off → row disappears.
             if LoopInsights_FeatureFlags.developerModeEnabled, viewModel.lastDebugLog != nil {
                 Button(action: { showingDebugLog = true }) {
                     HStack {
@@ -1406,13 +1411,81 @@ struct LoopInsights_DashboardView: View {
         }
     }
 
+    // MARK: - Version Footer
+
+    /// Small "PowerPack vX.Y.Z (build)" line at the bottom of the dashboard.
+    /// Lets users tell support which version they're running.
+    /// Values come from the app bundle — `CFBundleShortVersionString` and
+    /// `CFBundleVersion` are stamped by the installer via VersionOverride.xcconfig
+    /// (see `install_features.sh` Phase 3b).
+    private var versionFooterSection: some View {
+        Section {
+            HStack {
+                Spacer()
+                Text(PowerPackVersion.displayString)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+        }
+    }
+
     // MARK: - CGM Signal Quality Card
+
+    /// 24-hour dismissal helper for the CGM Signal Quality card.
+    ///
+    /// The card auto-hides 24 hours after the user first sees a given gap state.
+    /// If a NEW gap occurs (or an existing gap's "longest" event changes), the
+    /// signature changes and the timer resets — the card reappears for another
+    /// 24-hour window.
+    ///
+    /// State persists in UserDefaults so the dismissal survives app launches.
+    private enum SignalGapDismissal {
+        static let signatureKey = "LoopInsights_SignalGap_LastSignature"
+        static let firstViewedKey = "LoopInsights_SignalGap_FirstViewedAt"
+        static let dismissalWindow: TimeInterval = 24 * 60 * 60   // 24 hours
+
+        /// Signature uniquely identifies the current gap state. Includes event
+        /// count and the detection timestamp of the longest gap — either
+        /// changing means there's new information to show the user.
+        static func signature(for summary: LoopInsightsBackfillSummary) -> String {
+            let latest = summary.longestGapEvent?.detectedAt.timeIntervalSince1970 ?? 0
+            return "\(summary.totalEvents)_\(Int(latest))"
+        }
+
+        static func shouldShow(for summary: LoopInsightsBackfillSummary) -> Bool {
+            guard summary.totalEvents > 0 else { return false }
+            let current = signature(for: summary)
+            let stored = UserDefaults.standard.string(forKey: signatureKey)
+            // New signature → always show (timer hasn't started yet).
+            if stored != current { return true }
+            // Same signature → show only within the 24h window from first view.
+            if let firstViewed = UserDefaults.standard.object(forKey: firstViewedKey) as? Date {
+                return Date().timeIntervalSince(firstViewed) < dismissalWindow
+            }
+            // Signature matches but no first-viewed timestamp recorded yet.
+            return true
+        }
+
+        /// Called from the card's .onAppear. Records the first view of the
+        /// current gap state and starts the 24-hour countdown. No-op if the
+        /// signature has already been viewed.
+        static func markViewed(for summary: LoopInsightsBackfillSummary) {
+            let current = signature(for: summary)
+            let stored = UserDefaults.standard.string(forKey: signatureKey)
+            guard stored != current else { return }
+            UserDefaults.standard.set(current, forKey: signatureKey)
+            UserDefaults.standard.set(Date(), forKey: firstViewedKey)
+        }
+    }
 
     @ViewBuilder
     private var cgmSignalQualityCard: some View {
         let period = viewModel.analysisPeriod.rawValue
         let summary = LoopInsights_BackfillDetector.shared.buildSummary(days: period)
-        if summary.totalEvents > 0 {
+        if SignalGapDismissal.shouldShow(for: summary) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {
                     Image(systemName: "antenna.radiowaves.left.and.right")
@@ -1457,6 +1530,7 @@ struct LoopInsights_DashboardView: View {
                     .foregroundColor(.secondary)
             }
             .padding(.vertical, 4)
+            .onAppear { SignalGapDismissal.markViewed(for: summary) }
         }
     }
 
@@ -1724,6 +1798,10 @@ struct LoopInsights_PreFillEditorView: View {
 
 /// Developer-only view that shows the full AI prompt/response exchange.
 /// Useful for diagnosing unexpected AI behavior.
+///
+/// Access: this view is only reachable when developer mode is enabled
+/// (see `LoopInsights_FeatureFlags.developerModeEnabled`) AND a debug log
+/// has been captured by the analysis pipeline. Normal users never see it.
 struct LoopInsights_DebugLogView: View {
     let log: LoopInsightsDebugLog
     @State private var copied = false
@@ -1826,3 +1904,19 @@ struct LoopInsights_DebugLogView: View {
     }()
 }
 
+
+// MARK: - PowerPack Version Helper
+
+/// Formats the running app's version + build number for user-facing display.
+/// Used in the dashboard footer so users can tell support which build they're on.
+///
+/// Values come from `CFBundleShortVersionString` and `CFBundleVersion` in
+/// the main bundle's Info.plist, which the installer stamps via
+/// VersionOverride.xcconfig during Phase 3b.
+fileprivate enum PowerPackVersion {
+    static var displayString: String {
+        let v = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        let b = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+        return "PowerPack v\(v) (\(b))"
+    }
+}
