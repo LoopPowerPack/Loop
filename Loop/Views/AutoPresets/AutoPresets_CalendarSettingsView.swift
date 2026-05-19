@@ -19,6 +19,13 @@ struct AutoPresets_CalendarSettingsView: View {
     @ObservedObject private var coordinator = AutoPresets_Coordinator.shared
     @State private var showingAddTrigger = false
 
+    /// Briefly true while the manual "Scan Calendar Now" button is acting,
+    /// so we can flip the label to "Scanning..." + spinner. Reset after a
+    /// short delay since the actual scanAndSchedule() returns synchronously
+    /// — the delay just gives the user a perceivable "something happened"
+    /// signal so the button doesn't feel inert.
+    @State private var isScanning = false
+
     var body: some View {
         List {
             enableSection
@@ -285,29 +292,54 @@ struct AutoPresets_CalendarSettingsView: View {
                 }
 
                 Button {
+                    // Haptic confirms the tap before any visual change —
+                    // important because the scan itself completes in
+                    // milliseconds, so without this the button can feel
+                    // unresponsive.
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
+                    isScanning = true
                     calendarManager.rescan()
+
+                    // Hold the "Scanning..." state long enough to be
+                    // perceptible (~0.4s), even though the scan itself is
+                    // already done by the time this dispatch fires.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        isScanning = false
+                    }
                 } label: {
                     HStack {
-                        Image(systemName: "arrow.clockwise")
-                        Text("Scan Calendar Now")
+                        if isScanning {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                                .frame(width: 16, height: 16)
+                            Text("Scanning…")
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                            Text("Scan Calendar Now")
+                        }
                     }
                 }
-                .disabled(!calendarManager.hasAuthorization)
+                .disabled(!calendarManager.hasAuthorization || isScanning)
 
                 if let lastScan = calendarManager.lastScanDate {
-                    HStack(spacing: 6) {
-                        Image(systemName: calendarManager.lastScanMatchCount > 0
-                              ? "checkmark.circle.fill"
-                              : "info.circle")
-                            .font(.caption)
-                            .foregroundColor(calendarManager.lastScanMatchCount > 0
-                                             ? Color(red: 76/255, green: 175/255, blue: 80/255)
-                                             : .secondary)
-                        Text(lastScanSummary(date: lastScan,
-                                             events: calendarManager.lastScanEventCount,
-                                             matches: calendarManager.lastScanMatchCount))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    NavigationLink {
+                        AutoPresets_ScannedEventsView()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: calendarManager.lastScanMatchCount > 0
+                                  ? "checkmark.circle.fill"
+                                  : "info.circle")
+                                .font(.caption)
+                                .foregroundColor(calendarManager.lastScanMatchCount > 0
+                                                 ? Color(red: 76/255, green: 175/255, blue: 80/255)
+                                                 : .secondary)
+                            Text(lastScanSummary(date: lastScan,
+                                                 events: calendarManager.lastScanEventCount,
+                                                 matches: calendarManager.lastScanMatchCount))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
             } footer: {

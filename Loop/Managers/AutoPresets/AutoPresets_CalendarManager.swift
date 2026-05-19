@@ -36,6 +36,27 @@ public struct AutoPresetsCalendarTrigger: Codable, Identifiable, Equatable {
     }
 }
 
+// MARK: - Scanned Event (diagnostic)
+
+/// Lightweight snapshot of an event returned by the most recent EventKit
+/// query. Stored on the manager so the settings UI can show users exactly
+/// which events Loop saw during a scan — the key diagnostic for "why
+/// didn't my Gym event match?" Independent of EKEvent so it survives
+/// across the publish boundary without holding EventKit references.
+public struct AutoPresets_ScannedEvent: Identifiable {
+    public let id = UUID()
+    public let title: String
+    public let calendarTitle: String
+    public let calendarColor: CGColor?
+    public let startDate: Date
+    public let endDate: Date
+    public let isAllDay: Bool
+    /// The keyword (lowercased) that matched this event's title, or `nil`
+    /// if no keyword matched. Lets the diagnostic view explain *why* an
+    /// event did or didn't qualify.
+    public let matchedKeyword: String?
+}
+
 // MARK: - Upcoming Match
 
 /// An upcoming calendar event that matched a trigger keyword.
@@ -73,6 +94,13 @@ public final class AutoPresets_CalendarManager: NSObject, ObservableObject {
     @Published public private(set) var lastScanDate: Date?
     @Published public private(set) var lastScanEventCount: Int = 0
     @Published public private(set) var lastScanMatchCount: Int = 0
+
+    /// Full per-event detail from the most recent scan — title, calendar,
+    /// start/end, and which (if any) keyword matched. Powers the
+    /// "View scanned events" detail screen so a user can diagnose
+    /// "why didn't Loop see my Gym event?" by looking at exactly what
+    /// EventKit returned. Cleared on each new scan.
+    @Published public private(set) var lastScannedEvents: [AutoPresets_ScannedEvent] = []
 
     // MARK: - Private Properties
 
@@ -322,8 +350,19 @@ public final class AutoPresets_CalendarManager: NSObject, ObservableObject {
     }
 
     /// Force a rescan now (called from UI "Refresh" button).
+    ///
+    /// Why this calls `refreshSourcesIfNecessary()` first: EventKit caches
+    /// calendar data locally and only re-syncs on its own schedule. Without
+    /// this hint, a manual "Scan Calendar Now" tap returns stale events even
+    /// after they've been deleted/updated in Google Calendar / iCloud — the
+    /// scan is reading the local cache, not the cloud. `refreshSourcesIfNecessary()`
+    /// asks EventKit to fetch fresh data; when that data arrives, our
+    /// `EKEventStoreChanged` observer fires another scan automatically, so
+    /// the UI eventually reflects the cloud state.
     public func rescan() {
-        if isEnabled { scanAndSchedule() }
+        guard isEnabled else { return }
+        eventStore.refreshSourcesIfNecessary()
+        scanAndSchedule()
     }
 
     /// (Re)schedules the periodic background scan Timer using the current
@@ -373,10 +412,47 @@ public final class AutoPresets_CalendarManager: NSObject, ObservableObject {
         deactivationTimers.removeAll()
 
         var matches: [AutoPresetsCalendarMatch] = []
+        var scannedEvents: [AutoPresets_ScannedEvent] = []
 
         for event in events {
-            guard let title = event.title else { continue }
+            // Always record the event in the diagnostic list — even if it
+            // has no title or doesn't match any trigger. This is the data
+            // a user needs to see to figure out why a scan didn't find
+            // what they expected.
+            let title = event.title ?? "(no title)"
             let titleLower = title.lowercased()
+            var matchedKeyword: String?
+
+            for trigger in triggers where trigger.isEnabled && !trigger.presetId.isEmpty {
+                let keywordLower = trigger.keyword.lowercased()
+                if titleLower.contains(keywordLower) {
+                    matchedKeyword = keywordLower
+                    break
+                }
+            }
+
+            // Log every scanned event with its calendar source for offline
+            // debugging via Console.app. Console will show:
+            //   Calendar scan event: 'Gym' [Home] 2026-05-20 10:00 → 11:00  match=none
+            os_log("Calendar scan event: '%{public}@' [%{public}@] %{public}@ %{public}@",
+                   log: log, type: .debug,
+                   title,
+                   event.calendar.title,
+                   DateFormatter.localizedString(from: event.startDate, dateStyle: .short, timeStyle: .short),
+                   matchedKeyword.map { "match=\($0)" } ?? "match=none")
+
+            scannedEvents.append(AutoPresets_ScannedEvent(
+                title: title,
+                calendarTitle: event.calendar.title,
+                calendarColor: event.calendar.cgColor,
+                startDate: event.startDate,
+                endDate: event.endDate,
+                isAllDay: event.isAllDay,
+                matchedKeyword: matchedKeyword
+            ))
+
+            // Real match → schedule the timers (existing logic continues below).
+            guard event.title != nil else { continue }
 
             for trigger in triggers where trigger.isEnabled && !trigger.presetId.isEmpty {
                 let keywordLower = trigger.keyword.lowercased()
@@ -426,6 +502,7 @@ public final class AutoPresets_CalendarManager: NSObject, ObservableObject {
             self?.lastScanDate = Date()
             self?.lastScanEventCount = events.count
             self?.lastScanMatchCount = matches.count
+            self?.lastScannedEvents = scannedEvents.sorted { $0.startDate < $1.startDate }
         }
 
         os_log("Calendar scan found %d matches in %d events", log: log, type: .debug, matches.count, events.count)

@@ -853,6 +853,8 @@
 		F06F348BBB58A7D7CDE9517F /* LoopInsights_SuggestionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22E9E5FE02C94F490DD246 /* LoopInsights_SuggestionStoreTests.swift */; };
 		20E102D95123954D8F4384DB /* LoopInsights_SignalGapHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF73753CC874F5F7A949034D /* LoopInsights_SignalGapHistoryView.swift */; };
 		486F9BD26CAB676035797E87 /* LoopInsights_SubstackPromo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B506730D8EFFA8AAEFA7B07 /* LoopInsights_SubstackPromo.swift */; };
+		E5CEDCB52CCC33B2513C1B4B /* AutoPresets_ScannedEventsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB7AEA2ACE39D2EDEC0FC9C9 /* AutoPresets_ScannedEventsView.swift */; };
+		1A6B35DD2E1B9833D7DA57AA /* PowerPack_BuildInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D7B17C02B7B5CF8CBE27C65 /* PowerPack_BuildInfo.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1941,6 +1943,8 @@
 		AA22E9E5FE02C94F490DD246 /* LoopInsights_SuggestionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_SuggestionStoreTests.swift; sourceTree = "<group>"; };
 		AF73753CC874F5F7A949034D /* LoopInsights_SignalGapHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_SignalGapHistoryView.swift; sourceTree = "<group>"; };
 		8B506730D8EFFA8AAEFA7B07 /* LoopInsights_SubstackPromo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_SubstackPromo.swift; sourceTree = "<group>"; };
+		BB7AEA2ACE39D2EDEC0FC9C9 /* AutoPresets_ScannedEventsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoPresets_ScannedEventsView.swift; sourceTree = "<group>"; };
+		5D7B17C02B7B5CF8CBE27C65 /* PowerPack_BuildInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerPack_BuildInfo.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2073,6 +2077,7 @@
 				A92563E71BB3873233772CCE /* AutoPresets_AIRecommendationView.swift */,
 				03C8C4ECE1B6F36E8E1307AA /* AutoPresets_GeofenceSettingsView.swift */,
 				620B3D0099888389E9D3B3F5 /* AutoPresets_CalendarSettingsView.swift */,
+				BB7AEA2ACE39D2EDEC0FC9C9 /* AutoPresets_ScannedEventsView.swift */,
 			);
 			path = AutoPresets;
 			sourceTree = "<group>";
@@ -3481,6 +3486,7 @@
 			isa = PBXGroup;
 			children = (
 				6339ED478F8AEB8DBDDD9324 /* LoopInsights_FeatureFlags.swift */,
+				5D7B17C02B7B5CF8CBE27C65 /* PowerPack_BuildInfo.swift */,
 			);
 			path = LoopInsights;
 			sourceTree = "<group>";
@@ -3630,6 +3636,7 @@
 				7387EE5C4FD1515CE0B0A367 /* AutoPresets_GeofenceSettingsView.swift */,
 				D50B93F4A924A18A54CD4A1D /* AutoPresets_CalendarSettingsView.swift */,
 				1603F6C219C5CF41BA200D92 /* AutoPresets_SettingsView.swift */,
+				BB7AEA2ACE39D2EDEC0FC9C9 /* AutoPresets_ScannedEventsView.swift */,
 			);
 			path = AutoPresets;
 			sourceTree = "<group>";
@@ -5071,6 +5078,8 @@
 				6F5FEB4509B4644C020BD08D /* DataLayer_DashboardView.swift in Sources */,
 				20E102D95123954D8F4384DB /* LoopInsights_SignalGapHistoryView.swift in Sources */,
 				486F9BD26CAB676035797E87 /* LoopInsights_SubstackPromo.swift in Sources */,
+				E5CEDCB52CCC33B2513C1B4B /* AutoPresets_ScannedEventsView.swift in Sources */,
+				1A6B35DD2E1B9833D7DA57AA /* PowerPack_BuildInfo.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
