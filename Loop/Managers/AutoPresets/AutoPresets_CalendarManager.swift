@@ -66,6 +66,14 @@ public final class AutoPresets_CalendarManager: NSObject, ObservableObject {
     @Published public var triggers: [AutoPresetsCalendarTrigger] = []
     @Published public var enabledCalendarIDs: Set<String> = [] // empty = all calendars
 
+    /// Stats from the most recent `scanAndSchedule()` run. Surfaced in the
+    /// settings view as a "Scanned N events — found M matches" line so the
+    /// user can see that "Scan Calendar Now" did something even when zero
+    /// matches were found. Nil before the first scan completes.
+    @Published public private(set) var lastScanDate: Date?
+    @Published public private(set) var lastScanEventCount: Int = 0
+    @Published public private(set) var lastScanMatchCount: Int = 0
+
     // MARK: - Private Properties
 
     private let log = OSLog(subsystem: "com.loopkit.Loop.AutoPresets", category: "Calendar")
@@ -371,6 +379,9 @@ public final class AutoPresets_CalendarManager: NSObject, ObservableObject {
 
         DispatchQueue.main.async { [weak self] in
             self?.upcomingMatches = matches.sorted { $0.activationDate < $1.activationDate }
+            self?.lastScanDate = Date()
+            self?.lastScanEventCount = events.count
+            self?.lastScanMatchCount = matches.count
         }
 
         os_log("Calendar scan found %d matches in %d events", log: log, type: .debug, matches.count, events.count)

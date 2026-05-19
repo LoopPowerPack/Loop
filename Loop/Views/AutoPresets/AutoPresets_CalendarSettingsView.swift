@@ -206,55 +206,109 @@ struct AutoPresets_CalendarSettingsView: View {
 
     @ViewBuilder
     private var upcomingSection: some View {
-        if !calendarManager.upcomingMatches.isEmpty {
+        Group {
+            // "Upcoming" section: shows real matches if any, otherwise an
+            // empty-state row so users can see the section is alive after
+            // a scan even when nothing matched.
             Section("Upcoming") {
-                ForEach(calendarManager.upcomingMatches) { match in
+                if calendarManager.upcomingMatches.isEmpty {
                     HStack(spacing: 12) {
-                        Image(systemName: "calendar.badge.clock")
+                        Image(systemName: "calendar")
                             .font(.title3)
-                            .foregroundColor(Color(red: 76/255, green: 175/255, blue: 80/255))
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(match.eventTitle)
-                                .font(.body.weight(.medium))
-
-                            HStack(spacing: 4) {
-                                Text(formatEventTime(match.eventStart))
-                                    .font(.caption)
-                                if let preset = coordinator.availablePresets().first(where: { $0.id.uuidString == match.trigger.presetId }) {
-                                    Text("→ \(preset.symbol) \(preset.name)")
-                                        .font(.caption)
-                                }
-                            }
                             .foregroundColor(.secondary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("No upcoming matches")
+                                .font(.body.weight(.medium))
+                            Text("No events in the next 24 hours match your keywords. Add an event with a matching title, or tap Scan below.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } else {
+                    ForEach(calendarManager.upcomingMatches) { match in
+                        HStack(spacing: 12) {
+                            Image(systemName: "calendar.badge.clock")
+                                .font(.title3)
+                                .foregroundColor(Color(red: 76/255, green: 175/255, blue: 80/255))
 
-                            if match.activationDate > Date() {
-                                Text("Activates \(Self.relativeFormatter.localizedString(for: match.activationDate, relativeTo: Date()))")
-                                    .font(.caption2)
-                                    .foregroundColor(Color(red: 76/255, green: 175/255, blue: 80/255))
-                            } else {
-                                Text("Active now")
-                                    .font(.caption2)
-                                    .foregroundColor(Color(red: 76/255, green: 175/255, blue: 80/255))
-                                    .fontWeight(.semibold)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(match.eventTitle)
+                                    .font(.body.weight(.medium))
+
+                                HStack(spacing: 4) {
+                                    Text(formatEventTime(match.eventStart))
+                                        .font(.caption)
+                                    if let preset = coordinator.availablePresets().first(where: { $0.id.uuidString == match.trigger.presetId }) {
+                                        Text("→ \(preset.symbol) \(preset.name)")
+                                            .font(.caption)
+                                    }
+                                }
+                                .foregroundColor(.secondary)
+
+                                if match.activationDate > Date() {
+                                    Text("Activates \(Self.relativeFormatter.localizedString(for: match.activationDate, relativeTo: Date()))")
+                                        .font(.caption2)
+                                        .foregroundColor(Color(red: 76/255, green: 175/255, blue: 80/255))
+                                } else {
+                                    Text("Active now")
+                                        .font(.caption2)
+                                        .foregroundColor(Color(red: 76/255, green: 175/255, blue: 80/255))
+                                        .fontWeight(.semibold)
+                                }
                             }
                         }
                     }
                 }
             }
-        }
 
-        Section {
-            Button {
-                calendarManager.rescan()
-            } label: {
-                HStack {
-                    Image(systemName: "arrow.clockwise")
-                    Text("Scan Calendar Now")
+            // "Scan Calendar Now" button + visible result line below it.
+            // The result line proves the scan ran and surfaces a count even
+            // when zero matches were found (the old version did the scan
+            // silently and showed nothing — looked broken).
+            Section {
+                Button {
+                    calendarManager.rescan()
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.clockwise")
+                        Text("Scan Calendar Now")
+                    }
+                }
+                .disabled(!calendarManager.hasAuthorization)
+
+                if let lastScan = calendarManager.lastScanDate {
+                    HStack(spacing: 6) {
+                        Image(systemName: calendarManager.lastScanMatchCount > 0
+                              ? "checkmark.circle.fill"
+                              : "info.circle")
+                            .font(.caption)
+                            .foregroundColor(calendarManager.lastScanMatchCount > 0
+                                             ? Color(red: 76/255, green: 175/255, blue: 80/255)
+                                             : .secondary)
+                        Text(lastScanSummary(date: lastScan,
+                                             events: calendarManager.lastScanEventCount,
+                                             matches: calendarManager.lastScanMatchCount))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
-            .disabled(!calendarManager.hasAuthorization)
         }
+    }
+
+    /// Formats the result line shown under the Scan button. Examples:
+    ///   "Scanned 14 events 5s ago — found 2 matches"
+    ///   "Scanned 0 events 1m ago — no matches"
+    private func lastScanSummary(date: Date, events: Int, matches: Int) -> String {
+        let relative = Self.relativeFormatter.localizedString(for: date, relativeTo: Date())
+        let eventLabel = events == 1 ? "1 event" : "\(events) events"
+        let matchLabel: String
+        switch matches {
+        case 0: matchLabel = "no matches"
+        case 1: matchLabel = "1 match"
+        default: matchLabel = "\(matches) matches"
+        }
+        return "Scanned \(eventLabel) \(relative) — \(matchLabel)"
     }
 
     // MARK: - Calendar Filter Section
