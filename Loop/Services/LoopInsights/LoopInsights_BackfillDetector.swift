@@ -45,7 +45,7 @@ struct LoopInsightsBackfillSummary {
 
 /// Singleton service that detects CGM signal gaps by comparing sample timestamps
 /// to wall-clock time. Surfaces banner state for the home screen and historical
-/// summary for the dashboard. Persists events to JSON with 30-day retention.
+/// summary for the dashboard. Persists events to JSON with 90-day retention.
 final class LoopInsights_BackfillDetector: ObservableObject {
 
     static let shared = LoopInsights_BackfillDetector()
@@ -61,14 +61,21 @@ final class LoopInsights_BackfillDetector: ObservableObject {
     /// Auto-dismiss timer interval: 2 hours.
     private static let autoDismissInterval: TimeInterval = 7200
 
-    /// Retention period: 30 days.
-    private static let retentionDays = 30
+    /// Retention period: 90 days. Matches the longest analysis lookback period
+    /// the dashboard offers (3/7/14/30/90 days), so the summary card's
+    /// "X gaps in the last N days" claim is always backed by real data.
+    private static let retentionDays = 90
 
     // MARK: - Published State
 
     /// Currently active gap event for the home screen banner.
     /// Set when a gap is detected, cleared after 2 hours or manual dismiss.
     @Published var recentGapEvent: LoopInsightsBackfillEvent?
+
+    /// Bumped when the in-memory `events` array changes — lets SwiftUI views
+    /// (e.g., the history list) refresh automatically when a new gap is
+    /// detected without needing an explicit binding.
+    @Published private(set) var eventsRevision: Int = 0
 
     // MARK: - Private State
 
@@ -130,6 +137,7 @@ final class LoopInsights_BackfillDetector: ObservableObject {
 
         DispatchQueue.main.async { [weak self] in
             self?.recentGapEvent = event
+            self?.eventsRevision &+= 1
             self?.scheduleAutoDismiss()
         }
     }
@@ -150,6 +158,22 @@ final class LoopInsights_BackfillDetector: ObservableObject {
         autoDismissTimer = Timer.scheduledTimer(withTimeInterval: Self.autoDismissInterval, repeats: false) { [weak self] _ in
             self?.dismissBanner()
         }
+    }
+
+    // MARK: - History Accessors
+
+    /// All persisted gap events, newest-first. Used by the history view.
+    /// Read-only copy of the internal array — callers can't mutate detector state.
+    var allEvents: [LoopInsightsBackfillEvent] {
+        events.sorted { $0.detectedAt > $1.detectedAt }
+    }
+
+    /// All persisted gap events that fall within the given lookback window,
+    /// newest-first. Convenience for filtered history views.
+    func events(within days: Int) -> [LoopInsightsBackfillEvent] {
+        let cutoff = Date().addingTimeInterval(-TimeInterval(days) * 86400)
+        return events.filter { $0.detectedAt >= cutoff }
+            .sorted { $0.detectedAt > $1.detectedAt }
     }
 
     // MARK: - Summary

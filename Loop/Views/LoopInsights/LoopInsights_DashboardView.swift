@@ -34,6 +34,7 @@ struct LoopInsights_DashboardView: View {
     @State private var showingAlcoholLog = false
     @State private var showingBehaviorInsights = false
     @State private var showingEndoReport = false
+    @State private var showingSubstackOnboarding = false
     @State private var settingsImpactExpanded = false
     @State private var selectedRecord: LoopInsightsSuggestionRecord?
     @State private var developerTapCount = 0
@@ -97,10 +98,31 @@ struct LoopInsights_DashboardView: View {
                 behaviorDiscoverySection
             }
             navigationSection
+            LoopInsights_SubstackPromoFooter()
             versionFooterSection
         }
         .modifier(ListSectionSpacingModifier())
         .navigationTitle(NSLocalizedString("LoopInsights", comment: "LoopInsights dashboard title"))
+        .onAppear {
+            // One-time Substack onboarding sheet — fires the first time the
+            // user lands on the dashboard. Persistent dismissal via
+            // UserDefaults. Subsequent access lives in the footer below.
+            if !LoopInsights_SubstackPromo.hasSeenOnboarding {
+                // Delay so the sheet doesn't fight the dashboard's own
+                // initial layout (which already triggers several sheets in
+                // edge cases).
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    if !LoopInsights_SubstackPromo.hasSeenOnboarding {
+                        showingSubstackOnboarding = true
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showingSubstackOnboarding) {
+            LoopInsights_SubstackOnboardingSheet(onDismiss: {
+                showingSubstackOnboarding = false
+            })
+        }
         .sheet(item: $selectedRecord) { record in
             NavigationView {
                 LoopInsights_SuggestionDetailView(
@@ -1485,52 +1507,90 @@ struct LoopInsights_DashboardView: View {
     private var cgmSignalQualityCard: some View {
         let period = viewModel.analysisPeriod.rawValue
         let summary = LoopInsights_BackfillDetector.shared.buildSummary(days: period)
-        if SignalGapDismissal.shouldShow(for: summary) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 6) {
-                    Image(systemName: "antenna.radiowaves.left.and.right")
-                        .foregroundColor(.orange)
-                    Text(NSLocalizedString("CGM Signal Quality", comment: "LoopInsights CGM signal quality card title"))
-                        .font(.subheadline.weight(.semibold))
+        if summary.totalEvents > 0 {
+            // Two presentations depending on whether the user has acknowledged
+            // the current gap state within the last 24h:
+            //   • Full card: detailed summary + tap to navigate to history.
+            //   • Compact row: small "history" link so the data stays
+            //     accessible after the 24h dismissal window passes.
+            if SignalGapDismissal.shouldShow(for: summary) {
+                NavigationLink(destination: LoopInsights_SignalGapHistoryView()) {
+                    cgmSignalQualityFullCard(summary: summary, period: period)
                 }
-
-                Text(String(
-                    format: NSLocalizedString("%d signal gap(s) in the last %d days", comment: "LoopInsights CGM gap count"),
-                    summary.totalEvents, period
-                ))
-                .font(.caption)
-                .foregroundColor(.primary)
-
-                if let longestEvent = summary.longestGapEvent {
-                    HStack(spacing: 4) {
-                        Text(NSLocalizedString("Longest:", comment: "LoopInsights CGM longest gap label"))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(String(
-                            format: NSLocalizedString("%d min (%@)", comment: "LoopInsights CGM longest gap value"),
-                            summary.longestGapMinutes,
-                            Self.shortDateFormatter.string(from: longestEvent.detectedAt)
-                        ))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    }
+                .onAppear { SignalGapDismissal.markViewed(for: summary) }
+            } else {
+                NavigationLink(destination: LoopInsights_SignalGapHistoryView()) {
+                    cgmSignalQualityCompactRow(summary: summary)
                 }
+            }
+        }
+    }
 
+    /// Full alert-style card. Shown until 24h after the user first sees this
+    /// gap state (signature-keyed; resets when a new gap is detected).
+    private func cgmSignalQualityFullCard(summary: LoopInsightsBackfillSummary, period: Int) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                    .foregroundColor(.orange)
+                Text(NSLocalizedString("CGM Signal Quality", comment: "LoopInsights CGM signal quality card title"))
+                    .font(.subheadline.weight(.semibold))
+            }
+
+            Text(String(
+                format: NSLocalizedString("%d signal gap(s) in the last %d days", comment: "LoopInsights CGM gap count"),
+                summary.totalEvents, period
+            ))
+            .font(.caption)
+            .foregroundColor(.primary)
+
+            if let longestEvent = summary.longestGapEvent {
                 HStack(spacing: 4) {
-                    Text(String(format: "%.1f%%", summary.realTimeCoveragePercent))
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(summary.realTimeCoveragePercent >= 95 ? .green : .orange)
-                    Text(NSLocalizedString("real-time coverage", comment: "LoopInsights CGM coverage label"))
+                    Text(NSLocalizedString("Longest:", comment: "LoopInsights CGM longest gap label"))
                         .font(.caption)
                         .foregroundColor(.secondary)
+                    Text(String(
+                        format: NSLocalizedString("%d min (%@)", comment: "LoopInsights CGM longest gap value"),
+                        summary.longestGapMinutes,
+                        Self.shortDateFormatter.string(from: longestEvent.detectedAt)
+                    ))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 }
+            }
 
-                Text(NSLocalizedString("During gaps, readings may be estimated by your sensor.", comment: "LoopInsights CGM gap disclaimer"))
-                    .font(.caption2)
+            HStack(spacing: 4) {
+                Text(String(format: "%.1f%%", summary.realTimeCoveragePercent))
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(summary.realTimeCoveragePercent >= 95 ? .green : .orange)
+                Text(NSLocalizedString("real-time coverage", comment: "LoopInsights CGM coverage label"))
+                    .font(.caption)
                     .foregroundColor(.secondary)
             }
-            .padding(.vertical, 4)
-            .onAppear { SignalGapDismissal.markViewed(for: summary) }
+
+            Text(NSLocalizedString("During gaps, readings may be estimated by your sensor. Tap to see history.", comment: "LoopInsights CGM gap disclaimer (with history hint)"))
+                .font(.caption2)
+                .foregroundColor(.secondary)
+        }
+        .padding(.vertical, 4)
+        // Make the whole card hit-test even where Text is the topmost view.
+        .contentShape(Rectangle())
+    }
+
+    /// Compact row shown after the user has acknowledged the current gap
+    /// state (24h+). Keeps the history reachable without the alert framing.
+    private func cgmSignalQualityCompactRow(summary: LoopInsightsBackfillSummary) -> some View {
+        HStack {
+            Image(systemName: "antenna.radiowaves.left.and.right")
+                .foregroundColor(.secondary)
+            Text(NSLocalizedString("Signal Quality History", comment: "LoopInsights signal quality compact row title"))
+            Spacer()
+            Text(String(
+                format: NSLocalizedString("%d gap(s)", comment: "LoopInsights signal quality compact row count"),
+                summary.totalEvents
+            ))
+            .font(.caption)
+            .foregroundColor(.secondary)
         }
     }
 
