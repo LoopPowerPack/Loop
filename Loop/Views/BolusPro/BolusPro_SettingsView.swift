@@ -58,6 +58,8 @@ struct BolusPro_SettingsView: View {
             } else {
                 aboutSection
             }
+
+            LoopInsights_SubstackPromoFooter()
         }
         .navigationTitle("BolusPro")
         .navigationBarTitleDisplayMode(.inline)

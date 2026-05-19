@@ -51,6 +51,8 @@ struct AutoPresets_SettingsView: View {
                 activityLogSection
                 debugLogsSection
             }
+
+            LoopInsights_SubstackPromoFooter()
         }
         .navigationTitle("AutoPresets")
         .navigationBarTitleDisplayMode(.inline)

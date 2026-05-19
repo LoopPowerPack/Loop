@@ -146,6 +146,8 @@ struct LoopInsights_SettingsView: View {
                     developerSection
                 }
             }
+
+            LoopInsights_SubstackPromoFooter()
         }
         .navigationTitle(NSLocalizedString("LoopInsights Settings", comment: "LoopInsights settings title"))
         .navigationBarTitleDisplayMode(.inline)

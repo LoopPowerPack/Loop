@@ -37,6 +37,8 @@ struct SiteAtlas_SettingsView: View {
                 }
                 dangerZoneSection
             }
+
+            LoopInsights_SubstackPromoFooter()
         }
         .navigationTitle("Site Atlas")
         .onAppear { entries = coordinator.allEntries() }

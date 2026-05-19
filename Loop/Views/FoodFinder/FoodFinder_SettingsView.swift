@@ -58,6 +58,7 @@ struct AISettingsView: View {
                 aiConfigSection
                 advancedSettingsSection
             }
+            LoopInsights_SubstackPromoFooter()
             versionFooterSection
         }
         .navigationTitle("FoodFinder")
