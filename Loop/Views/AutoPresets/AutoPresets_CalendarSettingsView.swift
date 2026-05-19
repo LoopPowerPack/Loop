@@ -261,11 +261,29 @@ struct AutoPresets_CalendarSettingsView: View {
                 }
             }
 
-            // "Scan Calendar Now" button + visible result line below it.
-            // The result line proves the scan ran and surfaces a count even
-            // when zero matches were found (the old version did the scan
-            // silently and showed nothing — looked broken).
+            // Scan controls: how often background scans run, manual
+            // "Scan Now" button, and the visible result line that proves
+            // each scan actually ran (with match count even when zero).
             Section {
+                // Auto-scan interval picker. Loop also rescans instantly on
+                // EKEventStoreChanged notifications (event added/edited in any
+                // calendar) and whenever the user adjusts a setting, so even
+                // long intervals + "Manual only" stay responsive to changes.
+                HStack {
+                    Text("Auto-scan every")
+                    Spacer()
+                    Picker("", selection: Binding(
+                        get: { calendarManager.scanIntervalMinutes },
+                        set: { calendarManager.scanIntervalMinutes = $0 }
+                    )) {
+                        ForEach(AutoPresets_CalendarManager.scanIntervalOptions, id: \.self) { mins in
+                            Text(formatScanInterval(mins)).tag(mins)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                }
+
                 Button {
                     calendarManager.rescan()
                 } label: {
@@ -292,8 +310,36 @@ struct AutoPresets_CalendarSettingsView: View {
                             .foregroundColor(.secondary)
                     }
                 }
+            } footer: {
+                Text(scanIntervalFooter(minutes: calendarManager.scanIntervalMinutes))
+                    .font(.caption)
             }
         }
+    }
+
+    /// User-facing label for the auto-scan interval picker.
+    private func formatScanInterval(_ minutes: Int) -> String {
+        switch minutes {
+        case 0:  return "Manual only"
+        case 60: return "1 hour"
+        default: return "\(minutes) min"
+        }
+    }
+
+    /// Footer explanation that adapts to the current interval setting.
+    private func scanIntervalFooter(minutes: Int) -> String {
+        let cadence: String
+        switch minutes {
+        case 0:
+            cadence = "Automatic scans are disabled. Loop will still rescan instantly whenever a calendar event is added or changed, and you can tap Scan Now anytime."
+        case 1:
+            cadence = "Loop scans calendars every minute, plus instantly whenever a calendar event is added or changed."
+        case 60:
+            cadence = "Loop scans calendars every hour, plus instantly whenever a calendar event is added or changed."
+        default:
+            cadence = "Loop scans calendars every \(minutes) minutes, plus instantly whenever a calendar event is added or changed."
+        }
+        return cadence
     }
 
     /// Formats the result line shown under the Scan button. Examples:

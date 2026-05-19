@@ -89,6 +89,13 @@ public final class AutoPresets_CalendarManager: NSObject, ObservableObject {
     private static let leadTimeKey = "AutoPresets_CalendarLeadTime"
     private static let deactivateOnEndKey = "AutoPresets_CalendarDeactivateOnEnd"
     private static let enabledCalendarsKey = "AutoPresets_CalendarEnabledCalendars"
+    private static let scanIntervalKey = "AutoPresets_CalendarScanIntervalMinutes"
+
+    /// Valid auto-scan intervals offered to the user (minutes). `0` means
+    /// "no auto-scan" — the periodic Timer is disabled and the manager only
+    /// scans on EKEventStoreChanged notifications + manual button taps.
+    public static let scanIntervalOptions: [Int] = [0, 5, 15, 30, 60]
+    public static let defaultScanIntervalMinutes = 15
 
     // MARK: - Initialization
 
@@ -151,6 +158,28 @@ public final class AutoPresets_CalendarManager: NSObject, ObservableObject {
         set {
             defaults.set(newValue, forKey: Self.deactivateOnEndKey)
             objectWillChange.send()
+        }
+    }
+
+    /// How often (in minutes) the periodic background scan runs. Default 15.
+    /// Set to 0 to disable the periodic scan entirely — the manager still
+    /// rescans on calendar-change notifications and on manual "Scan Now"
+    /// taps, so triggers remain functional.
+    public var scanIntervalMinutes: Int {
+        get {
+            if defaults.object(forKey: Self.scanIntervalKey) == nil {
+                return Self.defaultScanIntervalMinutes
+            }
+            return defaults.integer(forKey: Self.scanIntervalKey)
+        }
+        set {
+            let clamped = Self.scanIntervalOptions.contains(newValue)
+                ? newValue
+                : Self.defaultScanIntervalMinutes
+            defaults.set(clamped, forKey: Self.scanIntervalKey)
+            objectWillChange.send()
+            // Reschedule periodic Timer with the new interval (or stop it).
+            if isEnabled { restartScanTimer() }
         }
     }
 
@@ -276,12 +305,7 @@ public final class AutoPresets_CalendarManager: NSObject, ObservableObject {
         }
 
         scanAndSchedule()
-
-        // Rescan every 15 minutes for new/changed events
-        scanTimer?.invalidate()
-        scanTimer = Timer.scheduledTimer(withTimeInterval: 900, repeats: true) { [weak self] _ in
-            self?.scanAndSchedule()
-        }
+        restartScanTimer()
 
         os_log("Calendar monitoring started with %d triggers", log: log, type: .info, triggers.filter(\.isEnabled).count)
     }
@@ -300,6 +324,26 @@ public final class AutoPresets_CalendarManager: NSObject, ObservableObject {
     /// Force a rescan now (called from UI "Refresh" button).
     public func rescan() {
         if isEnabled { scanAndSchedule() }
+    }
+
+    /// (Re)schedules the periodic background scan Timer using the current
+    /// `scanIntervalMinutes` value. `0` disables the periodic Timer — the
+    /// manager still rescans on EKEventStoreChanged + manual taps in that mode.
+    private func restartScanTimer() {
+        scanTimer?.invalidate()
+        scanTimer = nil
+
+        let minutes = scanIntervalMinutes
+        guard minutes > 0 else {
+            os_log("Periodic calendar scan disabled (scanIntervalMinutes=0)", log: log, type: .info)
+            return
+        }
+
+        let seconds = TimeInterval(minutes * 60)
+        scanTimer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: true) { [weak self] _ in
+            self?.scanAndSchedule()
+        }
+        os_log("Periodic calendar scan scheduled every %d minutes", log: log, type: .info, minutes)
     }
 
     // MARK: - Event Scanning
