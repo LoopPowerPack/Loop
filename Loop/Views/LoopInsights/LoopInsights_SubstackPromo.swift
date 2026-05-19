@@ -12,6 +12,18 @@
 //  server — Substack's own form does everything. Privacy-respecting,
 //  Apple-approved pattern.
 //
+//  Subscription state: PowerPack has no way to query Substack's
+//  subscriber list (no public API for that, and embedding the publication
+//  admin session cookie would be a security disaster). So "is the user
+//  subscribed" is tracked via UserDefaults, set in two ways:
+//    • Implicit: after the user taps "Subscribe" and dismisses the Safari
+//      sheet, we ask "Did you subscribe?" — Yes flips the flag.
+//    • Explicit: a small "I've already subscribed" link in the footer,
+//      for users who subscribed via desktop, a friend's link, etc.
+//  When subscribed: onboarding sheet is suppressed and the footer flips
+//  to a checkmark-styled "you're subscribed, tap to read" card pointed
+//  at the publication's home page (archive) instead of the subscribe page.
+//
 //  Idea by Taylor Patterson. Coded by Claude Code.
 //  Copyright © 2026 LoopKit Authors and Taylor Patterson.
 //
@@ -23,10 +35,12 @@ import SafariServices
 
 enum LoopInsights_SubstackPromo {
 
-    /// Substack publication subscribe URL. Used by every UI surface.
+    /// Substack publication subscribe URL. Used when the user hasn't yet
+    /// subscribed — opens Substack's signup form.
     static let subscribeURL = URL(string: "https://taylor256.substack.com/subscribe")!
 
-    /// Publication landing page (used by the "Browse" link).
+    /// Publication landing page. Used when the user IS subscribed — they
+    /// get the article archive instead of the signup form.
     static let homeURL = URL(string: "https://taylor256.substack.com")!
 
     /// UserDefaults key — tracks whether the user has been shown the
@@ -35,33 +49,63 @@ enum LoopInsights_SubstackPromo {
     /// dismissed).
     static let onboardingShownKey = "PowerPack_HasSeenSubstackOnboarding"
 
+    /// UserDefaults key — tracks whether the user has indicated they're a
+    /// Substack subscriber. See the file header for how/when this gets set.
+    static let subscribedKey = "PowerPack_HasSubscribedToSubstack"
+
     static var hasSeenOnboarding: Bool {
         get { UserDefaults.standard.bool(forKey: onboardingShownKey) }
         set { UserDefaults.standard.set(newValue, forKey: onboardingShownKey) }
+    }
+
+    static var isSubscribed: Bool {
+        get { UserDefaults.standard.bool(forKey: subscribedKey) }
+        set { UserDefaults.standard.set(newValue, forKey: subscribedKey) }
     }
 }
 
 // MARK: - Footer (always visible at the bottom of every settings view)
 
 /// Compact card that lives at the bottom of each feature's settings view.
-/// Tap → opens Substack subscribe page in SFSafariViewController.
+/// Two visual states:
+///   • Not subscribed: "Tap to subscribe" with a newspaper icon
+///   • Subscribed: checkmark icon + "You're subscribed — tap to read the latest"
+///
+/// Subscribed-state taps open the publication home page (article archive);
+/// not-subscribed taps open the subscribe page. After dismissing Safari from
+/// the not-subscribed state, we ask "Did you subscribe?" — confirming flips
+/// the persistent flag. Subscribed users also see no further prompts.
+///
+/// Below the card, not-subscribed users see a small "I've already
+/// subscribed" link for the case where they signed up elsewhere (desktop,
+/// a friend's share link, etc.).
 struct LoopInsights_SubstackPromoFooter: View {
 
+    @AppStorage(LoopInsights_SubstackPromo.subscribedKey) private var isSubscribed: Bool = false
+
     @State private var showingSafari = false
+    @State private var showingDidSubscribePrompt = false
+    @State private var showingAlreadySubscribedConfirm = false
+
+    private let accent = Color(red: 26/255, green: 138/255, blue: 158/255)
 
     var body: some View {
         Section {
             Button(action: { showingSafari = true }) {
                 HStack(spacing: 12) {
-                    Image(systemName: "newspaper.fill")
+                    Image(systemName: isSubscribed ? "checkmark.seal.fill" : "newspaper.fill")
                         .font(.title3)
-                        .foregroundColor(Color(red: 26/255, green: 138/255, blue: 158/255))
+                        .foregroundColor(isSubscribed ? .green : accent)
                         .frame(width: 32)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(NSLocalizedString("PowerPack writeups on Substack", comment: "Substack footer title"))
+                        Text(isSubscribed
+                             ? NSLocalizedString("PowerPack writeups", comment: "Substack footer title (subscribed)")
+                             : NSLocalizedString("PowerPack writeups on Substack", comment: "Substack footer title"))
                             .font(.subheadline.weight(.semibold))
                             .foregroundColor(.primary)
-                        Text(NSLocalizedString("Free deep-dives on every feature. Tap to subscribe.", comment: "Substack footer subtitle"))
+                        Text(isSubscribed
+                             ? NSLocalizedString("You're subscribed — tap to read the latest.", comment: "Substack footer subtitle (subscribed)")
+                             : NSLocalizedString("Free deep-dives on every feature. Tap to subscribe.", comment: "Substack footer subtitle"))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -73,10 +117,48 @@ struct LoopInsights_SubstackPromoFooter: View {
                 .padding(.vertical, 4)
             }
             .buttonStyle(.plain)
+
+            if !isSubscribed {
+                Button(action: { showingAlreadySubscribedConfirm = true }) {
+                    Text(NSLocalizedString("I've already subscribed", comment: "Substack footer 'already subscribed' opt-out link"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 4)
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .sheet(isPresented: $showingSafari) {
-            LoopInsights_SafariView(url: LoopInsights_SubstackPromo.subscribeURL)
+        .sheet(isPresented: $showingSafari, onDismiss: {
+            // After Safari dismisses from the not-subscribed state, ask the
+            // user if they completed the signup. If they're already marked,
+            // skip the prompt — they were just reading the archive.
+            if !isSubscribed {
+                showingDidSubscribePrompt = true
+            }
+        }) {
+            LoopInsights_SafariView(url: isSubscribed
+                ? LoopInsights_SubstackPromo.homeURL
+                : LoopInsights_SubstackPromo.subscribeURL)
                 .ignoresSafeArea()
+        }
+        .alert(NSLocalizedString("Did you subscribe?", comment: "Substack post-Safari prompt title"),
+               isPresented: $showingDidSubscribePrompt) {
+            Button(NSLocalizedString("Yes, I subscribed", comment: "Substack post-Safari prompt confirm")) {
+                isSubscribed = true
+            }
+            Button(NSLocalizedString("Not yet", comment: "Substack post-Safari prompt deny"), role: .cancel) {}
+        } message: {
+            Text(NSLocalizedString("Tap 'Yes' to hide the subscribe prompts. You can still come back here to read the writeups anytime.", comment: "Substack post-Safari prompt body"))
+        }
+        .alert(NSLocalizedString("Already subscribed?", comment: "Substack 'already subscribed' confirm title"),
+               isPresented: $showingAlreadySubscribedConfirm) {
+            Button(NSLocalizedString("Yes, I'm subscribed", comment: "Substack 'already subscribed' confirm")) {
+                isSubscribed = true
+            }
+            Button(NSLocalizedString("Cancel", comment: "Cancel"), role: .cancel) {}
+        } message: {
+            Text(NSLocalizedString("This hides the subscribe prompts across PowerPack. You can always tap the card to read the latest writeups.", comment: "Substack 'already subscribed' confirm body"))
         }
     }
 }
@@ -85,12 +167,19 @@ struct LoopInsights_SubstackPromoFooter: View {
 
 /// Full-screen sheet shown ONCE the first time the user opens the
 /// LoopInsights dashboard. Persistent dismissal via UserDefaults; subsequent
-/// access is via the footer in any settings view.
+/// access is via the footer in any settings view. Also auto-suppresses if
+/// `LoopInsights_SubstackPromo.isSubscribed` is already true (handled by
+/// the dashboard's onAppear gate, not here).
 struct LoopInsights_SubstackOnboardingSheet: View {
 
     let onDismiss: () -> Void
 
+    @AppStorage(LoopInsights_SubstackPromo.subscribedKey) private var isSubscribed: Bool = false
+
     @State private var showingSafari = false
+    @State private var showingDidSubscribePrompt = false
+
+    private let accent = Color(red: 26/255, green: 138/255, blue: 158/255)
 
     var body: some View {
         NavigationView {
@@ -98,7 +187,7 @@ struct LoopInsights_SubstackOnboardingSheet: View {
                 VStack(spacing: 24) {
                     Image(systemName: "newspaper.fill")
                         .font(.system(size: 64))
-                        .foregroundColor(Color(red: 26/255, green: 138/255, blue: 158/255))
+                        .foregroundColor(accent)
                         .padding(.top, 24)
 
                     Text(NSLocalizedString("Want to know what each feature does, and why?", comment: "Substack onboarding sheet title"))
@@ -130,7 +219,7 @@ struct LoopInsights_SubstackOnboardingSheet: View {
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
-                                .background(Color(red: 26/255, green: 138/255, blue: 158/255))
+                                .background(accent)
                                 .foregroundColor(.white)
                                 .cornerRadius(14)
                         }
@@ -143,6 +232,17 @@ struct LoopInsights_SubstackOnboardingSheet: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .padding(.vertical, 10)
+                        }
+
+                        Button(action: {
+                            isSubscribed = true
+                            LoopInsights_SubstackPromo.hasSeenOnboarding = true
+                            onDismiss()
+                        }) {
+                            Text(NSLocalizedString("I'm already subscribed", comment: "Substack onboarding 'already subscribed' link"))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(.vertical, 4)
                         }
                     }
                     .padding(.horizontal)
@@ -157,9 +257,27 @@ struct LoopInsights_SubstackOnboardingSheet: View {
             }
             .navigationBarTitleDisplayMode(.inline)
         }
-        .sheet(isPresented: $showingSafari, onDismiss: { onDismiss() }) {
+        .sheet(isPresented: $showingSafari, onDismiss: {
+            // After Safari closes, ask if they actually subscribed. Once
+            // confirmed, dismiss the onboarding sheet. If not, leave the
+            // onboarding sheet up so they can pick another action.
+            showingDidSubscribePrompt = true
+        }) {
             LoopInsights_SafariView(url: LoopInsights_SubstackPromo.subscribeURL)
                 .ignoresSafeArea()
+        }
+        .alert(NSLocalizedString("Did you subscribe?", comment: "Substack onboarding post-Safari prompt title"),
+               isPresented: $showingDidSubscribePrompt) {
+            Button(NSLocalizedString("Yes, I subscribed", comment: "Substack onboarding post-Safari prompt confirm")) {
+                isSubscribed = true
+                onDismiss()
+            }
+            Button(NSLocalizedString("Not yet", comment: "Substack onboarding post-Safari prompt deny"), role: .cancel) {
+                // Leave the onboarding sheet visible so the user can try
+                // again or pick "Maybe later".
+            }
+        } message: {
+            Text(NSLocalizedString("Tap 'Yes' if you completed signup. You can always come back here later if you change your mind.", comment: "Substack onboarding post-Safari prompt body"))
         }
     }
 
@@ -167,7 +285,7 @@ struct LoopInsights_SubstackOnboardingSheet: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundColor(Color(red: 26/255, green: 138/255, blue: 158/255))
+                .foregroundColor(accent)
                 .frame(width: 24)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
