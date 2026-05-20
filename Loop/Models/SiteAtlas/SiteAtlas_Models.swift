@@ -105,6 +105,38 @@ struct SiteAtlas_SiteEntry: Codable, Identifiable, Equatable {
     var daysSincePlaced: Int {
         Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
     }
+
+    /// Human-readable body location, e.g. "Front Abdomen (Left)".
+    ///
+    /// Resolves the recorded normalized point to the nearest named placement
+    /// zone on the same body side, so history and detail views can show an
+    /// anatomical name instead of a bare side ("Front") or raw coordinates.
+    /// Falls back to a coarse quadrant descriptor when the point doesn't sit
+    /// near any named zone (e.g. a placement outside the predefined areas).
+    var locationDescription: String {
+        let candidates = SiteAtlas_Zones.zones(for: bodySide)
+        if let nearest = candidates.min(by: { zoneDistance(to: $0) < zoneDistance(to: $1) }),
+           zoneDistance(to: nearest) <= 1.8 {
+            return nearest.displayName
+        }
+        return coarseLocationDescription
+    }
+
+    /// Normalized elliptical distance from this entry's point to a zone center
+    /// (1.0 == on the zone's ellipse edge).
+    private func zoneDistance(to zone: SiteAtlas_Zone) -> Double {
+        let dx = (normalizedX - zone.centerX) / max(zone.radiusX, 0.0001)
+        let dy = (normalizedY - zone.centerY) / max(zone.radiusY, 0.0001)
+        return (dx * dx + dy * dy).squareRoot()
+    }
+
+    /// Coarse descriptor used when the point is far from every named zone.
+    /// The body map is mirror-imaged, so the wearer's left is the higher X.
+    private var coarseLocationDescription: String {
+        let vertical = normalizedY < 0.4 ? "upper" : (normalizedY < 0.7 ? "mid" : "lower")
+        let horizontal = normalizedX > 0.55 ? "left" : (normalizedX < 0.45 ? "right" : "center")
+        return "\(bodySide.displayName) \(vertical) \(horizontal)"
+    }
 }
 
 // MARK: - Recommended Zone

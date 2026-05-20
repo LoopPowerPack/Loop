@@ -288,7 +288,7 @@ struct SiteAtlas_SettingsView: View {
                         Text(entry.type.displayName)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                        Text("\(entry.bodySide.displayName) — \(entry.daysSincePlaced)d ago")
+                        Text("\(entry.locationDescription) — \(entry.daysSincePlaced)d ago")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -361,7 +361,7 @@ struct SiteAtlas_SettingsView: View {
                 Text(entry.type.displayName)
                     .font(.subheadline.weight(.medium))
                 HStack(spacing: 4) {
-                    Text(entry.bodySide.displayName)
+                    Text(entry.locationDescription)
                     if let notes = entry.notes, !notes.isEmpty {
                         Text("- \(notes)")
                     }
@@ -478,15 +478,15 @@ struct SiteAtlas_EditEntrySheet: View {
 
                 Section("Location") {
                     HStack {
-                        Text("Side")
+                        Text("Region")
                         Spacer()
-                        Text(entry.bodySide.displayName)
+                        Text(entry.locationDescription)
                             .foregroundColor(.secondary)
                     }
                     HStack {
-                        Text("Position")
+                        Text("Side")
                         Spacer()
-                        Text(String(format: "(%.0f%%, %.0f%%)", entry.normalizedX * 100, entry.normalizedY * 100))
+                        Text(entry.bodySide.displayName)
                             .foregroundColor(.secondary)
                     }
                 }
