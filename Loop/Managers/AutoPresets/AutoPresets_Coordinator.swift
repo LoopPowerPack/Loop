@@ -48,6 +48,7 @@ public class AutoPresets_Coordinator: ObservableObject {
     // MARK: - Private Properties
 
     private let log = OSLog(subsystem: "com.loopkit.Loop.AutoPresets", category: "Coordinator")
+    private let fileLog = AutoPresets_Logger.shared
     private let storage = AutoPresets_Storage()
     private let activityDetectionManager = AutoPresets_ActivityDetectionManager()
 
@@ -254,6 +255,8 @@ public class AutoPresets_Coordinator: ObservableObject {
     }
 
     private func activatePreset(for activity: AutoPresetsActivityType) {
+        fileLog.log("activatePreset: \(activity.displayName) — mapped presetId=\(settings.presetId(for: activity)?.uuidString ?? "nil"), delegate=\(delegate == nil ? "nil" : "set")")
+
         guard let preset = preset(for: activity) else {
             os_log(
                 "No preset configured for %{public}@",
@@ -261,22 +264,42 @@ public class AutoPresets_Coordinator: ObservableObject {
                 type: .error,
                 activity.displayName
             )
+            fileLog.log("activatePreset SKIPPED — no preset resolved for \(activity.displayName) (check that \(activity.displayName) is mapped to an existing preset in AutoPresets settings)")
             return
         }
 
-        // Check if there's already an active override that wasn't started by us
-        if let currentOverride = currentOverride(), activatedPresetId == nil {
-            os_log(
-                "Override already active (not from AutoPresets), skipping activation",
-                log: log,
-                type: .info
-            )
-            return
+        // Only a FOREIGN override blocks activation. An override that matches one
+        // of our activity-mapped presets is treated as ours and adopted/replaced
+        // — it's typically a leftover from before an app restart (activatedPresetId
+        // is in-memory only, so it resets while Loop keeps the override active).
+        // Without this, a single leftover override would permanently block every
+        // future activation until manually cleared.
+        if let active = currentOverride(), activatedPresetId == nil {
+            let managedPresetIds = Set(AutoPresetsActivityType.allCases.compactMap { settings.presetId(for: $0) })
+            let activeIsManaged: Bool
+            if case let .preset(activePreset) = active.context {
+                activeIsManaged = managedPresetIds.contains(activePreset.id)
+            } else {
+                activeIsManaged = false
+            }
+
+            if !activeIsManaged {
+                os_log(
+                    "Foreign override active (not an AutoPresets preset), skipping activation",
+                    log: log,
+                    type: .info
+                )
+                fileLog.log("activatePreset SKIPPED — a foreign override is active (not one AutoPresets manages); leaving it untouched")
+                return
+            }
+
+            fileLog.log("activatePreset — an AutoPresets-managed override is already active; adopting/replacing it")
         }
 
         activatedPresetId = preset.id
         delegate?.autoPresets(self, shouldActivatePreset: preset)
         logEvent(.presetActivated, activity: activity, presetName: preset.name)
+        fileLog.log("activatePreset APPLIED — '\(preset.name)' for \(activity.displayName) (delegate \(delegate == nil ? "MISSING" : "notified"))")
 
         // Notify DataLayer (separate module — uses notification decoupling)
         NotificationCenter.default.post(
