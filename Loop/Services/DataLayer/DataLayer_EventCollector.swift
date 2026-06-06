@@ -32,8 +32,14 @@ final class DataLayer_EventCollector {
     /// Record a typed event. Guards on master toggle and per-category consent.
     /// Event writes are <1ms and dispatched to a background queue.
     func record<P: Encodable>(type: DataLayer_EventType, payload: P) {
-        guard DataLayer_FeatureFlags.isEnabled else { return }
-        guard consent.isGranted(for: type.consentCategory) else { return }
+        guard DataLayer_FeatureFlags.isEnabled else {
+            DataLayer_FeatureFlags.log.debug("record: dropped \(type.rawValue) — DataLayer master toggle off")
+            return
+        }
+        guard consent.isGranted(for: type.consentCategory) else {
+            DataLayer_FeatureFlags.log.debug("record: dropped \(type.rawValue) — category '\(type.consentCategory.rawValue)' not consented")
+            return
+        }
 
         guard let payloadData = try? encoder.encode(payload) else {
             DataLayer_FeatureFlags.log.error("Failed to encode payload for \(type.rawValue)")
@@ -55,6 +61,10 @@ final class DataLayer_EventCollector {
         )
 
         store.insert(event)
+
+        // Nudge a near-immediate (debounced) upload so real activity reaches the
+        // dashboard within seconds rather than waiting for the next periodic sync.
+        DataLayer_SyncService.shared.requestSync()
     }
 
     // MARK: - Session Management
@@ -64,7 +74,8 @@ final class DataLayer_EventCollector {
         sessionID = UUID()
         record(type: .sessionStart, payload: DataLayer_SessionPayload(
             timezone: TimeZone.current.identifier,
-            localeRegion: Locale.current.regionCode
+            localeRegion: Locale.current.regionCode,
+            powerPackVersion: PowerPack_BuildInfo.displayString
         ))
     }
 
@@ -72,7 +83,8 @@ final class DataLayer_EventCollector {
     func endSession() {
         record(type: .sessionEnd, payload: DataLayer_SessionPayload(
             timezone: TimeZone.current.identifier,
-            localeRegion: Locale.current.regionCode
+            localeRegion: Locale.current.regionCode,
+            powerPackVersion: PowerPack_BuildInfo.displayString
         ))
     }
 

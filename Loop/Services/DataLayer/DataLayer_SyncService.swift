@@ -13,21 +13,23 @@ import UIKit
 
 /// Handles uploading DataLayer events to the remote ingest endpoint.
 /// Fire-and-forget semantics: all errors are silently caught and logged.
-/// Uses exponential backoff on consecutive failures (15min → 24hr cap).
+/// Uses exponential backoff on consecutive failures (3min → 24hr cap).
 final class DataLayer_SyncService {
 
     static let shared = DataLayer_SyncService()
 
     // MARK: - Configuration
 
-    private static let baseSyncInterval: TimeInterval = 900   // 15 minutes
-    private static let maxSyncInterval: TimeInterval = 86400   // 24 hours
+    private static let baseSyncInterval: TimeInterval = 180   // 3 minutes — near-realtime while the app is active
+    private static let maxSyncInterval: TimeInterval = 86400   // 24 hours (failure-backoff cap only)
+    private static let nudgeDelay: TimeInterval = 15           // debounce window for activity-triggered syncs
     private static let maxRetryAttempts = 10
     private static let batchSize = 100
 
     // MARK: - State
 
     private var syncTimer: Timer?
+    private var nudgeTimer: Timer?
     private var currentInterval: TimeInterval = baseSyncInterval
     private var consecutiveFailures = 0
     private var isSyncing = false
@@ -67,6 +69,8 @@ final class DataLayer_SyncService {
     func stop() {
         syncTimer?.invalidate()
         syncTimer = nil
+        nudgeTimer?.invalidate()
+        nudgeTimer = nil
 
         if let observer = foregroundObserver {
             NotificationCenter.default.removeObserver(observer)
@@ -84,6 +88,21 @@ final class DataLayer_SyncService {
     func syncNow() {
         guard canSync, !isSyncing else { return }
         syncBatch()
+    }
+
+    /// Request a near-immediate sync after new activity. Debounced so a burst of
+    /// events (e.g. logging caffeine then alcohol) coalesces into one upload
+    /// ~15s after the last event — keeps the dashboard within a few seconds of live
+    /// without firing a request per event.
+    func requestSync() {
+        guard canSync else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.nudgeTimer?.invalidate()
+            self.nudgeTimer = Timer.scheduledTimer(withTimeInterval: Self.nudgeDelay, repeats: false) { [weak self] _ in
+                self?.syncNow()
+            }
+        }
     }
 
     // MARK: - Timer
@@ -203,7 +222,7 @@ final class DataLayer_SyncService {
 
     private func onFailure() {
         consecutiveFailures += 1
-        // Exponential backoff: 15min, 30min, 1hr, 2hr, 4hr, 8hr, 24hr cap
+        // Exponential backoff: 3min, 6min, 12min, 24min, 48min, 96min, … 24hr cap
         let backoff = Self.baseSyncInterval * pow(2.0, Double(min(consecutiveFailures, 7)))
         currentInterval = min(backoff, Self.maxSyncInterval)
         scheduleTimer()

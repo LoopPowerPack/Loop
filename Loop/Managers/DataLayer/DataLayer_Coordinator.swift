@@ -23,7 +23,7 @@ final class DataLayer_Coordinator: ObservableObject {
     private let collector = DataLayer_EventCollector.shared
     private let consent = DataLayer_ConsentManager.shared
     private var pollTimer: Timer?
-    private static let pollInterval: TimeInterval = 300 // 5 minutes
+    private static let pollInterval: TimeInterval = 180 // 3 minutes — matches SyncService cadence
 
     /// Type-erased store references: (GlucoseStoreProtocol, DoseStoreProtocol, CarbStoreProtocol)
     /// Set once from StatusTableViewController when Settings is first opened.
