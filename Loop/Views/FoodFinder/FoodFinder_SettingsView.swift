@@ -63,7 +63,6 @@ struct AISettingsView: View {
         }
         .navigationTitle("FoodFinder")
         .navigationBarTitleDisplayMode(.inline)
-        .powerPackUpdateNotice()
         .onAppear {
             // Load API keys from Keychain
             apiKey = FoodFinder_SecureStorage.loadAPIKey() ?? ""

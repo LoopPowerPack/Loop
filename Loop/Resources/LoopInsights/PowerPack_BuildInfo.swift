@@ -35,7 +35,7 @@ enum PowerPack_BuildInfo {
     /// points. The committed default here is what Option A clone-and-build
     /// users see; the installer overwrites this with FEATURE_VERSION from
     /// install_features.sh at Phase 4c.
-    static let version = "0.2.0"
+    static let version = "0.3.0"
 
     /// Loop submodule short SHA at install time. `"dev"` for Option A
     /// developer builds (direct clone + Xcode); a real 7-char short SHA
@@ -73,17 +73,64 @@ enum PowerPack_BuildInfo {
 ///         PowerPack_VersionFooter()            // always last
 ///     }
 struct PowerPack_VersionFooter: View {
+    @ObservedObject private var checker = PowerPack_UpdateChecker.shared
+    @Environment(\.openURL) private var openURL
+    @State private var checking = false
+    @State private var showUpToDate = false
+
     var body: some View {
         Section {
-            HStack {
-                Spacer()
+            VStack(spacing: 6) {
                 Text(PowerPack_BuildInfo.displayString)
                     .font(.caption2)
                     .foregroundColor(.secondary)
-                Spacer()
+                Button {
+                    checking = true
+                    Task {
+                        let hasUpdate = await checker.refresh(force: true)
+                        checking = false
+                        // If behind, the update-available alert below fires.
+                        // If current, confirm here so the tap always gives feedback.
+                        if !hasUpdate { showUpToDate = true }
+                    }
+                } label: {
+                    if checking {
+                        ProgressView()
+                    } else {
+                        Text("Check for updates").font(.caption2)
+                    }
+                }
+                .disabled(checking)
+                .alert("You're up to date", isPresented: $showUpToDate) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text("PowerPack \(PowerPack_BuildInfo.version) is the latest version.")
+                }
             }
+            .frame(maxWidth: .infinity)
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+            // Daily-throttled auto-check whenever any PowerPack surface appears.
+            .task { await checker.refresh() }
+            .alert("PowerPack update available",
+                   isPresented: Binding(
+                       get: { checker.availableUpdate != nil },
+                       set: { if !$0 { checker.dismissCurrent() } }
+                   ),
+                   presenting: checker.availableUpdate) { info in
+                Button("How to update") { openURL(info.url); checker.dismissCurrent() }
+                Button("Later", role: .cancel) { checker.dismissCurrent() }
+            } message: { info in
+                Text(Self.updateMessage(for: info))
+            }
         }
+    }
+
+    private static func updateMessage(for info: PowerPack_UpdateChecker.UpdateInfo) -> String {
+        var msg = "PowerPack \(info.latest) is available (you're on \(PowerPack_BuildInfo.version)). Reinstall at your convenience to get the latest fixes."
+        if let notes = info.notes, !notes.isEmpty {
+            msg += "\n\nWhat's new: \(notes)"
+        }
+        return msg
     }
 }

@@ -53,11 +53,15 @@ final class PowerPack_UpdateChecker: ObservableObject {
     /// most once per 24h; within that window it recomputes from the cached
     /// manifest so the notice still appears on PowerPack screens. Safe to call
     /// from any view's `.task` — self-throttling and failure-silent.
-    func refresh() async {
-        if isFetchDue {
+    @discardableResult
+    func refresh(force: Bool = false) async -> Bool {
+        if force || isFetchDue {
             await fetchManifest()
         }
-        recomputeNotice()
+        // A manual ("force") check ignores a prior dismissal so the user always
+        // sees the result of an explicit "Check for updates" tap.
+        recomputeNotice(ignoreDismissed: force)
+        return availableUpdate != nil
     }
 
     /// Dismiss the current notice. It won't reappear until a newer version ships.
@@ -92,13 +96,14 @@ final class PowerPack_UpdateChecker: ObservableObject {
         }
     }
 
-    private func recomputeNotice() {
+    private func recomputeNotice(ignoreDismissed: Bool = false) {
         guard let latest = defaults.string(forKey: Keys.cachedLatest), !latest.isEmpty else {
             availableUpdate = nil
             return
         }
         let dismissed = defaults.string(forKey: Keys.dismissedVersion)
-        guard Self.isNewer(latest, than: PowerPack_BuildInfo.version), latest != dismissed else {
+        guard Self.isNewer(latest, than: PowerPack_BuildInfo.version),
+              ignoreDismissed || latest != dismissed else {
             availableUpdate = nil
             return
         }
@@ -127,49 +132,5 @@ final class PowerPack_UpdateChecker: ObservableObject {
             if xi != yi { return xi > yi }
         }
         return false
-    }
-}
-
-// MARK: - Soft update notice modifier
-
-/// Attach to a PowerPack screen's root view. Runs the daily-throttled check on
-/// appear and shows a soft, dismiss-once-per-version alert linking to the
-/// install page.
-struct PowerPackUpdateNotice: ViewModifier {
-    @ObservedObject private var checker = PowerPack_UpdateChecker.shared
-    @Environment(\.openURL) private var openURL
-
-    func body(content: Content) -> some View {
-        content
-            .task { await checker.refresh() }
-            .alert("PowerPack update available",
-                   isPresented: Binding(
-                       get: { checker.availableUpdate != nil },
-                       set: { if !$0 { checker.dismissCurrent() } }
-                   ),
-                   presenting: checker.availableUpdate) { info in
-                Button("How to update") {
-                    openURL(info.url)
-                    checker.dismissCurrent()
-                }
-                Button("Later", role: .cancel) { checker.dismissCurrent() }
-            } message: { info in
-                Text(message(for: info))
-            }
-    }
-
-    private func message(for info: PowerPack_UpdateChecker.UpdateInfo) -> String {
-        var msg = "PowerPack \(info.latest) is available (you're on \(PowerPack_BuildInfo.version)). Reinstall at your convenience to get the latest fixes."
-        if let notes = info.notes, !notes.isEmpty {
-            msg += "\n\nWhat's new: \(notes)"
-        }
-        return msg
-    }
-}
-
-extension View {
-    /// Show the once-per-version PowerPack update notice on this screen.
-    func powerPackUpdateNotice() -> some View {
-        modifier(PowerPackUpdateNotice())
     }
 }
