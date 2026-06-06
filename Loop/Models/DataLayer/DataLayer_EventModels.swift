@@ -307,6 +307,9 @@ struct DataLayer_MealDebriefPayload: Codable {
 struct DataLayer_SessionPayload: Codable {
     let timezone: String
     let localeRegion: String?
+    /// PowerPack release string (e.g. "PowerPack v0.1.0-dev"). Lets the dashboard
+    /// show which PowerPack build a device is running, distinct from the Loop app version.
+    let powerPackVersion: String?
 }
 
 /// GraphDetailView opened — fired when the long-press detail popup appears
