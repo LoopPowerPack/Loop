@@ -85,7 +85,9 @@ final class LoopInsights_CaregiverDigestService: ObservableObject {
     private static let enabledKey = "LoopInsights_caregiverDigestEnabled"
     private static let frequencyKey = "LoopInsights_caregiverDigestFrequency"
     private static let recipientNameKey = "LoopInsights_caregiverRecipientName"
-    private static let recipientContactKey = "LoopInsights_caregiverRecipientContact"
+    private static let recipientContactKey = "LoopInsights_caregiverRecipientContact" // legacy single-field (migrated)
+    private static let recipientEmailKey = "LoopInsights_caregiverRecipientEmail"
+    private static let recipientPhoneKey = "LoopInsights_caregiverRecipientPhone"
     private static let deliveryMethodKey = "LoopInsights_caregiverDeliveryMethod"
     private static let lastSentKey = "LoopInsights_caregiverLastSent"
 
@@ -110,10 +112,48 @@ final class LoopInsights_CaregiverDigestService: ObservableObject {
         set { UserDefaults.standard.set(newValue, forKey: recipientNameKey) }
     }
 
-    /// Email address or phone number for the recipient.
+    /// Recipient email address. Persists independently of the phone number so
+    /// switching delivery method preserves both values.
+    static var recipientEmail: String {
+        get {
+            let stored = UserDefaults.standard.string(forKey: recipientEmailKey) ?? ""
+            if stored.isEmpty {
+                // One-time migration: if the legacy single field looks like an email, adopt it.
+                let legacy = UserDefaults.standard.string(forKey: recipientContactKey) ?? ""
+                if legacy.contains("@") { return legacy }
+            }
+            return stored
+        }
+        set { UserDefaults.standard.set(newValue, forKey: recipientEmailKey) }
+    }
+
+    /// Recipient phone number. Persists independently of the email.
+    static var recipientPhone: String {
+        get {
+            let stored = UserDefaults.standard.string(forKey: recipientPhoneKey) ?? ""
+            if stored.isEmpty {
+                // Legacy single field that isn't an email is treated as a phone number.
+                let legacy = UserDefaults.standard.string(forKey: recipientContactKey) ?? ""
+                if !legacy.isEmpty && !legacy.contains("@") { return legacy }
+            }
+            return stored
+        }
+        set { UserDefaults.standard.set(newValue, forKey: recipientPhoneKey) }
+    }
+
+    /// The contact to send to for the current delivery method. Read-only
+    /// convenience used by the send paths; the underlying values are edited via
+    /// `recipientEmail` / `recipientPhone`.
     static var recipientContact: String {
-        get { UserDefaults.standard.string(forKey: recipientContactKey) ?? "" }
-        set { UserDefaults.standard.set(newValue, forKey: recipientContactKey) }
+        deliveryMethod == .email ? recipientEmail : recipientPhone
+    }
+
+    /// Clears all saved recipient details (email, phone, name, and legacy field).
+    static func clearRecipients() {
+        UserDefaults.standard.removeObject(forKey: recipientEmailKey)
+        UserDefaults.standard.removeObject(forKey: recipientPhoneKey)
+        UserDefaults.standard.removeObject(forKey: recipientNameKey)
+        UserDefaults.standard.removeObject(forKey: recipientContactKey)
     }
 
     static var deliveryMethod: DeliveryMethod {
@@ -223,141 +263,148 @@ final class LoopInsights_CaregiverDigestService: ObservableObject {
             highDesc = String(format: NSLocalizedString("⚠️ Significant high time (%.0f%% above %@)", comment: "Caregiver digest: significant highs"), g.timeAboveRange, highStr)
         }
 
+        // Time-in-Range bar segment widths (low / in-range / high), summing to 100%.
+        let lowW = max(0, Int(g.timeBelowRange.rounded()))
+        let highW = max(0, Int(g.timeAboveRange.rounded()))
+        let inW = max(0, 100 - lowW - highW)
+
+        // Email-safe key/value row. Uses a table cell pair — Gmail strips the
+        // flexbox/float layout the old `.stat-row` relied on, which jammed the
+        // label and value together ("Average Glucose133 mg/dL").
+        func metricRow(_ label: String, _ value: String) -> String {
+            "<tr><td style=\"color:#555;padding:7px 2px;border-bottom:1px solid #f0f0f0;\">\(label)</td><td align=\"right\" style=\"color:#1a1a1a;font-weight:600;padding:7px 2px;border-bottom:1px solid #f0f0f0;\">\(value)</td></tr>"
+        }
+        let sectionTitle = "font-size:12px;font-weight:700;color:#14707e;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid #14707e;padding-bottom:5px;margin-bottom:4px;"
+
+        // Emoji Time-in-Range bar for SMS/iMessage (10 blocks ≈ 10% each). Renders
+        // natively in Messages where the HTML colored bar can't.
+        let lowBlocks = Int((g.timeBelowRange / 10).rounded())
+        let highBlocks = Int((g.timeAboveRange / 10).rounded())
+        let inBlocks = max(0, 10 - lowBlocks - highBlocks)
+        let emojiBar = String(repeating: "🟥", count: lowBlocks)
+            + String(repeating: "🟩", count: inBlocks)
+            + String(repeating: "🟨", count: highBlocks)
+
         let subject = "\(statusEmoji) LoopInsights Digest — \(shortDate.string(from: now))"
 
         // Plain text version
         let plainText = """
         \(greeting),
 
-        Here's the \(frequency.periodLabel.lowercased()) LoopInsights summary.
-
-        \(statusEmoji) Overall: \(statusSummary)
+        \(statusEmoji) \(statusSummary)
+        \(frequency.periodLabel) summary
 
         📊 GLUCOSE
-        • \(unitContext.tirRangeLabel): \(String(format: "%.0f", g.timeInRange))%
-        • Average Glucose: \(unitContext.formatMgdl(g.averageGlucose))
-        • GMI (est. A1C): \(String(format: "%.1f", g.gmi))%
+        Time in Range: \(String(format: "%.0f", g.timeInRange))%
+        \(emojiBar)
+        🟩 in range · 🟨 high · 🟥 low
+        • Avg glucose: \(unitContext.formatMgdl(g.averageGlucose))
+        • Est. A1C: \(String(format: "%.1f", g.gmi))%
         • \(lowDesc)
         • \(highDesc)
 
         💉 INSULIN
-        • Total Daily Dose: \(String(format: "%.1f", i.totalDailyDose)) U/day
-        • Basal/Bolus Split: \(String(format: "%.0f", i.basalPercentage))% / \(String(format: "%.0f", i.bolusPercentage))%
+        • Daily dose: \(String(format: "%.1f", i.totalDailyDose)) U
+        • Basal / Bolus: \(String(format: "%.0f", i.basalPercentage))% / \(String(format: "%.0f", i.bolusPercentage))%
 
         🍽️ MEALS
-        • \(c.mealCount) meals logged
-        • Average daily carbs: \(String(format: "%.0f", c.averageDailyCarbs))g
+        • Meals logged: \(c.mealCount)
+        • Daily carbs: \(String(format: "%.0f", c.averageDailyCarbs))g
 
         —
-        Sent from LoopInsights • \(dateFormatter.string(from: now))
-        This is an automated summary for informational purposes only.
+        LoopInsights · \(dateFormatter.string(from: now))
+        Automated summary — informational only.
         """
 
-        // HTML version
+        // HTML version — table-based + inline styles for maximum email-client
+        // compatibility (Gmail strips <style> layout rules and flexbox/floats).
         let htmlBody = """
         <!DOCTYPE html>
         <html>
         <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-            body {
-                font-family: -apple-system, 'SF Pro Display', Helvetica Neue, Arial, sans-serif;
-                margin: 0; padding: 0;
-                color: #1a1a1a; font-size: 14px; line-height: 1.6;
-                background: #f5f5f5;
-            }
-            .container { max-width: 480px; margin: 0 auto; background: #fff; }
-            .header {
-                background: linear-gradient(135deg, #1a8a9e 0%, #14707e 100%);
-                color: white; padding: 24px 20px; text-align: center;
-            }
-            .header h1 { margin: 0; font-size: 20px; font-weight: 700; }
-            .header .period { font-size: 12px; opacity: 0.85; margin-top: 4px; }
-            .status-banner {
-                padding: 16px 20px;
-                font-size: 15px; font-weight: 600;
-                text-align: center;
-                background: #f0fafb;
-                border-bottom: 1px solid #d4eef2;
-            }
-            .content { padding: 20px; }
-            .section-title {
-                font-size: 12px; font-weight: 700;
-                color: #1a8a9e; text-transform: uppercase;
-                letter-spacing: 0.5px;
-                margin: 16px 0 8px 0;
-                padding-bottom: 4px;
-                border-bottom: 2px solid #1a8a9e;
-            }
-            .section-title:first-child { margin-top: 0; }
-            .stat-row {
-                display: flex; justify-content: space-between;
-                padding: 6px 0;
-                border-bottom: 1px solid #f0f0f0;
-                font-size: 13px;
-            }
-            .stat-label { color: #555; }
-            .stat-value { font-weight: 600; }
-            .tir-highlight {
-                font-size: 28px; font-weight: 700;
-                color: #1a8a9e; text-align: center;
-                margin: 8px 0;
-            }
-            .tir-label {
-                font-size: 11px; color: #888;
-                text-align: center; margin-bottom: 12px;
-            }
-            .alert-row {
-                padding: 6px 0;
-                font-size: 13px;
-                border-bottom: 1px solid #f0f0f0;
-            }
-            .footer {
-                padding: 16px 20px;
-                font-size: 10px; color: #999;
-                text-align: center; line-height: 1.5;
-                border-top: 1px solid #eee;
-            }
-            .footer .brand { color: #1a8a9e; font-weight: 700; }
-        </style>
         </head>
-        <body>
-        <div class="container">
-            <div class="header">
-                <h1>LoopInsights Digest</h1>
-                <div class="period">\(frequency.periodLabel) — \(shortDate.string(from: now))</div>
-            </div>
+        <body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;">
+          <tr><td align="center" style="padding:16px;">
+            <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border-radius:10px;overflow:hidden;">
 
-            <div class="status-banner">\(statusEmoji) \(statusSummary)</div>
+              <tr><td style="background:#14707e;color:#ffffff;padding:22px 20px;text-align:center;">
+                <div style="font-size:20px;font-weight:700;">LoopInsights Digest</div>
+                <div style="font-size:12px;opacity:0.85;margin-top:4px;">\(frequency.periodLabel) — \(shortDate.string(from: now))</div>
+              </td></tr>
 
-            <div class="content">
-                <div class="section-title">📊 Glucose</div>
-                <div class="tir-highlight">\(String(format: "%.0f", g.timeInRange))%</div>
-                <div class="tir-label">Time in Range (\(unitContext.tirRangeString))</div>
-                <div class="stat-row"><span class="stat-label">Average Glucose</span><span class="stat-value">\(unitContext.formatMgdl(g.averageGlucose))</span></div>
-                <div class="stat-row"><span class="stat-label">GMI (est. A1C)</span><span class="stat-value">\(String(format: "%.1f", g.gmi))%</span></div>
-                <div class="stat-row"><span class="stat-label">Std Deviation</span><span class="stat-value">\(unitContext.formatMgdl(g.standardDeviation))</span></div>
-                <div class="alert-row">\(lowDesc)</div>
-                <div class="alert-row">\(highDesc)</div>
+              <tr><td style="background:#f0fafb;border-bottom:1px solid #d4eef2;padding:16px 20px;text-align:center;font-size:15px;font-weight:600;">
+                \(statusEmoji) \(statusSummary)
+              </td></tr>
 
-                <div class="section-title">💉 Insulin</div>
-                <div class="stat-row"><span class="stat-label">Avg Daily Dose</span><span class="stat-value">\(String(format: "%.1f", i.totalDailyDose)) U</span></div>
-                <div class="stat-row"><span class="stat-label">Basal / Bolus</span><span class="stat-value">\(String(format: "%.0f", i.basalPercentage))% / \(String(format: "%.0f", i.bolusPercentage))%</span></div>
-                <div class="stat-row"><span class="stat-label">Correction Boluses</span><span class="stat-value">\(i.correctionBolusCount)</span></div>
+              <tr><td style="padding:22px 20px 6px;text-align:center;">
+                <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Time in Range (\(unitContext.tirRangeString))</div>
+                <div style="font-size:42px;font-weight:800;color:#43a047;line-height:1.1;margin:2px 0;">\(String(format: "%.0f", g.timeInRange))%</div>
+              </td></tr>
 
-                <div class="section-title">🍽️ Meals</div>
-                <div class="stat-row"><span class="stat-label">Meals Logged</span><span class="stat-value">\(c.mealCount)</span></div>
-                <div class="stat-row"><span class="stat-label">Avg Daily Carbs</span><span class="stat-value">\(String(format: "%.0f", c.averageDailyCarbs))g</span></div>
-                <div class="stat-row"><span class="stat-label">Avg Per Meal</span><span class="stat-value">\(String(format: "%.0f", c.averageCarbsPerMeal))g</span></div>
-            </div>
+              <tr><td style="padding:6px 20px 0;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-radius:6px;overflow:hidden;border-collapse:collapse;">
+                  <tr>
+                    <td width="\(lowW)%" height="30" bgcolor="#e53935"></td>
+                    <td width="\(inW)%" height="30" bgcolor="#43a047"></td>
+                    <td width="\(highW)%" height="30" bgcolor="#fb8c00"></td>
+                  </tr>
+                </table>
+              </td></tr>
 
-            <div class="footer">
-                <span class="brand">LoopInsights</span> — AI-Powered Therapy Settings Analysis<br>
+              <tr><td style="padding:8px 20px 2px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:12px;color:#555;">
+                  <tr>
+                    <td align="center" width="33%">🟥 Low<br><span style="font-size:15px;font-weight:700;color:#1a1a1a;">\(String(format: "%.0f", g.timeBelowRange))%</span></td>
+                    <td align="center" width="34%">🟩 In Range<br><span style="font-size:15px;font-weight:700;color:#1a1a1a;">\(String(format: "%.0f", g.timeInRange))%</span></td>
+                    <td align="center" width="33%">🟨 High<br><span style="font-size:15px;font-weight:700;color:#1a1a1a;">\(String(format: "%.0f", g.timeAboveRange))%</span></td>
+                  </tr>
+                </table>
+              </td></tr>
+
+              <tr><td style="padding:12px 20px 0;">
+                <div style="font-size:13px;padding:5px 0;">\(lowDesc)</div>
+                <div style="font-size:13px;padding:5px 0;">\(highDesc)</div>
+              </td></tr>
+
+              <tr><td style="padding:14px 20px 0;">
+                <div style="\(sectionTitle)">📊 Glucose Detail</div>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;">
+                  \(metricRow("Average Glucose", unitContext.formatMgdl(g.averageGlucose)))
+                  \(metricRow("GMI (est. A1C)", String(format: "%.1f%%", g.gmi)))
+                  \(metricRow("Variability (Std Dev)", unitContext.formatMgdl(g.standardDeviation)))
+                </table>
+              </td></tr>
+
+              <tr><td style="padding:16px 20px 0;">
+                <div style="\(sectionTitle)">💉 Insulin</div>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;">
+                  \(metricRow("Avg Daily Dose", String(format: "%.1f U", i.totalDailyDose)))
+                  \(metricRow("Basal / Bolus", String(format: "%.0f%% / %.0f%%", i.basalPercentage, i.bolusPercentage)))
+                  \(metricRow("Correction Boluses", "\(i.correctionBolusCount)"))
+                </table>
+              </td></tr>
+
+              <tr><td style="padding:16px 20px 18px;">
+                <div style="\(sectionTitle)">🍽️ Meals</div>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;">
+                  \(metricRow("Meals Logged", "\(c.mealCount)"))
+                  \(metricRow("Avg Daily Carbs", String(format: "%.0f g", c.averageDailyCarbs)))
+                  \(metricRow("Avg Per Meal", String(format: "%.0f g", c.averageCarbsPerMeal)))
+                </table>
+              </td></tr>
+
+              <tr><td style="padding:16px 20px;border-top:1px solid #eee;text-align:center;font-size:10px;color:#999;line-height:1.5;">
+                <b style="color:#14707e;">LoopInsights</b> — AI-Powered Therapy Settings Analysis<br>
                 Generated \(dateFormatter.string(from: now))<br>
                 This is an automated summary for informational purposes only.
-            </div>
-        </div>
+              </td></tr>
+
+            </table>
+          </td></tr>
+        </table>
         </body>
         </html>
         """

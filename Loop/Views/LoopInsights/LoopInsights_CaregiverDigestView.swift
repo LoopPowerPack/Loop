@@ -24,7 +24,8 @@ struct LoopInsights_CaregiverDigestView: View {
     @State private var frequency = LoopInsights_CaregiverDigestService.frequency
     @State private var deliveryMethod = LoopInsights_CaregiverDigestService.deliveryMethod
     @State private var recipientName = LoopInsights_CaregiverDigestService.recipientName
-    @State private var recipientContact = LoopInsights_CaregiverDigestService.recipientContact
+    @State private var recipientEmail = LoopInsights_CaregiverDigestService.recipientEmail
+    @State private var recipientPhone = LoopInsights_CaregiverDigestService.recipientPhone
     @State private var showingMailCompose = false
     @State private var showingMessageCompose = false
     @State private var errorMessage: String?
@@ -61,7 +62,7 @@ struct LoopInsights_CaregiverDigestView: View {
         }) {
             if let digest = digestService.lastGeneratedDigest {
                 LoopInsights_MailComposeView(
-                    recipients: recipientContact.isEmpty ? [] : [recipientContact],
+                    recipients: activeContact.isEmpty ? [] : [activeContact],
                     subject: digest.subject,
                     htmlBody: digest.htmlBody
                 ) { result in
@@ -76,7 +77,7 @@ struct LoopInsights_CaregiverDigestView: View {
         }) {
             if let digest = digestService.lastGeneratedDigest {
                 LoopInsights_MessageComposeView(
-                    recipients: recipientContact.isEmpty ? [] : [recipientContact],
+                    recipients: activeContact.isEmpty ? [] : [activeContact],
                     body: digest.plainText
                 ) { result in
                     if case .sent = result {
@@ -200,23 +201,66 @@ struct LoopInsights_CaregiverDigestView: View {
 
     // MARK: - Recipient
 
+    /// The contact value for the currently selected delivery method.
+    private var activeContact: String {
+        deliveryMethod == .email ? recipientEmail : recipientPhone
+    }
+
+    /// Read/write binding for the active method's field that also persists the
+    /// value to the service so email and phone are retained separately.
+    private var activeContactBinding: Binding<String> {
+        Binding(
+            get: { deliveryMethod == .email ? recipientEmail : recipientPhone },
+            set: { newValue in
+                if deliveryMethod == .email {
+                    recipientEmail = newValue
+                    LoopInsights_CaregiverDigestService.recipientEmail = newValue
+                } else {
+                    recipientPhone = newValue
+                    LoopInsights_CaregiverDigestService.recipientPhone = newValue
+                }
+            }
+        )
+    }
+
+    /// Clears the contact for the active method (both state and persisted store).
+    private func clearActiveContact() {
+        if deliveryMethod == .email {
+            recipientEmail = ""
+            LoopInsights_CaregiverDigestService.recipientEmail = ""
+        } else {
+            recipientPhone = ""
+            LoopInsights_CaregiverDigestService.recipientPhone = ""
+        }
+    }
+
     private var recipientSection: some View {
         Section {
             HStack(spacing: 8) {
                 Image(systemName: deliveryMethod == .email ? "envelope" : "phone")
                     .foregroundColor(tealColor)
+                // Bind to the active method's field so email and phone persist
+                // independently — switching method swaps the visible value.
                 TextField(
                     deliveryMethod == .email
                         ? NSLocalizedString("Recipient email address", comment: "Caregiver digest email placeholder")
                         : NSLocalizedString("Recipient phone number", comment: "Caregiver digest phone placeholder"),
-                    text: $recipientContact
+                    text: activeContactBinding
                 )
                 .keyboardType(deliveryMethod == .email ? .emailAddress : .phonePad)
                 .textContentType(deliveryMethod == .email ? .emailAddress : .telephoneNumber)
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
-                .onChange(of: recipientContact) { newValue in
-                    LoopInsights_CaregiverDigestService.recipientContact = newValue
+
+                if !activeContact.isEmpty {
+                    Button {
+                        clearActiveContact()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(NSLocalizedString("Clear recipient", comment: "Caregiver digest clear recipient button"))
                 }
             }
 
@@ -291,7 +335,7 @@ struct LoopInsights_CaregiverDigestView: View {
             .listRowBackground(digestService.isGenerating ? Color.gray : tealColor)
             .disabled(digestService.isGenerating)
         } footer: {
-            if recipientContact.isEmpty {
+            if activeContact.isEmpty {
                 Text(NSLocalizedString("Add a recipient above so the message is pre-filled and ready to send.", comment: "Caregiver digest no recipient warning"))
                     .foregroundColor(.orange)
             }

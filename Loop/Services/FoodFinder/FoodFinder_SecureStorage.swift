@@ -43,6 +43,23 @@ struct FoodFinder_SecureStorage {
         try delete(account: "usda-api-key")
     }
 
+    // MARK: - Spoonacular API Key
+
+    /// Spoonacular free-tier key. Used for restaurant menu-item lookups when the
+    /// user is confirmed within 200 ft of a (chain) restaurant — pulls authoritative
+    /// menu nutrition so we can skip the pricier AI image analysis.
+    static func saveSpoonacularKey(_ key: String) throws {
+        try save(key, account: "spoonacular-api-key")
+    }
+
+    static func loadSpoonacularKey() -> String? {
+        return load(account: "spoonacular-api-key")
+    }
+
+    static func deleteSpoonacularKey() throws {
+        try delete(account: "spoonacular-api-key")
+    }
+
     // MARK: - Generic Keychain Operations
 
     private static func save(_ value: String, account: String) throws {

@@ -196,10 +196,17 @@ final class PowerPack_APIUsage: ObservableObject {
 struct PowerPackAPIUsageGate: ViewModifier {
     @ObservedObject private var usage = PowerPack_APIUsage.shared
 
+    /// Whether this surface should present the gate alerts. A parent that is
+    /// currently hosting a child sheet (e.g. the camera) must pass `false` so
+    /// the alert presents from the sheet — not the parent. Presenting an alert
+    /// on a view that has an active sheet tears the sheet down, which dropped
+    /// the user back on an empty Add Carb Entry page and cancelled the analysis.
+    let isActive: Bool
+
     func body(content: Content) -> some View {
         content
             .alert("Use AI tokens?", isPresented: Binding(
-                get: { usage.pendingApproval != nil },
+                get: { isActive && usage.pendingApproval != nil },
                 set: { if !$0 { usage.resolvePending(.cancel) } }
             ), presenting: usage.pendingApproval) { pending in
                 Button("Continue") { usage.resolvePending(.proceed) }
@@ -210,7 +217,7 @@ struct PowerPackAPIUsageGate: ViewModifier {
                             pending.actionLabel, pending.estCostUSD))
             }
             .alert("Monthly AI budget reached", isPresented: Binding(
-                get: { usage.budgetBlockedMessage != nil },
+                get: { isActive && usage.budgetBlockedMessage != nil },
                 set: { if !$0 { usage.budgetBlockedMessage = nil } }
             )) {
                 Button("OK", role: .cancel) {}
@@ -222,7 +229,11 @@ struct PowerPackAPIUsageGate: ViewModifier {
 
 extension View {
     /// Present the PowerPack per-use confirmation + budget-block alerts on this screen.
-    func powerPackAPIUsageGate() -> some View { modifier(PowerPackAPIUsageGate()) }
+    /// Pass `isActive: false` while this view is hosting a child sheet that has its
+    /// own gate, so the alert presents from the sheet instead of dismissing it.
+    func powerPackAPIUsageGate(isActive: Bool = true) -> some View {
+        modifier(PowerPackAPIUsageGate(isActive: isActive))
+    }
 }
 
 // MARK: - Settings controls (plain rows)

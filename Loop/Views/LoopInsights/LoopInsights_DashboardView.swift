@@ -102,7 +102,9 @@ struct LoopInsights_DashboardView: View {
             PowerPack_VersionFooter()
         }
         .modifier(ListSectionSpacingModifier())
-        .powerPackAPIUsageGate()
+        // The chat sheet presents its own gate; suppress this one while it's up
+        // so the alert doesn't tear the chat sheet down mid-request.
+        .powerPackAPIUsageGate(isActive: !showingChat)
         .navigationTitle(NSLocalizedString("LoopInsights", comment: "LoopInsights dashboard title"))
         .onAppear {
             // One-time Substack onboarding sheet — fires the first time the

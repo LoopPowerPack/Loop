@@ -654,6 +654,7 @@
 		0B0154317331EDF4423F3326 /* FoodFinder_InputResults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D8F11E6D6280233F95AA93 /* FoodFinder_InputResults.swift */; };
 		C4B24648B35EE29C1D9DE33A /* FoodFinder_FavoritesHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 406DF1A9DEBA5BEB8D2815A1 /* FoodFinder_FavoritesHelpers.swift */; };
 		EF134BD7F1B6F20BFF523625 /* FoodFinder_AICameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04BA0B00F58C59F64EEE46FF /* FoodFinder_AICameraView.swift */; };
+		A9CDE23EE5F65C3D66B18151 /* FoodFinder_RestaurantMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E195D999FD795DDAD36F4E37 /* FoodFinder_RestaurantMenuView.swift */; };
 		62C91699197A1755A881B0D4 /* FoodFinder_ImageCropView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1410B04C87F6E1151B43C64E /* FoodFinder_ImageCropView.swift */; };
 		6F86CED6E856EC572B1EC890 /* FoodFinder_AIProviderConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0991C859E0D9DE159DCB2B70 /* FoodFinder_AIProviderConfig.swift */; };
 		69A01BCB43357C948E70ED96 /* FoodFinder_AIServiceAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F58A7DE6D538296D6AB40C4F /* FoodFinder_AIServiceAdapter.swift */; };
@@ -679,6 +680,7 @@
 		88F5D0DB050CCE93047EEB3D /* FoodFinder_OpenFoodFactsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDF37556B4222F9A8C4DE71F /* FoodFinder_OpenFoodFactsService.swift */; };
 		823DED9A0D02CE040129F44E /* FoodFinder_OpenFoodFactsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AF9A0E97314FFA90A57CE52 /* FoodFinder_OpenFoodFactsTests.swift */; };
 		CE210094B4C19569929063F1 /* FoodFinder_LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014D680D2641CBA8BD370562 /* FoodFinder_LocationService.swift */; };
+		C1CE52EF8BB9C7E786907D47 /* FoodFinder_SpoonacularService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14B8655C2359BA10BE406C07 /* FoodFinder_SpoonacularService.swift */; };
 		7CBD007CCDD32E082E9EA102 /* FoodFinder_ScannerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6240EC27B0D884EAED8B69B /* FoodFinder_ScannerService.swift */; };
 		704708A8CA57CB4B57789F7E /* FoodFinder_ScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F62E1AC96EEC1636891E430C /* FoodFinder_ScannerView.swift */; };
 		D181D365BA54F7E3926115DC /* FoodFinder_SearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD9381A53A1E185D80B30CA /* FoodFinder_SearchBar.swift */; };
@@ -764,6 +766,7 @@
 		DABC221B5F95D30484E6618D /* FoodFinder_ImageDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5D19327F64963E3C5BBA52 /* FoodFinder_ImageDownloader.swift */; };
 		41F847EDBA1E42D755FB492B /* FoodFinder_ImageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EE1A34A28C4C2B264A50C0E /* FoodFinder_ImageStore.swift */; };
 		0F344180B26115B3DB49A3F7 /* FoodFinder_LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B86683D6FC84C98C1021AC9 /* FoodFinder_LocationService.swift */; };
+		ACA3AD01B212109D704934B5 /* FoodFinder_SpoonacularService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68EEAF6A1A0FCADB36E814F8 /* FoodFinder_SpoonacularService.swift */; };
 		A1DAC248FAB1D0C3ED7FD490 /* FoodFinder_OpenFoodFactsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 301CAEF6EB83C57116815C63 /* FoodFinder_OpenFoodFactsService.swift */; };
 		1B21C0D879F682FD0DE7BB15 /* FoodFinder_ScannerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB316C0F6448184A5AD9AE5B /* FoodFinder_ScannerService.swift */; };
 		0E01156F77D4B2E75523D557 /* FoodFinder_SearchRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CB80A8355FAF1F4E646E111 /* FoodFinder_SearchRouter.swift */; };
@@ -772,6 +775,7 @@
 		3C37B6236426D0E3EA651E6B /* FoodFinder_SearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B8B27AA086D7DAE137E9BA8 /* FoodFinder_SearchViewModel.swift */; };
 		23EBC2AFF5B046DA71B8706B /* FoodFinder_CarbTrackingDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33A071F1BBD88854C8B89CF0 /* FoodFinder_CarbTrackingDashboard.swift */; };
 		9A49A3AC2016C9FA23C057E6 /* FoodFinder_AICameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 225333340D7B94B14ADB765D /* FoodFinder_AICameraView.swift */; };
+		A24A7D78990A16E95E78630F /* FoodFinder_RestaurantMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F58FC2E5124CB43EEE44939B /* FoodFinder_RestaurantMenuView.swift */; };
 		4016E91E09EF6716B414F6CC /* FoodFinder_ImageCropView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00960F09C394E3DEF2622168 /* FoodFinder_ImageCropView.swift */; };
 		B9D441B49A1EF902D4B4CD26 /* FoodFinder_EntryPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDCED11B98BEAFD58C8AE941 /* FoodFinder_EntryPoint.swift */; };
 		45D21861D3C0ADF067F2767F /* FoodFinder_FavoritesHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2111B0756589CC6014EFC45F /* FoodFinder_FavoritesHelpers.swift */; };
@@ -1746,6 +1750,7 @@
 		56D8F11E6D6280233F95AA93 /* FoodFinder_InputResults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_InputResults.swift; sourceTree = "<group>"; };
 		406DF1A9DEBA5BEB8D2815A1 /* FoodFinder_FavoritesHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_FavoritesHelpers.swift; sourceTree = "<group>"; };
 		04BA0B00F58C59F64EEE46FF /* FoodFinder_AICameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_AICameraView.swift; sourceTree = "<group>"; };
+		E195D999FD795DDAD36F4E37 /* FoodFinder_RestaurantMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_RestaurantMenuView.swift; sourceTree = "<group>"; };
 		1410B04C87F6E1151B43C64E /* FoodFinder_ImageCropView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_ImageCropView.swift; sourceTree = "<group>"; };
 		0991C859E0D9DE159DCB2B70 /* FoodFinder_AIProviderConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_AIProviderConfig.swift; sourceTree = "<group>"; };
 		F58A7DE6D538296D6AB40C4F /* FoodFinder_AIServiceAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_AIServiceAdapter.swift; sourceTree = "<group>"; };
@@ -1771,6 +1776,7 @@
 		EDF37556B4222F9A8C4DE71F /* FoodFinder_OpenFoodFactsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_OpenFoodFactsService.swift; sourceTree = "<group>"; };
 		1AF9A0E97314FFA90A57CE52 /* FoodFinder_OpenFoodFactsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_OpenFoodFactsTests.swift; sourceTree = "<group>"; };
 		014D680D2641CBA8BD370562 /* FoodFinder_LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_LocationService.swift; sourceTree = "<group>"; };
+		14B8655C2359BA10BE406C07 /* FoodFinder_SpoonacularService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_SpoonacularService.swift; sourceTree = "<group>"; };
 		B6240EC27B0D884EAED8B69B /* FoodFinder_ScannerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_ScannerService.swift; sourceTree = "<group>"; };
 		F62E1AC96EEC1636891E430C /* FoodFinder_ScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_ScannerView.swift; sourceTree = "<group>"; };
 		8FD9381A53A1E185D80B30CA /* FoodFinder_SearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_SearchBar.swift; sourceTree = "<group>"; };
@@ -1856,6 +1862,7 @@
 		7E5D19327F64963E3C5BBA52 /* FoodFinder_ImageDownloader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_ImageDownloader.swift; sourceTree = "<group>"; };
 		0EE1A34A28C4C2B264A50C0E /* FoodFinder_ImageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_ImageStore.swift; sourceTree = "<group>"; };
 		3B86683D6FC84C98C1021AC9 /* FoodFinder_LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_LocationService.swift; sourceTree = "<group>"; };
+		68EEAF6A1A0FCADB36E814F8 /* FoodFinder_SpoonacularService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_SpoonacularService.swift; sourceTree = "<group>"; };
 		301CAEF6EB83C57116815C63 /* FoodFinder_OpenFoodFactsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_OpenFoodFactsService.swift; sourceTree = "<group>"; };
 		BB316C0F6448184A5AD9AE5B /* FoodFinder_ScannerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_ScannerService.swift; sourceTree = "<group>"; };
 		7CB80A8355FAF1F4E646E111 /* FoodFinder_SearchRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_SearchRouter.swift; sourceTree = "<group>"; };
@@ -1864,6 +1871,7 @@
 		6B8B27AA086D7DAE137E9BA8 /* FoodFinder_SearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_SearchViewModel.swift; sourceTree = "<group>"; };
 		33A071F1BBD88854C8B89CF0 /* FoodFinder_CarbTrackingDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_CarbTrackingDashboard.swift; sourceTree = "<group>"; };
 		225333340D7B94B14ADB765D /* FoodFinder_AICameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_AICameraView.swift; sourceTree = "<group>"; };
+		F58FC2E5124CB43EEE44939B /* FoodFinder_RestaurantMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_RestaurantMenuView.swift; sourceTree = "<group>"; };
 		00960F09C394E3DEF2622168 /* FoodFinder_ImageCropView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_ImageCropView.swift; sourceTree = "<group>"; };
 		EDCED11B98BEAFD58C8AE941 /* FoodFinder_EntryPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_EntryPoint.swift; sourceTree = "<group>"; };
 		2111B0756589CC6014EFC45F /* FoodFinder_FavoritesHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFinder_FavoritesHelpers.swift; sourceTree = "<group>"; };
@@ -3347,6 +3355,7 @@
 			isa = PBXGroup;
 			children = (
 				04BA0B00F58C59F64EEE46FF /* FoodFinder_AICameraView.swift */,
+				E195D999FD795DDAD36F4E37 /* FoodFinder_RestaurantMenuView.swift */,
 				E43B5BDA7F0DAF8CBAF044E7 /* FoodFinder_CarbTrackingDashboard.swift */,
 				94FAA6B5BFCA71FA1330CF5D /* FoodFinder_EntryPoint.swift */,
 				406DF1A9DEBA5BEB8D2815A1 /* FoodFinder_FavoritesHelpers.swift */,
@@ -3383,6 +3392,7 @@
 				0AB00FF448F43B860CCD3B02 /* FoodFinder_ImageDownloader.swift */,
 				6CDF09B9DFA98A7C6DFE74B0 /* FoodFinder_ImageStore.swift */,
 				014D680D2641CBA8BD370562 /* FoodFinder_LocationService.swift */,
+				14B8655C2359BA10BE406C07 /* FoodFinder_SpoonacularService.swift */,
 				F80940A6E390B157E04B9D2D /* FoodFinder_CarbTrackingService.swift */,
 				EDF37556B4222F9A8C4DE71F /* FoodFinder_OpenFoodFactsService.swift */,
 				B6240EC27B0D884EAED8B69B /* FoodFinder_ScannerService.swift */,
@@ -3652,6 +3662,7 @@
 			children = (
 				33A071F1BBD88854C8B89CF0 /* FoodFinder_CarbTrackingDashboard.swift */,
 				225333340D7B94B14ADB765D /* FoodFinder_AICameraView.swift */,
+				F58FC2E5124CB43EEE44939B /* FoodFinder_RestaurantMenuView.swift */,
 				00960F09C394E3DEF2622168 /* FoodFinder_ImageCropView.swift */,
 				EDCED11B98BEAFD58C8AE941 /* FoodFinder_EntryPoint.swift */,
 				2111B0756589CC6014EFC45F /* FoodFinder_FavoritesHelpers.swift */,
@@ -3737,6 +3748,7 @@
 				7E5D19327F64963E3C5BBA52 /* FoodFinder_ImageDownloader.swift */,
 				0EE1A34A28C4C2B264A50C0E /* FoodFinder_ImageStore.swift */,
 				3B86683D6FC84C98C1021AC9 /* FoodFinder_LocationService.swift */,
+				68EEAF6A1A0FCADB36E814F8 /* FoodFinder_SpoonacularService.swift */,
 				301CAEF6EB83C57116815C63 /* FoodFinder_OpenFoodFactsService.swift */,
 				BB316C0F6448184A5AD9AE5B /* FoodFinder_ScannerService.swift */,
 				7CB80A8355FAF1F4E646E111 /* FoodFinder_SearchRouter.swift */,
@@ -4907,6 +4919,7 @@
 				0B0154317331EDF4423F3326 /* FoodFinder_InputResults.swift in Sources */,
 				C4B24648B35EE29C1D9DE33A /* FoodFinder_FavoritesHelpers.swift in Sources */,
 				EF134BD7F1B6F20BFF523625 /* FoodFinder_AICameraView.swift in Sources */,
+				A9CDE23EE5F65C3D66B18151 /* FoodFinder_RestaurantMenuView.swift in Sources */,
 				62C91699197A1755A881B0D4 /* FoodFinder_ImageCropView.swift in Sources */,
 				6F86CED6E856EC572B1EC890 /* FoodFinder_AIProviderConfig.swift in Sources */,
 				69A01BCB43357C948E70ED96 /* FoodFinder_AIServiceAdapter.swift in Sources */,
@@ -4929,6 +4942,7 @@
 				A8BD0FB89E1131F1BB986DA7 /* FoodFinder_ImageStore.swift in Sources */,
 				3A7FBD5751DA0C1FB71B9026 /* FoodFinder_Models.swift in Sources */,
 				CE210094B4C19569929063F1 /* FoodFinder_LocationService.swift in Sources */,
+				C1CE52EF8BB9C7E786907D47 /* FoodFinder_SpoonacularService.swift in Sources */,
 				88F5D0DB050CCE93047EEB3D /* FoodFinder_OpenFoodFactsService.swift in Sources */,
 				7CBD007CCDD32E082E9EA102 /* FoodFinder_ScannerService.swift in Sources */,
 				704708A8CA57CB4B57789F7E /* FoodFinder_ScannerView.swift in Sources */,
@@ -5001,6 +5015,7 @@
 				DABC221B5F95D30484E6618D /* FoodFinder_ImageDownloader.swift in Sources */,
 				41F847EDBA1E42D755FB492B /* FoodFinder_ImageStore.swift in Sources */,
 				0F344180B26115B3DB49A3F7 /* FoodFinder_LocationService.swift in Sources */,
+				ACA3AD01B212109D704934B5 /* FoodFinder_SpoonacularService.swift in Sources */,
 				A1DAC248FAB1D0C3ED7FD490 /* FoodFinder_OpenFoodFactsService.swift in Sources */,
 				1B21C0D879F682FD0DE7BB15 /* FoodFinder_ScannerService.swift in Sources */,
 				0E01156F77D4B2E75523D557 /* FoodFinder_SearchRouter.swift in Sources */,
@@ -5009,6 +5024,7 @@
 				3C37B6236426D0E3EA651E6B /* FoodFinder_SearchViewModel.swift in Sources */,
 				23EBC2AFF5B046DA71B8706B /* FoodFinder_CarbTrackingDashboard.swift in Sources */,
 				9A49A3AC2016C9FA23C057E6 /* FoodFinder_AICameraView.swift in Sources */,
+				A24A7D78990A16E95E78630F /* FoodFinder_RestaurantMenuView.swift in Sources */,
 				4016E91E09EF6716B414F6CC /* FoodFinder_ImageCropView.swift in Sources */,
 				B9D441B49A1EF902D4B4CD26 /* FoodFinder_EntryPoint.swift in Sources */,
 				45D21861D3C0ADF067F2767F /* FoodFinder_FavoritesHelpers.swift in Sources */,

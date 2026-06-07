@@ -31,6 +31,18 @@ struct AICameraView: View {
     /// Incremented when the user taps the "Reset Crop" toolbar button.
     /// `FoodFinder_ImageCropView` observes the change and resets its crop rect.
     @State private var cropResetCounter: Int = 0
+    /// When true (set at crop completion if eligible), show the restaurant menu
+    /// picker instead of auto-running AI analysis. Picking a menu item skips the
+    /// AI call entirely; choosing "analyze with AI" clears this and proceeds.
+    @State private var showingRestaurantMenu = false
+
+    /// Eligible for the menu-first path: location tagging on, GPS confirms a
+    /// restaurant within 200 ft, and a Spoonacular key is configured.
+    private var canTryRestaurantMenu: Bool {
+        FoodFinder_FeatureFlags.locationTaggingEnabled &&
+        FoodFinder_LocationService.shared.isAtKnownRestaurant &&
+        FoodFinder_SpoonacularService.shared.isConfigured
+    }
 
     var body: some View {
         NavigationView {
@@ -90,6 +102,21 @@ struct AICameraView: View {
                         .padding(.bottom, 30)
                     }
 
+                } else if imageForAnalysis != nil && showingRestaurantMenu {
+                    // Menu-first path — confirmed within 200 ft of a restaurant
+                    // with a Spoonacular key. Tap an item (no AI tokens) or fall
+                    // back to AI on the captured photo.
+                    FoodFinder_RestaurantMenuView(
+                        restaurantName: FoodFinder_LocationService.shared.locationName ?? "this restaurant",
+                        onPicked: { result in
+                            showingRestaurantMenu = false
+                            onFoodAnalyzed(result, capturedImage)
+                        },
+                        onUseAI: {
+                            // Drops to the analyzing view, whose onAppear runs analyzeImage().
+                            showingRestaurantMenu = false
+                        }
+                    )
                 } else if let finalImage = imageForAnalysis {
                     // Show final image (cropped or full) and auto-start analysis
                     VStack(spacing: 20) {
@@ -136,9 +163,11 @@ struct AICameraView: View {
                         image: capturedImage!,
                         onCrop: { croppedImage in
                             imageForAnalysis = croppedImage
+                            showingRestaurantMenu = canTryRestaurantMenu
                         },
                         onSkip: { originalImage in
                             imageForAnalysis = originalImage
+                            showingRestaurantMenu = canTryRestaurantMenu
                         },
                         resetTrigger: cropResetCounter
                     )

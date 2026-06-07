@@ -274,7 +274,9 @@ struct FoodFinder_EntryPoint: View {
                 isFoodSearchEnabled = currentSetting
             }
         }
-        .powerPackAPIUsageGate()
+        // While the camera sheet is up it presents its own gate; suppress this
+        // one so the alert doesn't tear the sheet down (empty Add Carb Entry bug).
+        .powerPackAPIUsageGate(isActive: !showingAICamera)
         .sheet(isPresented: $showingAICamera) {
             AICameraView(
                 onFoodAnalyzed: { result, capturedImage in

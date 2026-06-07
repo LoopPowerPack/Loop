@@ -37,7 +37,20 @@ final class FoodFinder_LocationService: NSObject, ObservableObject, CLLocationMa
     @Published private(set) var countryName: String?
     @Published private(set) var isResolving: Bool = false
 
+    /// Distance (meters) to the matched restaurant, when one was confirmed
+    /// within `Self.maxVenueDistanceMeters`. `nil` if no nearby restaurant.
+    @Published private(set) var matchedVenueDistanceMeters: CLLocationDistance?
+
+    /// True only when GPS confirms a restaurant within 200 ft. Gates the
+    /// menu-first lookup and restaurant-specific prompt context.
+    var isAtKnownRestaurant: Bool { matchedVenueDistanceMeters != nil }
+
     // MARK: - Private
+
+    /// Hard radius for restaurant geo-tagging. 200 feet ≈ 60.96 m. MKLocalSearch
+    /// treats its region as a *bias*, not a filter, so it happily returns venues
+    /// miles away — we must reject anything beyond this ourselves.
+    static let maxVenueDistanceMeters: CLLocationDistance = 61
 
     private let locationManager = CLLocationManager()
     private let geocoder = CLGeocoder()
@@ -82,6 +95,7 @@ final class FoodFinder_LocationService: NSObject, ObservableObject, CLLocationMa
         locationName = nil
         cityName = nil
         countryName = nil
+        matchedVenueDistanceMeters = nil
         isResolving = false
     }
 
@@ -194,16 +208,18 @@ final class FoodFinder_LocationService: NSObject, ObservableObject, CLLocationMa
         }
     }
 
-    /// Uses MKLocalSearch to find the closest restaurant/food venue within 100m.
-    /// If found, replaces the generic geocode name (often a shopping center) with
-    /// the specific restaurant name.
+    /// Uses MKLocalSearch to find the closest restaurant/food venue and accepts
+    /// it ONLY if it sits within `maxVenueDistanceMeters` (200 ft). MKLocalSearch's
+    /// region is a bias, not a hard filter, so it returns venues miles away — we
+    /// reject those ourselves. If no restaurant is genuinely within 200 ft, we
+    /// clear the venue name so the AI prompt doesn't claim a restaurant we aren't at.
     private func searchNearbyFoodVenues(_ location: CLLocation) {
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = "restaurant"
         request.region = MKCoordinateRegion(
             center: location.coordinate,
-            latitudinalMeters: 100,
-            longitudinalMeters: 100
+            latitudinalMeters: 200,
+            longitudinalMeters: 200
         )
         request.resultTypes = .pointOfInterest
 
@@ -212,34 +228,36 @@ final class FoodFinder_LocationService: NSObject, ObservableObject, CLLocationMa
             DispatchQueue.main.async {
                 defer { self.isResolving = false }
 
-                guard let items = response?.mapItems, !items.isEmpty else {
-                    #if DEBUG
-                    print("📍 FoodFinder MapKit: no nearby restaurants found")
-                    #endif
-                    return
-                }
-
-                // Find the closest food venue by distance
-                let closest = items
+                // Find the closest food venue by actual straight-line distance.
+                let closest = (response?.mapItems ?? [])
                     .compactMap { item -> (name: String, distance: CLLocationDistance)? in
-                        guard let name = item.name, !name.isEmpty else { return nil }
-                        let dist = location.distance(from: MKMapItem.forCurrentLocation().placemark.location ?? location)
-                        let itemLoc = CLLocation(latitude: item.placemark.coordinate.latitude,
-                                                 longitude: item.placemark.coordinate.longitude)
+                        guard let name = item.name, !name.isEmpty,
+                              let itemLoc = item.placemark.location else { return nil }
                         return (name, location.distance(from: itemLoc))
                     }
                     .sorted { $0.distance < $1.distance }
                     .first
 
-                if let match = closest {
-                    // Only replace if the MapKit result is different from the geocode result
-                    if self.locationName != match.name {
-                        #if DEBUG
-                        print("📍 FoodFinder MapKit: refined \"\(self.locationName ?? "nil")\" → \"\(match.name)\" (\(Int(match.distance))m away)")
-                        #endif
-                        self.locationName = match.name
+                // Accept only a venue within the 200 ft radius.
+                guard let match = closest, match.distance <= Self.maxVenueDistanceMeters else {
+                    #if DEBUG
+                    if let c = closest {
+                        print("📍 FoodFinder MapKit: nearest restaurant \"\(c.name)\" is \(Int(c.distance))m away — beyond 200ft, not tagging")
+                    } else {
+                        print("📍 FoodFinder MapKit: no nearby restaurants found")
                     }
+                    #endif
+                    // Not within 200 ft of any restaurant — don't tag a venue.
+                    self.locationName = nil
+                    self.matchedVenueDistanceMeters = nil
+                    return
                 }
+
+                #if DEBUG
+                print("📍 FoodFinder MapKit: confirmed \"\(match.name)\" \(Int(match.distance))m away (≤200ft)")
+                #endif
+                self.locationName = match.name
+                self.matchedVenueDistanceMeters = match.distance
             }
         }
     }

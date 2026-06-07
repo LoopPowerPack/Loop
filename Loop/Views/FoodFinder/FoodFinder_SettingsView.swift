@@ -32,10 +32,12 @@ struct AISettingsView: View {
     // API keys (Keychain-backed)
     @State private var apiKey: String = ""
     @State private var usdaAPIKey: String = ""
+    @State private var spoonacularAPIKey: String = ""
 
     // UI state
     @State private var showAPIKey: Bool = false
     @State private var showUSDAKey: Bool = false
+    @State private var showSpoonacularKey: Bool = false
     @State private var isTesting: Bool = false
     @State private var testResult: TestResult?
     @State private var showAdvanced: Bool = false
@@ -55,6 +57,7 @@ struct AISettingsView: View {
             featureToggleSection
             if foodSearchEnabled {
                 usdaSection
+                spoonacularSection
                 aiConfigSection
                 advancedSettingsSection
             }
@@ -67,6 +70,7 @@ struct AISettingsView: View {
             // Load API keys from Keychain
             apiKey = FoodFinder_SecureStorage.loadAPIKey() ?? ""
             usdaAPIKey = FoodFinder_SecureStorage.loadUSDAKey() ?? ""
+            spoonacularAPIKey = FoodFinder_SecureStorage.loadSpoonacularKey() ?? ""
 
             // Clear stale endpoint path if it matches a different format's default
             // (e.g. Google endpoint left over when user switched to OpenAI)
@@ -538,6 +542,64 @@ extension AISettingsView {
         }
     }
 
+    // MARK: Spoonacular Restaurant Menus
+
+    private var spoonacularSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    Image(systemName: "fork.knife").foregroundColor(.purple)
+                    Text("RESTAURANT MENUS (SAVES AI TOKENS)")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+                        .textCase(.uppercase)
+                }
+
+                HStack(spacing: 8) {
+                    Group {
+                        if showSpoonacularKey {
+                            TextField("Enter your Spoonacular API key (optional)", text: $spoonacularAPIKey)
+                        } else {
+                            SecureField("Enter your Spoonacular API key (optional)", text: $spoonacularAPIKey)
+                        }
+                    }
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .autocapitalization(.none)
+                    .autocorrectionDisabled()
+                    .onChange(of: spoonacularAPIKey) { newValue in
+                        saveSpoonacularKey(newValue)
+                    }
+                    Button(action: { showSpoonacularKey.toggle() }) {
+                        Image(systemName: showSpoonacularKey ? "eye.slash" : "eye").foregroundColor(.purple)
+                    }
+                    .buttonStyle(.plain)
+                }
+                Button(action: { if let url = URL(string: "https://spoonacular.com/food-api/console#Dashboard") { openURL(url) } }) {
+                    HStack { Image(systemName: "info.circle"); Text("Get a free key") }
+                        .foregroundColor(.purple)
+                }
+                .buttonStyle(.plain)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("How to obtain a free Spoonacular API key:")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                    Text("1. Open spoonacular.com/food-api and create a free account. 2. Open your dashboard and copy your API key. 3. Paste it here. The free tier is plenty for personal use.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("What this does:")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                    Text("When your phone confirms you're within 200 ft of a restaurant, FoodFinder shows that restaurant's menu so you can tap your item and use its real nutrition — skipping the AI photo analysis and saving tokens. Menu data is chain-focused, so local spots still fall back to AI.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+
     // MARK: Advanced Settings
 
     private var advancedSettingsSection: some View {
@@ -671,6 +733,15 @@ extension AISettingsView {
             try? FoodFinder_SecureStorage.deleteUSDAKey()
         } else {
             try? FoodFinder_SecureStorage.saveUSDAKey(key)
+        }
+    }
+
+    private func saveSpoonacularKey(_ key: String) {
+        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            try? FoodFinder_SecureStorage.deleteSpoonacularKey()
+        } else {
+            try? FoodFinder_SecureStorage.saveSpoonacularKey(trimmed)
         }
     }
 
