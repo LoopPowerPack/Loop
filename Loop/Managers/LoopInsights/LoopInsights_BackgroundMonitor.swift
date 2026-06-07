@@ -141,6 +141,13 @@ final class LoopInsights_BackgroundMonitor: ObservableObject {
     private func runBackgroundAnalysis() async {
         LoopInsights_FeatureFlags.log.debug("Running background analysis...")
 
+        // Advance the throttle immediately, BEFORE any AI calls. If we only set this
+        // on the success path and an analysis errors out (empty/malformed response),
+        // shouldRunAnalysis() keeps returning true and re-fires every Loop cycle
+        // (~5 min) — a runaway that burns the user's API tokens. Recording the attempt
+        // up front guarantees we honor monitorFrequency regardless of outcome.
+        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: Self.lastAnalysisKey)
+
         do {
             let period = LoopInsights_FeatureFlags.analysisPeriod
             let stats = try await coordinator.dataAggregator.aggregateData(period: period)
@@ -162,9 +169,6 @@ final class LoopInsights_BackgroundMonitor: ObservableObject {
                 let qualifying = response.suggestions.filter { $0.confidence >= minConfidence }
                 newSuggestions.append(contentsOf: qualifying)
             }
-
-            // Update last analysis timestamp
-            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: Self.lastAnalysisKey)
 
             guard !newSuggestions.isEmpty else {
                 LoopInsights_FeatureFlags.log.debug("No new suggestions found")

@@ -398,6 +398,11 @@ final class FoodFinder_SearchViewModel: ObservableObject {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 
+        // User-initiated paid AI action — pass through the spend gate.
+        guard await PowerPack_APIUsage.shared.gate(actionLabel: "Searching for \u{201C}\(trimmed)\u{201D}", estCostUSD: 0.01) else {
+            return nil
+        }
+
         #if DEBUG
         print("🎙️ Starting generative voice search for: '\(trimmed)'")
         #endif

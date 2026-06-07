@@ -61,6 +61,7 @@ struct LoopInsights_ChatView: View {
                 inputBar
             }
         }
+        .powerPackAPIUsageGate()
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             let appearance = UINavigationBarAppearance()

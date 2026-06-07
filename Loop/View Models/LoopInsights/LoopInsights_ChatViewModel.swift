@@ -99,12 +99,17 @@ final class LoopInsights_ChatViewModel: ObservableObject {
         errorMessage = nil
         voiceService.stopSpeaking()
 
-        let userMessage = LoopInsightsChatMessage(role: .user, content: text, voiceInitiated: isVoice)
-        session.appendMessage(userMessage)
-
-        isLoading = true
-
         Task { @MainActor in
+            // User-initiated paid AI action — pass through the spend gate.
+            guard await PowerPack_APIUsage.shared.gate(actionLabel: "Asking Loopy", estCostUSD: 0.01) else {
+                inputText = text   // restore the typed message so it isn't lost on cancel
+                return
+            }
+
+            let userMessage = LoopInsightsChatMessage(role: .user, content: text, voiceInitiated: isVoice)
+            session.appendMessage(userMessage)
+            isLoading = true
+
             do {
                 // Use cached context if fresh (< 5 min), otherwise re-fetch
                 var context: String

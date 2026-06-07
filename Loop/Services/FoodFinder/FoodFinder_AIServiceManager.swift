@@ -64,7 +64,11 @@ final class AIServiceManager {
 
         try validateHTTPResponse(response, data: data)
 
-        return try parseResponse(data: data, config: configuration)
+        let result = try parseResponse(data: data, config: configuration)
+        // Track estimated BYOK spend. Flat ~1600 input (vision tokens + prompt; base64
+        // length would wildly overcount), output approximated from the response size.
+        await PowerPack_APIUsage.shared.record(model: configuration.model, inputTokens: 1600, outputTokens: data.count / 4)
+        return result
     }
 
     /// Analyze a food image that has already been pre-encoded (cropped, resized, JPEG-compressed).
@@ -95,7 +99,11 @@ final class AIServiceManager {
 
         try validateHTTPResponse(response, data: data)
 
-        return try parseResponse(data: data, config: configuration)
+        let result = try parseResponse(data: data, config: configuration)
+        // Track estimated BYOK spend. Flat ~1600 input (vision tokens + prompt; base64
+        // length would wildly overcount), output approximated from the response size.
+        await PowerPack_APIUsage.shared.record(model: configuration.model, inputTokens: 1600, outputTokens: data.count / 4)
+        return result
     }
 
     /// Text-only food analysis (no image). Used for voice/dictation searches.
@@ -124,7 +132,11 @@ final class AIServiceManager {
 
         try validateHTTPResponse(response, data: data)
 
-        return try parseResponse(data: data, config: configuration)
+        let result = try parseResponse(data: data, config: configuration)
+        // Track estimated BYOK spend. Flat ~1600 input (vision tokens + prompt; base64
+        // length would wildly overcount), output approximated from the response size.
+        await PowerPack_APIUsage.shared.record(model: configuration.model, inputTokens: 1600, outputTokens: data.count / 4)
+        return result
     }
 
     /// Tests connectivity to the configured endpoint. Returns true if reachable.

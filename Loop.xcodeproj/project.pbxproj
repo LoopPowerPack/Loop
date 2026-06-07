@@ -856,6 +856,7 @@
 		E5CEDCB52CCC33B2513C1B4B /* AutoPresets_ScannedEventsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB7AEA2ACE39D2EDEC0FC9C9 /* AutoPresets_ScannedEventsView.swift */; };
 		1A6B35DD2E1B9833D7DA57AA /* PowerPack_BuildInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D7B17C02B7B5CF8CBE27C65 /* PowerPack_BuildInfo.swift */; };
 		3899284456069E71DE92D3E4 /* PowerPack_UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 987E5D2B695A97D178511EC9 /* PowerPack_UpdateChecker.swift */; };
+		5F98171F4CC40844F719FAD0 /* PowerPack_APIUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F49F3796521706FE90018866 /* PowerPack_APIUsage.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1947,6 +1948,7 @@
 		BB7AEA2ACE39D2EDEC0FC9C9 /* AutoPresets_ScannedEventsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoPresets_ScannedEventsView.swift; sourceTree = "<group>"; };
 		5D7B17C02B7B5CF8CBE27C65 /* PowerPack_BuildInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerPack_BuildInfo.swift; sourceTree = "<group>"; };
 		987E5D2B695A97D178511EC9 /* PowerPack_UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerPack_UpdateChecker.swift; sourceTree = "<group>"; };
+		F49F3796521706FE90018866 /* PowerPack_APIUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerPack_APIUsage.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -3490,6 +3492,7 @@
 				6339ED478F8AEB8DBDDD9324 /* LoopInsights_FeatureFlags.swift */,
 				5D7B17C02B7B5CF8CBE27C65 /* PowerPack_BuildInfo.swift */,
 				987E5D2B695A97D178511EC9 /* PowerPack_UpdateChecker.swift */,
+				F49F3796521706FE90018866 /* PowerPack_APIUsage.swift */,
 			);
 			path = LoopInsights;
 			sourceTree = "<group>";
@@ -5084,6 +5087,7 @@
 				E5CEDCB52CCC33B2513C1B4B /* AutoPresets_ScannedEventsView.swift in Sources */,
 				1A6B35DD2E1B9833D7DA57AA /* PowerPack_BuildInfo.swift in Sources */,
 				3899284456069E71DE92D3E4 /* PowerPack_UpdateChecker.swift in Sources */,
+				5F98171F4CC40844F719FAD0 /* PowerPack_APIUsage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

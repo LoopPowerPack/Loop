@@ -182,6 +182,7 @@ struct AICameraView: View {
                 }
             )
         }
+        .powerPackAPIUsageGate()
         .alert("Analysis Error", isPresented: $showingErrorAlert) {
             // Credit/quota exhaustion errors - provide direct guidance
             if analysisError?.contains("credits exhausted") == true || analysisError?.contains("quota exceeded") == true {
@@ -275,6 +276,14 @@ struct AICameraView: View {
         addTelemetryLog("🔍 Initializing AI food analysis...")
 
         Task {
+            // User-initiated paid AI action — pass through the spend gate.
+            guard await PowerPack_APIUsage.shared.gate(actionLabel: "Analyzing this photo", estCostUSD: 0.02) else {
+                await MainActor.run {
+                    isAnalyzing = false
+                    showTelemetry = false
+                }
+                return
+            }
             do {
                 // Brief fallback wait if location is still resolving
                 // (location request fires on camera button tap, so it usually

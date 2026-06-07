@@ -53,7 +53,15 @@ final class LoopInsights_AIServiceAdapter {
             throw LoopInsightsError.aiProviderError("HTTP \(httpResponse.statusCode): \(errorBody)")
         }
 
-        return try extractTextFromResponse(data: data, config: config)
+        let result = try extractTextFromResponse(data: data, config: config)
+
+        // Track estimated spend (BYOK) for the user's monthly budget + usage view.
+        await PowerPack_APIUsage.shared.recordEstimated(
+            model: config.model,
+            promptChars: systemPrompt.count + userPrompt.count,
+            responseChars: result.count)
+
+        return result
     }
 
     /// Test connectivity with the configured provider. Returns true if reachable.
@@ -192,9 +200,16 @@ final class LoopInsights_AIServiceAdapter {
         systemPrompt: String,
         userPrompt: String
     ) throws -> Data {
+        // Prompt caching: the system prompt is large and byte-identical across the
+        // 3 setting-type calls in a run (and rapid Ask Loopy turns). Marking it
+        // cacheable means repeat calls read it at ~0.1x input cost instead of full
+        // price. GA — no beta header needed. Only the Anthropic format supports this;
+        // OpenAI caches automatically and Gemini uses its own mechanism.
         let body: [String: Any] = [
             "model": config.model,
-            "system": systemPrompt,
+            "system": [
+                ["type": "text", "text": systemPrompt, "cache_control": ["type": "ephemeral"]]
+            ],
             "messages": [
                 ["role": "user", "content": userPrompt]
             ],

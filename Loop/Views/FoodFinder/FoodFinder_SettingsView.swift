@@ -544,6 +544,10 @@ extension AISettingsView {
         Section {
             DisclosureGroup("Advanced API Settings", isExpanded: $showAdvanced) {
                 VStack(alignment: .leading, spacing: 12) {
+                    PowerPack_APIUsageControls()
+
+                    Divider()
+
                     Text("This section is for self-hosted, Azure, or non-standard API endpoints. Most users can ignore these.")
                         .font(.caption2)
                         .foregroundColor(.secondary)

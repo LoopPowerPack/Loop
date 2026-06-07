@@ -102,6 +102,7 @@ struct LoopInsights_DashboardView: View {
             PowerPack_VersionFooter()
         }
         .modifier(ListSectionSpacingModifier())
+        .powerPackAPIUsageGate()
         .navigationTitle(NSLocalizedString("LoopInsights", comment: "LoopInsights dashboard title"))
         .onAppear {
             // One-time Substack onboarding sheet — fires the first time the

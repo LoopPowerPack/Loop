@@ -145,7 +145,11 @@ struct LoopInsights_FeatureFlags {
         get {
             guard let raw = defaults.string(forKey: Keys.monitorFrequency),
                   let freq = LoopInsightsMonitorFrequency(rawValue: raw) else {
-                return .daily
+                // Default to weekly: therapy settings drift slowly (analysis runs on a
+                // rolling 7–14 day window), and changes need ~7 days to evaluate, so
+                // daily background re-analysis is wasted tokens. Users wanting more can
+                // dial up to 6h/12h/daily; on-demand "Analyze" is always available.
+                return .weekly
             }
             return freq
         }

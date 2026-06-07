@@ -155,6 +155,11 @@ final class LoopInsights_DashboardViewModel: ObservableObject {
         autoAppliedSuggestions = []
 
         Task { @MainActor in
+            // User-initiated paid AI action — pass through the spend gate.
+            guard await PowerPack_APIUsage.shared.gate(actionLabel: "Therapy analysis", estCostUSD: 0.07) else {
+                self.isAnalyzing = false
+                return
+            }
             do {
                 // Aggregate data
                 let stats = try await coordinator.dataAggregator.aggregateData(period: analysisPeriod)
@@ -249,6 +254,12 @@ final class LoopInsights_DashboardViewModel: ObservableObject {
         autoAppliedSuggestions = []
 
         Task { @MainActor in
+            // User-initiated paid AI action — pass through the spend gate.
+            guard await PowerPack_APIUsage.shared.gate(actionLabel: "Therapy analysis (all settings)", estCostUSD: 0.21) else {
+                self.isAnalyzing = false
+                self.isAnalyzingAll = false
+                return
+            }
             do {
                 // Aggregate data once for all analyses
                 let stats = try await coordinator.dataAggregator.aggregateData(period: analysisPeriod)

@@ -274,6 +274,7 @@ struct FoodFinder_EntryPoint: View {
                 isFoodSearchEnabled = currentSetting
             }
         }
+        .powerPackAPIUsageGate()
         .sheet(isPresented: $showingAICamera) {
             AICameraView(
                 onFoodAnalyzed: { result, capturedImage in
