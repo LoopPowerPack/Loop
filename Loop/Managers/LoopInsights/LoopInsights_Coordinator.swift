@@ -318,6 +318,9 @@ final class LoopInsights_Coordinator: ObservableObject {
             return
         }
         backgroundMonitor.start()
+        // Re-arm the caregiver digest reminder at launch so it keeps firing even if
+        // the user never reopens the digest screen. No-op when the digest is disabled.
+        LoopInsights_CaregiverDigestService.refreshReminderSchedule()
     }
 
     /// Stop background monitoring.

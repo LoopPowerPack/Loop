@@ -26,6 +26,8 @@ struct LoopInsights_CaregiverDigestView: View {
     @State private var recipientName = LoopInsights_CaregiverDigestService.recipientName
     @State private var recipientEmail = LoopInsights_CaregiverDigestService.recipientEmail
     @State private var recipientPhone = LoopInsights_CaregiverDigestService.recipientPhone
+    @State private var reminderTime = LoopInsights_CaregiverDigestService.reminderTime
+    @State private var hasAutoPresented = false
     @State private var showingMailCompose = false
     @State private var showingMessageCompose = false
     @State private var errorMessage: String?
@@ -100,7 +102,13 @@ struct LoopInsights_CaregiverDigestView: View {
                 }
             }
         }
-        .onAppear { initializeCoordinator() }
+        .onAppear {
+            initializeCoordinator()
+            // Self-heal: ensure the repeating reminder exists for users who enabled
+            // the digest before scheduling was added (or after an app reinstall).
+            LoopInsights_CaregiverDigestService.refreshReminderSchedule()
+            maybeAutoPresent()
+        }
     }
 
     private func initializeCoordinator() {
@@ -157,6 +165,7 @@ struct LoopInsights_CaregiverDigestView: View {
             }
             .onChange(of: isEnabled) { newValue in
                 LoopInsights_CaregiverDigestService.isEnabled = newValue
+                LoopInsights_CaregiverDigestService.refreshReminderSchedule()
             }
 
             if isEnabled {
@@ -173,6 +182,19 @@ struct LoopInsights_CaregiverDigestView: View {
                 }
                 .onChange(of: frequency) { newValue in
                     LoopInsights_CaregiverDigestService.frequency = newValue
+                    LoopInsights_CaregiverDigestService.refreshReminderSchedule()
+                }
+
+                DatePicker(selection: $reminderTime, displayedComponents: .hourAndMinute) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "bell.badge")
+                            .foregroundColor(tealColor)
+                        Text(NSLocalizedString("Reminder Time", comment: "Caregiver digest reminder time picker"))
+                    }
+                }
+                .onChange(of: reminderTime) { newValue in
+                    LoopInsights_CaregiverDigestService.reminderTime = newValue
+                    LoopInsights_CaregiverDigestService.refreshReminderSchedule()
                 }
 
                 Picker(selection: $deliveryMethod) {
@@ -192,9 +214,15 @@ struct LoopInsights_CaregiverDigestView: View {
             }
         } footer: {
             if isEnabled {
-                Text(deliveryMethod == .email
-                    ? NSLocalizedString("Digest will open a pre-filled email — just tap Send.", comment: "Caregiver digest email footer")
-                    : NSLocalizedString("Digest will open a pre-filled iMessage — just tap Send.", comment: "Caregiver digest iMessage footer"))
+                let cadence = frequency == .weekly
+                    ? NSLocalizedString("every week", comment: "Caregiver digest reminder cadence: weekly")
+                    : NSLocalizedString("every day", comment: "Caregiver digest reminder cadence: daily")
+                let method = deliveryMethod == .email
+                    ? NSLocalizedString("email", comment: "Caregiver digest method noun: email")
+                    : NSLocalizedString("SMS", comment: "Caregiver digest method noun: SMS")
+                Text(String(
+                    format: NSLocalizedString("You'll get a reminder %1$@ at this time. The digest opens a pre-filled %2$@ — just tap Send.", comment: "Caregiver digest schedule footer"),
+                    cadence, method))
             }
         }
     }
@@ -411,6 +439,17 @@ struct LoopInsights_CaregiverDigestView: View {
 
     // MARK: - Actions
 
+    /// Auto-present the pre-filled compose sheet when the digest is due, so opening
+    /// the screen is one tap (Send) with no navigation. Guards: once per appearance,
+    /// only when due, and only when a recipient is set (an empty sheet helps no one).
+    private func maybeAutoPresent() {
+        guard !hasAutoPresented else { return }
+        guard LoopInsights_CaregiverDigestService.isDue else { return }
+        guard !activeContact.isEmpty else { return }
+        hasAutoPresented = true
+        generateAndSend()
+    }
+
     private func generateAndSend() {
         guard let coordinator = coordinator else {
             errorMessage = NSLocalizedString("Data not ready. Please try again.", comment: "Caregiver digest not ready")
@@ -419,11 +458,11 @@ struct LoopInsights_CaregiverDigestView: View {
 
         // Check availability before generating
         if deliveryMethod == .email && !MFMailComposeViewController.canSendMail() {
-            errorMessage = NSLocalizedString("Mail is not configured on this device. Add a mail account in Settings or switch to iMessage.", comment: "Caregiver digest no mail")
+            errorMessage = NSLocalizedString("Mail is not configured on this device. Add a mail account in Settings or switch to SMS.", comment: "Caregiver digest no mail")
             return
         }
         if deliveryMethod == .iMessage && !MFMessageComposeViewController.canSendText() {
-            errorMessage = NSLocalizedString("iMessage/SMS is not available on this device. Switch to Email.", comment: "Caregiver digest no iMessage")
+            errorMessage = NSLocalizedString("SMS is not available on this device. Switch to Email.", comment: "Caregiver digest no SMS")
             return
         }
 

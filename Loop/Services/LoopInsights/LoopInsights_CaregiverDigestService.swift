@@ -11,6 +11,7 @@
 
 import Foundation
 import Combine
+import UserNotifications
 
 /// Manages caregiver digest generation, scheduling, and delivery.
 final class LoopInsights_CaregiverDigestService: ObservableObject {
@@ -68,7 +69,7 @@ final class LoopInsights_CaregiverDigestService: ObservableObject {
         var displayName: String {
             switch self {
             case .email: return NSLocalizedString("Email", comment: "Caregiver digest delivery: email")
-            case .iMessage: return NSLocalizedString("iMessage / SMS", comment: "Caregiver digest delivery: iMessage")
+            case .iMessage: return NSLocalizedString("SMS", comment: "Caregiver digest delivery: SMS")
             }
         }
 
@@ -90,6 +91,12 @@ final class LoopInsights_CaregiverDigestService: ObservableObject {
     private static let recipientPhoneKey = "LoopInsights_caregiverRecipientPhone"
     private static let deliveryMethodKey = "LoopInsights_caregiverDeliveryMethod"
     private static let lastSentKey = "LoopInsights_caregiverLastSent"
+    private static let reminderHourKey = "LoopInsights_caregiverReminderHour"
+    private static let reminderMinuteKey = "LoopInsights_caregiverReminderMinute"
+
+    /// Stable identifier for the repeating reminder so re-scheduling replaces
+    /// (rather than stacks) the pending notification.
+    private static let reminderNotificationID = "LoopInsights_CaregiverDigestReminder"
 
     // MARK: - Settings
 
@@ -170,6 +177,35 @@ final class LoopInsights_CaregiverDigestService: ObservableObject {
         set { UserDefaults.standard.set(newValue, forKey: lastSentKey) }
     }
 
+    /// Hour of day (0–23) the reminder fires. Defaults to 9 AM when unset —
+    /// `integer(forKey:)` returns 0 for a missing key, which we treat as "use default".
+    static var reminderHour: Int {
+        get {
+            guard UserDefaults.standard.object(forKey: reminderHourKey) != nil else { return 9 }
+            return UserDefaults.standard.integer(forKey: reminderHourKey)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: reminderHourKey) }
+    }
+
+    /// Minute of the hour (0–59) the reminder fires. Defaults to 0.
+    static var reminderMinute: Int {
+        get { UserDefaults.standard.integer(forKey: reminderMinuteKey) }
+        set { UserDefaults.standard.set(newValue, forKey: reminderMinuteKey) }
+    }
+
+    /// The reminder time as a `Date` (today at hour:minute) for binding to a SwiftUI
+    /// `DatePicker`. Only the hour/minute components are persisted.
+    static var reminderTime: Date {
+        get {
+            Calendar.current.date(bySettingHour: reminderHour, minute: reminderMinute, second: 0, of: Date()) ?? Date()
+        }
+        set {
+            let comps = Calendar.current.dateComponents([.hour, .minute], from: newValue)
+            reminderHour = comps.hour ?? 9
+            reminderMinute = comps.minute ?? 0
+        }
+    }
+
     // MARK: - Digest Generation
 
     /// Generate a digest from current LoopInsights data.
@@ -196,11 +232,88 @@ final class LoopInsights_CaregiverDigestService: ObservableObject {
         }
     }
 
+    /// Whether the next digest is due, based on the configured frequency and the
+    /// last successful send. True when enabled and never sent. Used to auto-present
+    /// the pre-filled compose sheet when the user opens the digest screen.
+    static var isDue: Bool {
+        guard isEnabled else { return false }
+        guard let last = lastSentDate else { return true }
+        let interval: TimeInterval = frequency == .weekly ? 7 * 24 * 3600 : 24 * 3600
+        return Date().timeIntervalSince(last) >= interval
+    }
+
     /// Mark that a digest was sent.
     func markSent() {
         let now = Date()
         Self.lastSentDate = now
         lastSentDate = now
+    }
+
+    // MARK: - Reminder Scheduling
+
+    /// (Re)schedule or cancel the repeating digest reminder to match the current
+    /// enabled state, frequency, and reminder time.
+    ///
+    /// Why a repeating `UNCalendarNotificationTrigger` instead of the in-app
+    /// `.LoopCompleted` throttle the AI monitor uses: the digest is sent by tapping
+    /// a pre-filled Mail/Messages sheet, so the goal is only to *remind* the user on
+    /// schedule. A calendar trigger fires even when the app isn't running, which the
+    /// `.LoopCompleted` hook can't guarantee. iOS handles the repeat natively.
+    ///
+    /// Idempotent — always clears the prior request first so frequency/time edits
+    /// replace rather than stack. Safe to call from `.onAppear` to self-heal.
+    static func refreshReminderSchedule() {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [reminderNotificationID])
+
+        guard isEnabled else {
+            LoopInsights_FeatureFlags.log.info("Caregiver digest disabled — reminder cancelled")
+            return
+        }
+
+        center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+            guard granted else {
+                LoopInsights_FeatureFlags.log.warning("Caregiver digest reminder: notifications not authorized")
+                return
+            }
+            scheduleReminderNotification(on: center)
+        }
+    }
+
+    private static func scheduleReminderNotification(on center: UNUserNotificationCenter) {
+        let content = UNMutableNotificationContent()
+        content.title = NSLocalizedString("Caregiver Digest", comment: "Caregiver digest reminder notification title")
+
+        let recipient = recipientName.isEmpty
+            ? NSLocalizedString("your caregiver", comment: "Caregiver digest reminder default recipient")
+            : recipientName
+        let window = frequency == .weekly
+            ? NSLocalizedString("this week's", comment: "Caregiver digest reminder period: weekly")
+            : NSLocalizedString("today's", comment: "Caregiver digest reminder period: daily")
+        content.body = String(
+            format: NSLocalizedString("Time to send %1$@ %2$@ glucose summary — open Caregiver Digest and tap Send Now.", comment: "Caregiver digest reminder body"),
+            recipient, window
+        )
+        content.sound = .default
+
+        var components = DateComponents()
+        components.hour = reminderHour
+        components.minute = reminderMinute
+        // Weekly fires on whatever weekday it was scheduled (today); daily omits weekday.
+        if frequency == .weekly {
+            components.weekday = Calendar.current.component(.weekday, from: Date())
+        }
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+        let request = UNNotificationRequest(identifier: reminderNotificationID, content: content, trigger: trigger)
+
+        center.add(request) { error in
+            if let error = error {
+                LoopInsights_FeatureFlags.log.error("Failed to schedule caregiver digest reminder: \(error.localizedDescription)")
+            } else {
+                LoopInsights_FeatureFlags.log.info("Caregiver digest reminder scheduled (\(frequency.rawValue) at \(reminderHour):\(String(format: "%02d", reminderMinute)))")
+            }
+        }
     }
 
     // MARK: - Content Builder
