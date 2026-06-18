@@ -1119,8 +1119,6 @@ final class StatusTableViewController: LoopChartsTableViewController {
             let alpha: CGFloat = charts.gestureRecognizer?.state == .possible ? 1 : 0
             cell.setAlpha(alpha: alpha)
 
-            cell.setSubtitleTextColor(color: UIColor.secondaryLabel)
-
             return cell
         case .status:
 
@@ -1246,16 +1244,18 @@ final class StatusTableViewController: LoopChartsTableViewController {
             switch ChartRow(rawValue: indexPath.row)! {
             case .glucose:
                 if let eventualGlucose = eventualGlucoseDescription {
-                    cell.setSubtitleLabel(label: String(format: NSLocalizedString("Eventually %@", comment: "The subtitle format describing eventual glucose. (1: localized glucose value description)"), eventualGlucose))
+                    let format = NSLocalizedString("Eventually %@", comment: "The subtitle format describing eventual glucose. (1: localized glucose value description)")
+                    let prefix = format.components(separatedBy: "%@").first ?? ""
+                    cell.setSubtitleAttributedText(chartValueSubtitle(prefix: prefix, value: eventualGlucose, color: .glucoseTintColor))
                 } else {
-                    cell.setSubtitleLabel(label: nil)
+                    cell.setSubtitleAttributedText(nil)
                 }
                 cell.doesNavigate = automaticDosingStatus.automaticDosingEnabled || !FeatureFlags.simpleBolusCalculatorEnabled
             case .iob:
                 if let currentIOB = currentIOBDescription {
-                    cell.setSubtitleLabel(label: currentIOB)
+                    cell.setSubtitleAttributedText(chartValueSubtitle(prefix: nil, value: currentIOB, color: .insulinTintColor))
                 } else {
-                    cell.setSubtitleLabel(label: nil)
+                    cell.setSubtitleAttributedText(nil)
                 }
             case .dose:
                 let integerFormatter = NumberFormatter()
@@ -1263,20 +1263,50 @@ final class StatusTableViewController: LoopChartsTableViewController {
 
                 if  let total = totalDelivery,
                     let totalString = integerFormatter.string(from: total) {
-                    cell.setSubtitleLabel(label: String(format: NSLocalizedString("%@ U Total", comment: "The subtitle format describing total insulin. (1: localized insulin total)"), totalString))
+                    let value = String(format: NSLocalizedString("%@ U Total", comment: "The subtitle format describing total insulin. (1: localized insulin total)"), totalString)
+                    cell.setSubtitleAttributedText(chartValueSubtitle(prefix: nil, value: value, color: .insulinTintColor))
                 } else {
-                    cell.setSubtitleLabel(label: nil)
+                    cell.setSubtitleAttributedText(nil)
                 }
             case .cob:
                 if let currentCOB = currentCOBDescription {
-                    cell.setSubtitleLabel(label: currentCOB)
+                    cell.setSubtitleAttributedText(chartValueSubtitle(prefix: nil, value: currentCOB, color: .carbTintColor))
                 } else {
-                    cell.setSubtitleLabel(label: nil)
+                    cell.setSubtitleAttributedText(nil)
                 }
             }
         case .hud, .status, .alertWarning:
             break
         }
+    }
+
+    /// Builds a chart value subtitle: an optional grey prefix (e.g. "Eventually ") at the stock
+    /// size, then the numeric value enlarged & tinted, then its unit tinted at the stock size.
+    /// WHY: matches the L&L-style emphasis where the result number is the focal point.
+    private func chartValueSubtitle(prefix: String?, value: String, color: UIColor) -> NSAttributedString {
+        let prefixFont = UIFont.systemFont(ofSize: 16, weight: .regular)
+        let numberFont = UIFont.systemFont(ofSize: 24, weight: .bold)
+        let unitFont = UIFont.systemFont(ofSize: 16, weight: .regular)
+
+        let result = NSMutableAttributedString()
+        if let prefix = prefix, !prefix.isEmpty {
+            result.append(NSAttributedString(string: prefix, attributes: [.font: prefixFont, .foregroundColor: UIColor.secondaryLabel]))
+        }
+
+        // Split off the leading numeric run from the unit so the number can be enlarged
+        // independently. WHY: HealthKit quantity strings use a non-breaking space (not ASCII
+        // " ") between value and unit, so we can't split on a literal space.
+        let isNumberCharacter: (Character) -> Bool = { $0.isNumber || $0 == "." || $0 == "," || $0 == "-" || $0 == "−" || $0 == "+" }
+        let unitIndex = value.firstIndex(where: { !isNumberCharacter($0) }) ?? value.endIndex
+        let number = String(value[..<unitIndex])
+        let unit = String(value[unitIndex...])
+        if !number.isEmpty {
+            result.append(NSAttributedString(string: number, attributes: [.font: numberFont, .foregroundColor: color]))
+        }
+        if !unit.isEmpty {
+            result.append(NSAttributedString(string: unit, attributes: [.font: unitFont, .foregroundColor: color]))
+        }
+        return result
     }
 
     // MARK: - UITableViewDelegate
