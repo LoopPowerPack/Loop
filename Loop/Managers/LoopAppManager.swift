@@ -614,6 +614,14 @@ extension LoopAppManager: UNUserNotificationCenterDelegate {
                 alertManager?.acknowledgeAlert(identifier: Alert.Identifier(managerIdentifier: managerIdentifier, alertIdentifier: alertIdentifier))
             }
         case UNNotificationDefaultActionIdentifier:
+            // LoopInsights caregiver digest reminder — open the digest's send view.
+            // Flag persists across a cold launch; post handles the warm case.
+            if response.notification.request.identifier == LoopInsights_CaregiverDigestService.reminderNotificationID {
+                LoopInsights_CaregiverDigestService.pendingOpenFromReminder = true
+                NotificationCenter.default.post(name: .loopInsightsOpenCaregiverDigest, object: nil)
+                break
+            }
+
             guard response.notification.request.identifier == LoopNotificationCategory.missedMeal.rawValue else {
                 break
             }

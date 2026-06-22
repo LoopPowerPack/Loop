@@ -143,6 +143,11 @@ final class StatusTableViewController: LoopChartsTableViewController {
                     }
                 }
             },
+            notificationCenter.addObserver(forName: .loopInsightsOpenCaregiverDigest, object: nil, queue: nil) { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.presentCaregiverDigestIfPending()
+                }
+            },
         ]
 
         automaticDosingStatus.$automaticDosingEnabled
@@ -233,6 +238,10 @@ final class StatusTableViewController: LoopChartsTableViewController {
         deviceManager.analyticsServicesManager.didDisplayStatusScreen()
 
         deviceManager.checkDeliveryUncertaintyState()
+
+        // Cold-launch path: the digest reminder tap was handled before this screen was
+        // observing, so the flag (not the post) routes us here once the screen appears.
+        presentCaregiverDigestIfPending()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -2312,6 +2321,38 @@ extension StatusTableViewController {
             rootView: NavigationView { wrapper }
         )
         present(hostingController, animated: true)
+    }
+
+    /// Open the Caregiver Digest and auto-present the pre-filled send sheet when the
+    /// user arrived via the digest reminder notification. Driven by a pending flag so it
+    /// fires exactly once whether the tap arrives warm (observer) or cold (viewDidAppear).
+    @objc private func presentCaregiverDigestIfPending() {
+        guard LoopInsights_CaregiverDigestService.pendingOpenFromReminder else { return }
+        LoopInsights_CaregiverDigestService.pendingOpenFromReminder = false
+
+        let view = LoopInsights_CaregiverDigestView(
+            dataStoresProvider: { [weak self] in
+                guard let dm = self?.deviceManager else { return nil }
+                let writer: LoopInsightsSettingsWriter = { mutate in
+                    dm.loopManager.mutateSettings(mutate)
+                }
+                let glucose: GlucoseStoreProtocol = dm.glucoseStore
+                let dose: DoseStoreProtocol = dm.doseStore
+                let carb: CarbStoreProtocol = dm.carbStore
+                let settings: LatestStoredSettingsProvider = dm.settingsManager
+                return (glucose, dose, carb, settings, dm.displayGlucosePreference, writer)
+            },
+            autoSend: true
+        )
+        let hostingController = UIHostingController(rootView: NavigationView { view })
+
+        // Dismiss any sheet that's already up (e.g. the dashboard) before presenting.
+        let present: () -> Void = { [weak self] in self?.present(hostingController, animated: true) }
+        if presentedViewController != nil {
+            dismiss(animated: true, completion: present)
+        } else {
+            present()
+        }
     }
 }
 

@@ -17,6 +17,10 @@ struct LoopInsights_CaregiverDigestView: View {
 
     var dataStoresProvider: (() -> Any?)?
 
+    /// When true (arriving from the reminder notification), open the pre-filled compose
+    /// sheet on appear even if a send isn't strictly "due" yet — the tap is the trigger.
+    var autoSend = false
+
     @StateObject private var digestService = LoopInsights_CaregiverDigestService()
     @State private var coordinator: LoopInsights_Coordinator?
 
@@ -444,7 +448,9 @@ struct LoopInsights_CaregiverDigestView: View {
     /// only when due, and only when a recipient is set (an empty sheet helps no one).
     private func maybeAutoPresent() {
         guard !hasAutoPresented else { return }
-        guard LoopInsights_CaregiverDigestService.isDue else { return }
+        // Arriving from the reminder tap always opens the pre-filled sheet; otherwise
+        // only when a send is actually due.
+        guard autoSend || LoopInsights_CaregiverDigestService.isDue else { return }
         guard !activeContact.isEmpty else { return }
         hasAutoPresented = true
         generateAndSend()

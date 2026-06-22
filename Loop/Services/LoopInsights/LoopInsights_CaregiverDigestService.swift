@@ -95,8 +95,16 @@ final class LoopInsights_CaregiverDigestService: ObservableObject {
     private static let reminderMinuteKey = "LoopInsights_caregiverReminderMinute"
 
     /// Stable identifier for the repeating reminder so re-scheduling replaces
-    /// (rather than stacks) the pending notification.
-    private static let reminderNotificationID = "LoopInsights_CaregiverDigestReminder"
+    /// (rather than stacks) the pending notification. Read by `LoopAppManager` to
+    /// recognize the tap, so it can't be `private`.
+    static let reminderNotificationID = "LoopInsights_CaregiverDigestReminder"
+
+    /// Set when the user taps the digest reminder so the status screen opens the
+    /// Caregiver Digest (and auto-presents the pre-filled compose sheet) on appear.
+    /// A flag rather than only a NotificationCenter post: on a cold launch the status
+    /// screen isn't observing yet when the tap is handled, so the post would be lost —
+    /// the flag survives until the screen appears. Cleared by the presenter (fire-once).
+    static var pendingOpenFromReminder = false
 
     // MARK: - Settings
 
@@ -531,4 +539,10 @@ final class LoopInsights_CaregiverDigestService: ObservableObject {
         )
     }
 
+}
+
+extension Notification.Name {
+    /// Posted when the caregiver digest reminder notification is tapped, asking the
+    /// status screen to open the Caregiver Digest and auto-present the send sheet.
+    static let loopInsightsOpenCaregiverDigest = Notification.Name("com.loopkit.Loop.loopInsightsOpenCaregiverDigest")
 }
