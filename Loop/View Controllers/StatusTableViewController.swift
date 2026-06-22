@@ -613,9 +613,11 @@ final class StatusTableViewController: LoopChartsTableViewController {
                 let lastPoint = self.statusCharts.glucose.predictedGlucosePoints.last?.y
             {
                 self.eventualGlucoseDescription = String(describing: lastPoint)
+                self.eventualGlucoseValueMgdl = predictedGlucoseValues?.last?.quantity.doubleValue(for: .milligramsPerDeciliter)
             } else {
                 // if the predicted glucose values are clamped, the eventually glucose description should not be displayed, since it may not align with what is being charted.
                 self.eventualGlucoseDescription = nil
+                self.eventualGlucoseValueMgdl = nil
             }
             if currentContext.contains(.targets) {
                 self.statusCharts.targetGlucoseSchedule = self.deviceManager.loopManager.settings.glucoseTargetRangeSchedule
@@ -725,6 +727,10 @@ final class StatusTableViewController: LoopChartsTableViewController {
     // MARK: Glucose
 
     private var eventualGlucoseDescription: String?
+
+    /// Eventual (last predicted) glucose in mg/dL, kept alongside the display string so the
+    /// "Eventually" label can tint by clinical severity. Canonical mg/dL — unit-independent.
+    private var eventualGlucoseValueMgdl: Double?
 
     // MARK: IOB
 
@@ -1255,7 +1261,7 @@ final class StatusTableViewController: LoopChartsTableViewController {
                 if let eventualGlucose = eventualGlucoseDescription {
                     let format = NSLocalizedString("Eventually %@", comment: "The subtitle format describing eventual glucose. (1: localized glucose value description)")
                     let prefix = format.components(separatedBy: "%@").first ?? ""
-                    cell.setSubtitleAttributedText(chartValueSubtitle(prefix: prefix, value: eventualGlucose, color: .glucoseTintColor))
+                    cell.setSubtitleAttributedText(chartValueSubtitle(prefix: prefix, value: eventualGlucose, color: eventualGlucoseColor(forMgdl: eventualGlucoseValueMgdl)))
                 } else {
                     cell.setSubtitleAttributedText(nil)
                 }
@@ -1287,6 +1293,29 @@ final class StatusTableViewController: LoopChartsTableViewController {
         case .hud, .status, .alertWarning:
             break
         }
+    }
+
+    /// Color for the "Eventually" glucose value, escalating from the in-range tint as the
+    /// predicted value leaves the target band. Thresholds (mg/dL) follow clinical glycemic
+    /// categories: 70 = Level 1 hypo / lower target, 54 = Level 2 hypo, 180 = upper target,
+    /// 250 = Level 2 hyper. The 80–140 blue band is the tighter "normal" range; amber triggers
+    /// the moment the value leaves it. mg/dL is canonical, so this is correct for mmol/L users too.
+    private func eventualGlucoseColor(forMgdl value: Double?) -> UIColor {
+        guard let v = value else { return .glucoseTintColor }
+        // Custom amber/orange (not systemYellow/systemOrange): tuned to read on the cell
+        // background and as obviously distinct escalation steps — amber → darker orange → red.
+        let amber  = UIColor(red: 230/255, green: 160/255, blue: 0/255, alpha: 1)
+        let orange = UIColor(red: 205/255, green:  85/255, blue: 0/255, alpha: 1)
+        // Low side
+        if v < 54 { return .systemRed }
+        if v < 70 { return orange }
+        if v < 80 { return amber }
+        // In range (blue)
+        if v <= 140 { return .glucoseTintColor }
+        // High side
+        if v <= 180 { return amber }
+        if v <= 250 { return orange }
+        return .systemRed
     }
 
     /// Builds a chart value subtitle: an optional grey prefix (e.g. "Eventually ") at the stock
