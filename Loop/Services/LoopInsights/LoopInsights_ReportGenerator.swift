@@ -9,7 +9,7 @@
 import UIKit
 import SwiftUI
 
-/// Generates HTML→PDF reports for LoopInsights data (stats, goals, patterns, reflections).
+/// Generates HTML→PDF reports for LoopInsights stats.
 /// Reports can be shared via the system share sheet.
 final class LoopInsights_ReportGenerator {
 
@@ -18,9 +18,6 @@ final class LoopInsights_ReportGenerator {
     /// Generate a complete HTML report from LoopInsights data.
     static func generateHTML(
         stats: LoopInsightsAggregatedStats?,
-        goals: [LoopInsightsGoal],
-        patterns: [LoopInsightsCachedPattern],
-        reflections: [LoopInsightsReflection],
         unitContext: LoopInsights_GlucoseUnitContext = .fallbackMgdl
     ) -> String {
         let dateFormatter = DateFormatter()
@@ -121,53 +118,6 @@ final class LoopInsights_ReportGenerator {
                 <tr><td>Meals Logged</td><td>\(stats.carbStats.mealCount)</td></tr>
             </table>
             """
-        }
-
-        // Goals Section
-        if !goals.isEmpty {
-            html += "<h2>Goals</h2>"
-            for goal in goals {
-                let statusText = goal.achieved
-                    ? "<span class=\"goal-achieved\">Achieved</span>"
-                    : "<span class=\"goal-progress\">\(String(format: "%.1f", goal.currentValue))\(goal.type.unit) / \(String(format: "%.1f", goal.targetValue))\(goal.type.unit)</span>"
-                html += """
-                <div class="goal-row">
-                    <span class="goal-label">\(escapeHTML(goal.displayLabel))</span> — \(statusText)
-                </div>
-                """
-            }
-        }
-
-        // Patterns Section
-        if !patterns.isEmpty {
-            html += "<h2>Patterns</h2>"
-            for pattern in patterns {
-                html += """
-                <div class="pattern-card">
-                    <div class="pattern-type">\(escapeHTML(pattern.type))</div>
-                    <div class="pattern-desc">\(escapeHTML(pattern.description))</div>
-                </div>
-                """
-            }
-        }
-
-        // Reflections Section (last 5)
-        let recentReflections = Array(reflections.prefix(5))
-        if !recentReflections.isEmpty {
-            html += "<h2>Recent Reflections</h2>"
-            let reflectionDateFormatter = DateFormatter()
-            reflectionDateFormatter.dateStyle = .medium
-            reflectionDateFormatter.timeStyle = .short
-
-            for reflection in recentReflections {
-                html += """
-                <div class="reflection">
-                    <span class="reflection-date">\(reflectionDateFormatter.string(from: reflection.timestamp))</span>
-                    <span class="reflection-mood"> \(reflection.mood.emoji) \(reflection.mood.displayName)</span>
-                    <div class="reflection-text">\(escapeHTML(reflection.text))</div>
-                </div>
-                """
-            }
         }
 
         // Disclaimer

@@ -104,6 +104,11 @@ struct FoodFinder_EntryPoint: View {
     /// to prevent duplicate entries from repeated onNutritionApplied callbacks.
     @State private var recordedProductID: String?
 
+    /// The absorption value FoodFinder itself last wrote to the host. Used to tell
+    /// a user's manual picker edit apart from our own programmatic writes, so the
+    /// recompute can preserve a manual override instead of clobbering it.
+    @State private var lastAppliedAbsorption: TimeInterval
+
     enum Row: Hashable {
         case detailedFoodBreakdown, advancedAnalysis
     }
@@ -160,6 +165,7 @@ struct FoodFinder_EntryPoint: View {
             defaultAbsorptionTimes: defaultAbsorptionTimes,
             initialAbsorptionTime: absorptionTime.wrappedValue
         ))
+        self._lastAppliedAbsorption = State(initialValue: absorptionTime.wrappedValue)
     }
 
     // MARK: - Body
@@ -230,6 +236,17 @@ struct FoodFinder_EntryPoint: View {
         }
         .onDisappear {
             FoodFinder_LocationService.shared.clearLocation()
+        }
+        .onChange(of: absorptionTime) { newValue in
+            // An absorption change we didn't write ourselves is a manual picker
+            // edit. While an AI plate is active, flag it so editing items later
+            // recomputes carbs/macros but preserves the user's chosen time.
+            guard searchVM.lastAIAnalysisResult != nil else { return }
+            if abs(newValue - lastAppliedAbsorption) > 1 {
+                searchVM.absorptionTime = newValue
+                searchVM.userDidOverrideAbsorption = true
+                lastAppliedAbsorption = newValue
+            }
         }
         .onChange(of: restoredAnalysisResult) { newResult in
             guard let result = newResult else { return }
@@ -327,9 +344,14 @@ struct FoodFinder_EntryPoint: View {
         searchVM.onNutritionApplied = { result in
             carbsQuantity = result.carbs
             foodType = result.foodType
+            // Record our own write first so the absorptionTime onChange below can
+            // tell this programmatic update apart from a user's manual picker edit.
+            lastAppliedAbsorption = result.absorptionTime
             absorptionTime = result.absorptionTime
             absorptionTimeIsAIGenerated = result.absorptionTimeWasAIGenerated
-            aiAbsorptionReasoning = searchVM.lastAIAnalysisResult?.absorptionTimeReasoning
+            // Prefer the reasoning the result carries (kept in sync with the value);
+            // fall back to the original AI reasoning for non-recompute paths.
+            aiAbsorptionReasoning = result.absorptionReasoning ?? searchVM.lastAIAnalysisResult?.absorptionTimeReasoning
 
             // BolusPro — forward macros to host when source delivered them.
             if let fat = result.fat, let protein = result.protein, let src = result.macrosSource {
@@ -366,6 +388,7 @@ struct FoodFinder_EntryPoint: View {
             aiCarbRangeMin = nil
             aiCarbRangeMax = nil
             recordedProductID = nil
+            searchVM.userDidOverrideAbsorption = false
         }
         // When the search field detects natural language (e.g. iOS keyboard dictation),
         // the ViewModel routes through AI generative search and delivers the result here.
@@ -1199,12 +1222,16 @@ extension FoodFinder_EntryPoint {
         // multipliers are already baked into the item-level nutrition values.
         searchVM.numberOfServings = 1.0
 
+        // A fresh analysis is a new meal — drop any prior manual absorption override.
+        searchVM.userDidOverrideAbsorption = false
+
         // Set dynamic absorption time from AI analysis
         if let absorptionHours = enrichedResult.absorptionTimeHours,
            absorptionHours > 0 {
             let absorptionTimeInterval = TimeInterval(absorptionHours * 3600)
 
             searchVM.absorptionEditIsProgrammatic = true
+            lastAppliedAbsorption = absorptionTimeInterval
             absorptionTime = absorptionTimeInterval
             searchVM.absorptionTime = absorptionTimeInterval
 

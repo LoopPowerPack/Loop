@@ -17,6 +17,7 @@ struct LoopInsights_SuggestionHistoryView: View {
     @State private var selectedRecord: LoopInsightsSuggestionRecord?
     @State private var showingRevertConfirmation = false
     @State private var recordToRevert: LoopInsightsSuggestionRecord?
+    @State private var showingClearAllConfirmation = false
     @State private var filterStatus: FilterOption = .all
     @Environment(\.dismiss) private var dismiss
 
@@ -45,6 +46,15 @@ struct LoopInsights_SuggestionHistoryView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(NSLocalizedString("Done", comment: "Done button")) {
                     dismiss()
+                }
+            }
+            ToolbarItem(placement: .navigationBarLeading) {
+                if !store.records.isEmpty {
+                    Button(role: .destructive) {
+                        showingClearAllConfirmation = true
+                    } label: {
+                        Text(NSLocalizedString("Clear All", comment: "LoopInsights clear all button"))
+                    }
                 }
             }
         }
@@ -79,6 +89,17 @@ struct LoopInsights_SuggestionHistoryView: View {
                 "This will restore your therapy settings to the values they had before this suggestion was applied.",
                 comment: "LoopInsights revert confirmation message"
             ))
+        }
+        .alert(
+            NSLocalizedString("Clear History", comment: "LoopInsights clear history alert title"),
+            isPresented: $showingClearAllConfirmation
+        ) {
+            Button(NSLocalizedString("Clear All", comment: "LoopInsights clear all button"), role: .destructive) {
+                store.clearAllHistory()
+            }
+            Button(NSLocalizedString("Cancel", comment: "Cancel button"), role: .cancel) {}
+        } message: {
+            Text(NSLocalizedString("This will permanently delete all suggestion history. This cannot be undone.", comment: "LoopInsights clear history warning"))
         }
     }
 

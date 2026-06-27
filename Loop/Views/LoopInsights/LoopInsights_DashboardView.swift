@@ -28,7 +28,6 @@ struct LoopInsights_DashboardView: View {
     @State private var showingDebugLog = false
     @State private var showingChat = false
     @State private var showingTrendsInsights = false
-    @State private var showingGoals = false
     @State private var showingMealInsights = false
     @State private var showingCaffeineLog = false
     @State private var showingAlcoholLog = false
@@ -203,11 +202,6 @@ struct LoopInsights_DashboardView: View {
         .sheet(isPresented: $showingTrendsInsights) {
             NavigationView {
                 LoopInsights_TrendsInsightsView(coordinator: viewModel.coordinator)
-            }
-        }
-        .sheet(isPresented: $showingGoals) {
-            NavigationView {
-                LoopInsights_GoalsView(coordinator: viewModel.coordinator)
             }
         }
         .sheet(isPresented: $showingMealInsights) {
@@ -1348,18 +1342,6 @@ struct LoopInsights_DashboardView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                }
-            }
-
-            Button(action: { showingGoals = true }) {
-                HStack {
-                    Image(systemName: "target")
-                        .foregroundColor(.accentColor)
-                    Text(NSLocalizedString("Goals & Patterns", comment: "LoopInsights goals button"))
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                 }
             }
 

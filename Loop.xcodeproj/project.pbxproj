@@ -639,8 +639,6 @@
 		43CA1D2C89F0E99C9BF8E595 /* LoopInsights_ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1441AF7F093555B0A342E921 /* LoopInsights_ChatViewModel.swift */; };
 		A5BA458D4C96896EB8F770A8 /* LoopInsights_ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2029C9AA34E59B67467B1756 /* LoopInsights_ChatView.swift */; };
 		02DEF744456C1BA094E55A8A /* LoopInsights_MonitorSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF876C4BBAD67542E1E0A979 /* LoopInsights_MonitorSettingsView.swift */; };
-		8D65F67A3D5AE1576364C287 /* LoopInsights_GoalStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0065F6CA2B051676FEE0B7D5 /* LoopInsights_GoalStore.swift */; };
-		2BD98847D48B412626D8AFDF /* LoopInsights_GoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49486DDC8FCBA7675B005E62 /* LoopInsights_GoalsView.swift */; };
 		1AD80F425B1DA688EBAC6653 /* LoopInsights_ReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91CA9C204385601A795C4DF2 /* LoopInsights_ReportGenerator.swift */; };
 		4F318965F55EC7E03D840A9C /* LoopInsights_HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F042788E3C9B3B77B4B55BB2 /* LoopInsights_HealthKitManager.swift */; };
 		A81C5355140C9F091E110844 /* LoopInsights_Phase5Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 112AA1E5DF9955A367071297 /* LoopInsights_Phase5Models.swift */; };
@@ -805,7 +803,6 @@
 		F56F1856A32E8160149B3149 /* LoopInsights_DataAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA32883A0045816CA3128E3E /* LoopInsights_DataAggregator.swift */; };
 		FFED28F5B41C6EF1851B6139 /* LoopInsights_GlucoseUnitContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 940B95F8A4BE9A4A6E58CA79 /* LoopInsights_GlucoseUnitContext.swift */; };
 		955592F30284ED133EC150B3 /* LoopInsights_FoodResponseAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE15E9C010223EAC3F3FA6B8 /* LoopInsights_FoodResponseAnalyzer.swift */; };
-		E4BA2E42EF9C36EC6D602DBD /* LoopInsights_GoalStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 404B0C6DACC2F8E4E7FBA99D /* LoopInsights_GoalStore.swift */; };
 		0C4E19D6352BAEBD22195CF3 /* LoopInsights_HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2570F1035D3A845E6230189B /* LoopInsights_HealthKitManager.swift */; };
 		99CDB0D68ECEA2FA30AB1556 /* LoopInsights_NightscoutImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97E4D5933C8B4305CE381143 /* LoopInsights_NightscoutImporter.swift */; };
 		051BB8037243680C0687EA79 /* LoopInsights_ReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29BFD6726CB3416DD8DE08BD /* LoopInsights_ReportGenerator.swift */; };
@@ -827,7 +824,6 @@
 		BAE38CDF96BA1DA27FF080B7 /* LoopInsights_CaffeineLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF710A849EA6CD879BD5AB80 /* LoopInsights_CaffeineLogView.swift */; };
 		26BE764B796A172A22B27880 /* LoopInsights_ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3763C4E9526F83AB3F7D3F70 /* LoopInsights_ChatView.swift */; };
 		5CA015D639F98929BB7D72F1 /* LoopInsights_DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA2071DFD6173C252FCD9F7D /* LoopInsights_DashboardView.swift */; };
-		B7A00EB74B19C7CA8FF57388 /* LoopInsights_GoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F48D99CEBEED5A9FDAA0E87B /* LoopInsights_GoalsView.swift */; };
 		9C56E5C58F8504E0506D1B9F /* LoopInsights_MealInsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBA04C6FC8871A04AFFD27F7 /* LoopInsights_MealInsightsView.swift */; };
 		01BA2BE752047393AB59ED36 /* LoopInsights_MonitorSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADE5833949817538698865F6 /* LoopInsights_MonitorSettingsView.swift */; };
 		1B51AC4E311024D7A81A634B /* LoopInsights_SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A266A15E411B4AB60ABC4B /* LoopInsights_SettingsView.swift */; };
@@ -1736,8 +1732,6 @@
 		1441AF7F093555B0A342E921 /* LoopInsights_ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_ChatViewModel.swift; sourceTree = "<group>"; };
 		2029C9AA34E59B67467B1756 /* LoopInsights_ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_ChatView.swift; sourceTree = "<group>"; };
 		CF876C4BBAD67542E1E0A979 /* LoopInsights_MonitorSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_MonitorSettingsView.swift; sourceTree = "<group>"; };
-		0065F6CA2B051676FEE0B7D5 /* LoopInsights_GoalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_GoalStore.swift; sourceTree = "<group>"; };
-		49486DDC8FCBA7675B005E62 /* LoopInsights_GoalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_GoalsView.swift; sourceTree = "<group>"; };
 		91CA9C204385601A795C4DF2 /* LoopInsights_ReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_ReportGenerator.swift; sourceTree = "<group>"; };
 		F042788E3C9B3B77B4B55BB2 /* LoopInsights_HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_HealthKitManager.swift; sourceTree = "<group>"; };
 		112AA1E5DF9955A367071297 /* LoopInsights_Phase5Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_Phase5Models.swift; sourceTree = "<group>"; };
@@ -1902,7 +1896,6 @@
 		DA32883A0045816CA3128E3E /* LoopInsights_DataAggregator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_DataAggregator.swift; sourceTree = "<group>"; };
 		940B95F8A4BE9A4A6E58CA79 /* LoopInsights_GlucoseUnitContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_GlucoseUnitContext.swift; sourceTree = "<group>"; };
 		FE15E9C010223EAC3F3FA6B8 /* LoopInsights_FoodResponseAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_FoodResponseAnalyzer.swift; sourceTree = "<group>"; };
-		404B0C6DACC2F8E4E7FBA99D /* LoopInsights_GoalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_GoalStore.swift; sourceTree = "<group>"; };
 		2570F1035D3A845E6230189B /* LoopInsights_HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_HealthKitManager.swift; sourceTree = "<group>"; };
 		97E4D5933C8B4305CE381143 /* LoopInsights_NightscoutImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_NightscoutImporter.swift; sourceTree = "<group>"; };
 		29BFD6726CB3416DD8DE08BD /* LoopInsights_ReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_ReportGenerator.swift; sourceTree = "<group>"; };
@@ -1924,7 +1917,6 @@
 		CF710A849EA6CD879BD5AB80 /* LoopInsights_CaffeineLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_CaffeineLogView.swift; sourceTree = "<group>"; };
 		3763C4E9526F83AB3F7D3F70 /* LoopInsights_ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_ChatView.swift; sourceTree = "<group>"; };
 		CA2071DFD6173C252FCD9F7D /* LoopInsights_DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_DashboardView.swift; sourceTree = "<group>"; };
-		F48D99CEBEED5A9FDAA0E87B /* LoopInsights_GoalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_GoalsView.swift; sourceTree = "<group>"; };
 		FBA04C6FC8871A04AFFD27F7 /* LoopInsights_MealInsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_MealInsightsView.swift; sourceTree = "<group>"; };
 		ADE5833949817538698865F6 /* LoopInsights_MonitorSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_MonitorSettingsView.swift; sourceTree = "<group>"; };
 		A1A266A15E411B4AB60ABC4B /* LoopInsights_SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_SettingsView.swift; sourceTree = "<group>"; };
@@ -3336,7 +3328,6 @@
 				2029C9AA34E59B67467B1756 /* LoopInsights_ChatView.swift */,
 				CF876C4BBAD67542E1E0A979 /* LoopInsights_MonitorSettingsView.swift */,
 				EE7AAD3549253FE16941E10D /* LoopInsights_TrendsInsightsView.swift */,
-				49486DDC8FCBA7675B005E62 /* LoopInsights_GoalsView.swift */,
 				B71CC769321E323ACED2E8EC /* LoopInsights_AGPChartView.swift */,
 				D9C47D229ABCAB8F4394631D /* LoopInsights_MealInsightsView.swift */,
 				50DB299AD493553DA6E1A02B /* LoopInsights_CaffeineLogView.swift */,
@@ -3439,7 +3430,6 @@
 				E8F875E984C8C1A149E4242E /* LoopInsights_TestDataProvider.swift */,
 				EF3390DD6BCC87E617CF9C4E /* LoopInsights_SecureStorage.swift */,
 				186598BBCF20AF6BFDA7C65E /* LoopInsights_SuggestionStore.swift */,
-				0065F6CA2B051676FEE0B7D5 /* LoopInsights_GoalStore.swift */,
 				91CA9C204385601A795C4DF2 /* LoopInsights_ReportGenerator.swift */,
 				F042788E3C9B3B77B4B55BB2 /* LoopInsights_HealthKitManager.swift */,
 				A80638223202E2E350012A3C /* LoopInsights_AdvancedAnalyzers.swift */,
@@ -3690,7 +3680,6 @@
 				CF710A849EA6CD879BD5AB80 /* LoopInsights_CaffeineLogView.swift */,
 				3763C4E9526F83AB3F7D3F70 /* LoopInsights_ChatView.swift */,
 				CA2071DFD6173C252FCD9F7D /* LoopInsights_DashboardView.swift */,
-				F48D99CEBEED5A9FDAA0E87B /* LoopInsights_GoalsView.swift */,
 				FBA04C6FC8871A04AFFD27F7 /* LoopInsights_MealInsightsView.swift */,
 				ADE5833949817538698865F6 /* LoopInsights_MonitorSettingsView.swift */,
 				A1A266A15E411B4AB60ABC4B /* LoopInsights_SettingsView.swift */,
@@ -3777,7 +3766,6 @@
 				DA32883A0045816CA3128E3E /* LoopInsights_DataAggregator.swift */,
 				940B95F8A4BE9A4A6E58CA79 /* LoopInsights_GlucoseUnitContext.swift */,
 				FE15E9C010223EAC3F3FA6B8 /* LoopInsights_FoodResponseAnalyzer.swift */,
-				404B0C6DACC2F8E4E7FBA99D /* LoopInsights_GoalStore.swift */,
 				2570F1035D3A845E6230189B /* LoopInsights_HealthKitManager.swift */,
 				97E4D5933C8B4305CE381143 /* LoopInsights_NightscoutImporter.swift */,
 				29BFD6726CB3416DD8DE08BD /* LoopInsights_ReportGenerator.swift */,
@@ -4906,8 +4894,6 @@
 				43CA1D2C89F0E99C9BF8E595 /* LoopInsights_ChatViewModel.swift in Sources */,
 				A5BA458D4C96896EB8F770A8 /* LoopInsights_ChatView.swift in Sources */,
 				02DEF744456C1BA094E55A8A /* LoopInsights_MonitorSettingsView.swift in Sources */,
-				8D65F67A3D5AE1576364C287 /* LoopInsights_GoalStore.swift in Sources */,
-				2BD98847D48B412626D8AFDF /* LoopInsights_GoalsView.swift in Sources */,
 				1AD80F425B1DA688EBAC6653 /* LoopInsights_ReportGenerator.swift in Sources */,
 				4F318965F55EC7E03D840A9C /* LoopInsights_HealthKitManager.swift in Sources */,
 							8D0F376E7E338ECB93EE03E0 /* LoopInsights_TrendsInsightsView.swift in Sources */,
@@ -5057,7 +5043,6 @@
 				F56F1856A32E8160149B3149 /* LoopInsights_DataAggregator.swift in Sources */,
 				FFED28F5B41C6EF1851B6139 /* LoopInsights_GlucoseUnitContext.swift in Sources */,
 				955592F30284ED133EC150B3 /* LoopInsights_FoodResponseAnalyzer.swift in Sources */,
-				E4BA2E42EF9C36EC6D602DBD /* LoopInsights_GoalStore.swift in Sources */,
 				0C4E19D6352BAEBD22195CF3 /* LoopInsights_HealthKitManager.swift in Sources */,
 				99CDB0D68ECEA2FA30AB1556 /* LoopInsights_NightscoutImporter.swift in Sources */,
 				051BB8037243680C0687EA79 /* LoopInsights_ReportGenerator.swift in Sources */,
@@ -5079,7 +5064,6 @@
 				BAE38CDF96BA1DA27FF080B7 /* LoopInsights_CaffeineLogView.swift in Sources */,
 				26BE764B796A172A22B27880 /* LoopInsights_ChatView.swift in Sources */,
 				5CA015D639F98929BB7D72F1 /* LoopInsights_DashboardView.swift in Sources */,
-				B7A00EB74B19C7CA8FF57388 /* LoopInsights_GoalsView.swift in Sources */,
 				9C56E5C58F8504E0506D1B9F /* LoopInsights_MealInsightsView.swift in Sources */,
 				01BA2BE752047393AB59ED36 /* LoopInsights_MonitorSettingsView.swift in Sources */,
 				1B51AC4E311024D7A81A634B /* LoopInsights_SettingsView.swift in Sources */,

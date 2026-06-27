@@ -70,6 +70,12 @@ struct FoodFinder_NutritionResult {
     /// Mapped to `BolusProMacrosSource` by the host. Values: `"ai"`,
     /// `"product"`, `"favorite"`. nil when no macros present.
     let macrosSource: String?
+    /// Explanation shown next to the absorption-time picker. Kept in sync with
+    /// `absorptionTime` so it never describes a stale plate: it's the AI's
+    /// original reasoning on an untouched plate, a locally-generated note after
+    /// the user edits items, or a "set manually" note after a manual override.
+    /// nil for non-AI paths (barcode / text search), which carry no reasoning.
+    let absorptionReasoning: String?
 }
 
 // MARK: - Search ViewModel
@@ -181,6 +187,12 @@ final class FoodFinder_SearchViewModel: ObservableObject {
 
     /// Whether the absorption time was set by AI analysis
     @Published var absorptionTimeWasAIGenerated: Bool = false
+
+    /// Set by the host view when the user manually drags the absorption-time
+    /// picker after an AI/recompute write. While true, editing the plate
+    /// recomputes carbs/macros but leaves the user's chosen absorption time
+    /// untouched. Reset whenever a fresh analysis is applied or food is cleared.
+    @Published var userDidOverrideAbsorption: Bool = false
 
     /// Internal flag so programmatic absorption-time writes don't flip
     /// ``absorptionTimeWasEdited`` in the host.
@@ -320,20 +332,79 @@ final class FoodFinder_SearchViewModel: ObservableObject {
             let perUsdaServing = (item.protein ?? 0) / aiMultiplier
             return total + (perUsdaServing * userMultiplier)
         }
+        // Per-item fiber / calories: same scaling. Used to re-derive absorption
+        // time from the remaining plate (FPU + fiber + meal-size all shift it).
+        let baseFiber = includedItems.reduce(0.0) { total, entry in
+            let (index, item) = entry
+            let aiMultiplier = item.servingMultiplier > 0 ? item.servingMultiplier : 1.0
+            let userMultiplier = itemServingOverrides[index] ?? aiMultiplier
+            let perUsdaServing = (item.fiber ?? 0) / aiMultiplier
+            return total + (perUsdaServing * userMultiplier)
+        }
+        let baseCalories = includedItems.reduce(0.0) { total, entry in
+            let (index, item) = entry
+            let aiMultiplier = item.servingMultiplier > 0 ? item.servingMultiplier : 1.0
+            let userMultiplier = itemServingOverrides[index] ?? aiMultiplier
+            let perUsdaServing = (item.calories ?? 0) / aiMultiplier
+            return total + (perUsdaServing * userMultiplier)
+        }
         // Plate-level multiplier (the "Servings" slider — for "I ate 2 plates")
         let plateScale = numberOfServings
         let newCarbs = baseCarbs * plateScale
         let newFat = baseFat * plateScale
         let newProtein = baseProtein * plateScale
+        let newFiber = baseFiber * plateScale
+        let newCalories = baseCalories * plateScale
 
         let included = includedItems.map { $0.element }
 
-        // Absorption time: use overall AI time if present (per-item times not available)
+        // Absorption time.
+        // The AI returns ONE whole-plate absorption_time_hours (the per-item
+        // field isn't in the prompt schema, so it's ~always nil). That original
+        // number stops reflecting reality the moment the user edits the plate —
+        // deleting a slow, fatty item used to leave absorption stuck at the
+        // full-plate value. So: trust the AI's number on an unedited plate, but
+        // re-derive it from the REMAINING macros once anything is excluded,
+        // rescaled, or multiplied by the servings slider.
+        let plateWasEdited = !excludedAIItemIndices.isEmpty
+            || !itemServingOverrides.isEmpty
+            || numberOfServings != 1.0
+
         var newAbsorptionTime = absorptionTime
         var aiGenerated = absorptionTimeWasAIGenerated
-        if let hours = ai.absorptionTimeHours, hours > 0 {
+        var absorptionReasoning = ai.absorptionTimeReasoning
+        if userDidOverrideAbsorption {
+            // User dialed in their own absorption time — preserve it; only the
+            // macros recompute. `absorptionTime` is kept current by the host bridge.
+            newAbsorptionTime = absorptionTime
+            aiGenerated = false
+            absorptionReasoning = NSLocalizedString(
+                "Absorption time set manually.",
+                comment: "FoodFinder note when the user has overridden the AI absorption time")
+        } else if !plateWasEdited {
+            // Untouched plate → trust the AI's exact original value and reasoning.
+            if let hours = ai.absorptionTimeHours, hours > 0 {
+                newAbsorptionTime = TimeInterval(hours * 3600)
+                aiGenerated = true
+            }
+        } else {
+            // Plate edited → re-derive from the remaining macros using the same
+            // tuned model the deletion path uses, and refresh the reasoning text
+            // so it no longer describes the original plate. No AI round-trip.
+            let (hours, reasoning) = recalculateAbsorptionTime(
+                carbs: newCarbs,
+                protein: newProtein,
+                fat: newFat,
+                fiber: newFiber,
+                calories: newCalories,
+                remainingItems: included,
+                context: NSLocalizedString(
+                    "Adjusted after editing the plate",
+                    comment: "FoodFinder absorption note prefix after the user edits detected items")
+            )
             newAbsorptionTime = TimeInterval(hours * 3600)
             aiGenerated = true
+            absorptionReasoning = reasoning
         }
 
         // Determine food type from the AI result (truncate to fit RowEmojiTextField maxLength)
@@ -366,7 +437,8 @@ final class FoodFinder_SearchViewModel: ObservableObject {
             absorptionTimeWasAIGenerated: aiGenerated,
             fat: newFat > 0 ? newFat : nil,
             protein: newProtein > 0 ? newProtein : nil,
-            macrosSource: (newFat > 0 || newProtein > 0) ? "ai" : nil
+            macrosSource: (newFat > 0 || newProtein > 0) ? "ai" : nil,
+            absorptionReasoning: absorptionReasoning
         ))
     }
 
@@ -1025,7 +1097,8 @@ final class FoodFinder_SearchViewModel: ObservableObject {
             absorptionTimeWasAIGenerated: absorptionTimeWasAIGenerated,
             fat: productFat > 0 ? productFat : nil,
             protein: productProtein > 0 ? productProtein : nil,
-            macrosSource: (productFat > 0 || productProtein > 0) ? "product" : nil
+            macrosSource: (productFat > 0 || productProtein > 0) ? "product" : nil,
+            absorptionReasoning: nil
         ))
     }
 
@@ -1103,7 +1176,8 @@ final class FoodFinder_SearchViewModel: ObservableObject {
             absorptionTimeWasAIGenerated: absorptionTimeWasAIGenerated,
             fat: foodFat > 0 ? foodFat : nil,
             protein: foodProtein > 0 ? foodProtein : nil,
-            macrosSource: (foodFat > 0 || foodProtein > 0) ? "favorite" : nil
+            macrosSource: (foodFat > 0 || foodProtein > 0) ? "favorite" : nil,
+            absorptionReasoning: nil
         ))
 
         os_log("Recalculated carbs for %{public}.1f servings: %{public}g",
@@ -1480,7 +1554,8 @@ final class FoodFinder_SearchViewModel: ObservableObject {
             absorptionTimeWasAIGenerated: absorptionTimeWasAIGenerated,
             fat: newTotalFat > 0 ? newTotalFat : nil,
             protein: newTotalProtein > 0 ? newTotalProtein : nil,
-            macrosSource: (newTotalFat > 0 || newTotalProtein > 0) ? "ai" : nil
+            macrosSource: (newTotalFat > 0 || newTotalProtein > 0) ? "ai" : nil,
+            absorptionReasoning: newReasoning
         ))
 
         #if DEBUG

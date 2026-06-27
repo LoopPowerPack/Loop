@@ -34,7 +34,6 @@ final class LoopInsights_Coordinator: ObservableObject {
     let dataAggregator: LoopInsights_DataAggregator
     let aiAnalysis: LoopInsights_AIAnalysis
     let suggestionStore: LoopInsights_SuggestionStore
-    let goalStore: LoopInsights_GoalStore
     let healthKitManager: LoopInsights_HealthKitManager?
     let caffeineTracker: LoopInsights_CaffeineTracker
     let alcoholTracker: LoopInsights_AlcoholTracker
@@ -152,7 +151,6 @@ final class LoopInsights_Coordinator: ObservableObject {
         self.dataAggregator = LoopInsights_DataAggregator(dataProvider: bridge, healthKitManager: hkManager)
         self.aiAnalysis = LoopInsights_AIAnalysis()
         self.suggestionStore = LoopInsights_SuggestionStore.shared
-        self.goalStore = LoopInsights_GoalStore.shared
         self.caffeineTracker = LoopInsights_CaffeineTracker.shared
         self.caffeineTracker.healthKitManager = hkManager
         self.alcoholTracker = LoopInsights_AlcoholTracker.shared
@@ -182,7 +180,6 @@ final class LoopInsights_Coordinator: ObservableObject {
         self.dataAggregator = LoopInsights_DataAggregator(dataProvider: testDataProvider)
         self.aiAnalysis = LoopInsights_AIAnalysis()
         self.suggestionStore = LoopInsights_SuggestionStore.shared
-        self.goalStore = LoopInsights_GoalStore.shared
         self.caffeineTracker = LoopInsights_CaffeineTracker.shared
         self.alcoholTracker = LoopInsights_AlcoholTracker.shared
         self.mealDebriefService = LoopInsights_MealDebriefService.shared
