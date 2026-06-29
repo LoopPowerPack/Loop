@@ -210,7 +210,7 @@ struct PowerPackAPIUsageGate: ViewModifier {
                 set: { if !$0 { usage.resolvePending(.cancel) } }
             ), presenting: usage.pendingApproval) { pending in
                 Button("Continue") { usage.resolvePending(.proceed) }
-                Button("Continue — don't ask again this session") { usage.resolvePending(.proceedAllSession) }
+                Button("Continue — don't ask again\nthis session") { usage.resolvePending(.proceedAllSession) }
                 Button("Cancel", role: .cancel) { usage.resolvePending(.cancel) }
             } message: { pending in
                 Text(String(format: "%@ will call your AI provider and use your API tokens (about $%.3f). This is billed to your own key.",

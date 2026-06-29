@@ -31,10 +31,22 @@ struct AICameraView: View {
     /// Incremented when the user taps the "Reset Crop" toolbar button.
     /// `FoodFinder_ImageCropView` observes the change and resets its crop rect.
     @State private var cropResetCounter: Int = 0
-    /// When true (set at crop completion if eligible), show the restaurant menu
-    /// picker instead of auto-running AI analysis. Picking a menu item skips the
-    /// AI call entirely; choosing "analyze with AI" clears this and proceeds.
+    /// When true (set at crop completion if eligible), show the restaurant +
+    /// item entry sheet instead of auto-running AI analysis. A menu match skips
+    /// the AI call entirely; choosing "analyze with AI" clears this and proceeds.
     @State private var showingRestaurantMenu = false
+    /// Non-nil while the user is browsing a restaurant's full menu list (reached
+    /// from the entry sheet). Holds the restaurant name to load.
+    @State private var browseFullMenuFor: String?
+
+    /// Nearby restaurants for the entry-sheet picker; falls back to the single
+    /// tagged venue, then empty.
+    private var nearbyRestaurantNames: [String] {
+        let venues = FoodFinder_LocationService.shared.nearbyVenues
+        if !venues.isEmpty { return venues }
+        if let name = FoodFinder_LocationService.shared.locationName { return [name] }
+        return []
+    }
 
     /// Eligible for the menu-first path: location tagging on, GPS confirms a
     /// restaurant within 200 ft, and a Spoonacular key is configured.
@@ -104,19 +116,40 @@ struct AICameraView: View {
 
                 } else if imageForAnalysis != nil && showingRestaurantMenu {
                     // Menu-first path — confirmed within 200 ft of a restaurant
-                    // with a Spoonacular key. Tap an item (no AI tokens) or fall
-                    // back to AI on the captured photo.
-                    FoodFinder_RestaurantMenuView(
-                        restaurantName: FoodFinder_LocationService.shared.locationName ?? "this restaurant",
-                        onPicked: { result in
-                            showingRestaurantMenu = false
-                            onFoodAnalyzed(result, capturedImage)
-                        },
-                        onUseAI: {
-                            // Drops to the analyzing view, whose onAppear runs analyzeImage().
-                            showingRestaurantMenu = false
-                        }
-                    )
+                    // with a Spoonacular key.
+                    if let venue = browseFullMenuFor {
+                        // Full-menu browser, reached from the entry sheet.
+                        FoodFinder_RestaurantMenuView(
+                            restaurantName: venue,
+                            onPicked: { result in
+                                showingRestaurantMenu = false
+                                browseFullMenuFor = nil
+                                onFoodAnalyzed(result, capturedImage)
+                            },
+                            onUseAI: {
+                                // Drops to the analyzing view, whose onAppear runs analyzeImage().
+                                showingRestaurantMenu = false
+                                browseFullMenuFor = nil
+                            }
+                        )
+                    } else {
+                        // Ask which restaurant + what they ordered, then look up
+                        // menu nutrition (no AI tokens). No match → AI fallback.
+                        FoodFinder_RestaurantItemEntryView(
+                            nearbyRestaurants: nearbyRestaurantNames,
+                            onPicked: { result in
+                                showingRestaurantMenu = false
+                                onFoodAnalyzed(result, capturedImage)
+                            },
+                            onUseAI: {
+                                // Drops to the analyzing view, whose onAppear runs analyzeImage().
+                                showingRestaurantMenu = false
+                            },
+                            onBrowseFullMenu: { venue in
+                                browseFullMenuFor = venue
+                            }
+                        )
+                    }
                 } else if let finalImage = imageForAnalysis {
                     // Show final image (cropped or full) and auto-start analysis
                     VStack(spacing: 20) {

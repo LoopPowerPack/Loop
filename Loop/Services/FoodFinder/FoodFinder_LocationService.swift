@@ -45,6 +45,11 @@ final class FoodFinder_LocationService: NSObject, ObservableObject, CLLocationMa
     /// menu-first lookup and restaurant-specific prompt context.
     var isAtKnownRestaurant: Bool { matchedVenueDistanceMeters != nil }
 
+    /// All food venues within `maxVenueDistanceMeters`, closest first, deduped.
+    /// Drives the "which restaurant?" picker — the user may be between two spots,
+    /// so we offer every nearby match instead of silently assuming the closest.
+    @Published private(set) var nearbyVenues: [String] = []
+
     // MARK: - Private
 
     /// Hard radius for restaurant geo-tagging. 200 feet ≈ 60.96 m. MKLocalSearch
@@ -96,6 +101,7 @@ final class FoodFinder_LocationService: NSObject, ObservableObject, CLLocationMa
         cityName = nil
         countryName = nil
         matchedVenueDistanceMeters = nil
+        nearbyVenues = []
         isResolving = false
     }
 
@@ -228,33 +234,32 @@ final class FoodFinder_LocationService: NSObject, ObservableObject, CLLocationMa
             DispatchQueue.main.async {
                 defer { self.isResolving = false }
 
-                // Find the closest food venue by actual straight-line distance.
-                let closest = (response?.mapItems ?? [])
+                // Every food venue within the 200 ft radius, closest first.
+                let withinRadius = (response?.mapItems ?? [])
                     .compactMap { item -> (name: String, distance: CLLocationDistance)? in
                         guard let name = item.name, !name.isEmpty,
                               let itemLoc = item.placemark.location else { return nil }
-                        return (name, location.distance(from: itemLoc))
+                        let distance = location.distance(from: itemLoc)
+                        return distance <= Self.maxVenueDistanceMeters ? (name, distance) : nil
                     }
                     .sorted { $0.distance < $1.distance }
-                    .first
 
-                // Accept only a venue within the 200 ft radius.
-                guard let match = closest, match.distance <= Self.maxVenueDistanceMeters else {
+                // Dedupe names while preserving the closest-first order.
+                var seen = Set<String>()
+                self.nearbyVenues = withinRadius.map { $0.name }.filter { seen.insert($0).inserted }
+
+                // The closest match gates the prompt context (unchanged behavior).
+                guard let match = withinRadius.first else {
                     #if DEBUG
-                    if let c = closest {
-                        print("📍 FoodFinder MapKit: nearest restaurant \"\(c.name)\" is \(Int(c.distance))m away — beyond 200ft, not tagging")
-                    } else {
-                        print("📍 FoodFinder MapKit: no nearby restaurants found")
-                    }
+                    print("📍 FoodFinder MapKit: no restaurants within 200ft, not tagging")
                     #endif
-                    // Not within 200 ft of any restaurant — don't tag a venue.
                     self.locationName = nil
                     self.matchedVenueDistanceMeters = nil
                     return
                 }
 
                 #if DEBUG
-                print("📍 FoodFinder MapKit: confirmed \"\(match.name)\" \(Int(match.distance))m away (≤200ft)")
+                print("📍 FoodFinder MapKit: \(self.nearbyVenues.count) venue(s) within 200ft; closest \"\(match.name)\" \(Int(match.distance))m")
                 #endif
                 self.locationName = match.name
                 self.matchedVenueDistanceMeters = match.distance
