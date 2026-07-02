@@ -1502,6 +1502,38 @@ class USDAFoodDataService {
         self.session = URLSession(configuration: config)
     }
     
+    /// Validates the saved USDA key with a minimal one-result search so a bad
+    /// key surfaces in Settings, not mid-search. USDA rejects a bad key with
+    /// HTTP 403 and rate-limits with 429; both throw `OpenFoodFactsError`.
+    /// Succeeds on 2xx regardless of whether any food matched.
+    func validateSavedKey() async throws {
+        let usdaKey = UserDefaults.standard.usdaAPIKey.isEmpty ? "DEMO_KEY" : UserDefaults.standard.usdaAPIKey
+        guard var components = URLComponents(string: "\(baseURL)/foods/search") else {
+            throw OpenFoodFactsError.invalidURL
+        }
+        components.queryItems = [
+            URLQueryItem(name: "api_key", value: usdaKey),
+            URLQueryItem(name: "query", value: "apple"),
+            URLQueryItem(name: "pageSize", value: "1")
+        ]
+        guard let url = components.url else {
+            throw OpenFoodFactsError.invalidURL
+        }
+        var request = URLRequest(url: url)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = ConfigurableAIService.optimalTimeout(for: .usdaFoodData)
+
+        let (_, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw OpenFoodFactsError.invalidResponse
+        }
+        switch http.statusCode {
+        case 200...299: return
+        case 429: throw OpenFoodFactsError.rateLimitExceeded
+        default: throw OpenFoodFactsError.serverError(http.statusCode)
+        }
+    }
+
     /// Search for food products using USDA FoodData Central API
     /// - Parameter query: Search query string
     /// - Returns: Array of OpenFoodFactsProduct for compatibility with existing UI

@@ -68,6 +68,16 @@ final class FoodFinder_SpoonacularService {
         }
     }
 
+    // MARK: - Validation
+
+    /// Verifies the saved key with a cheap `/food/menuItems/search` request so
+    /// the user learns a bad key in Settings, not while standing in a restaurant.
+    /// Succeeds even when zero items match (auth is what we're checking); throws
+    /// `SpoonacularError` — notably `.server(401)` for a rejected key — otherwise.
+    func validateSavedKey() async throws {
+        _ = try await performSearch(query: "test", rankVenue: "test", number: 1)
+    }
+
     // MARK: - Menu Search
 
     /// Searches Spoonacular for menu items matching `restaurant`. Returns items

@@ -446,57 +446,40 @@ struct LoopInsights_SettingsView: View {
                 }
 
                 // Test Connection
-                VStack(spacing: 8) {
+                HStack(spacing: 12) {
                     Button(action: testConnection) {
                         HStack(spacing: 6) {
                             if isTesting {
-                                ProgressView()
-                                    .progressViewStyle(.circular)
-                                    .scaleEffect(0.8)
-                                    .tint(.black)
-                                Text(NSLocalizedString("Testing...", comment: "LoopInsights testing connection"))
+                                ProgressView().scaleEffect(0.8)
                             } else {
-                                Image(systemName: "checkmark.shield")
-                                Text(NSLocalizedString("Test Connection", comment: "LoopInsights test connection button"))
+                                Image(systemName: "checkmark.seal")
                             }
+                            Text(NSLocalizedString("Test Connection", comment: "LoopInsights test connection button"))
                         }
-                        .font(.body.weight(.medium))
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Color.white)
-                        .cornerRadius(10)
+                        .foregroundColor(Color(red: 26/255, green: 138/255, blue: 158/255))
                     }
+                    .buttonStyle(.plain)
                     .disabled(isTesting || apiKeyText.isEmpty || baseURL.isEmpty)
                     .opacity((isTesting || apiKeyText.isEmpty || baseURL.isEmpty) ? 0.5 : 1.0)
-                    .buttonStyle(.plain)
 
                     if let result = testResult {
                         switch result {
                         case .success:
                             HStack(spacing: 4) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
+                                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
                                 Text(NSLocalizedString("Connected", comment: "LoopInsights connection success"))
-                                    .font(.caption)
-                                    .foregroundColor(.green)
+                                    .font(.caption).foregroundColor(.green)
                             }
                         case .warning(let message):
                             HStack(alignment: .top, spacing: 4) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.orange)
-                                Text(message)
-                                    .font(.caption)
-                                    .foregroundColor(.orange)
+                                Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.orange)
+                                Text(message).font(.caption).foregroundColor(.orange)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                         case .failure(let message):
                             HStack(alignment: .top, spacing: 4) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.red)
-                                Text(message)
-                                    .font(.caption)
-                                    .foregroundColor(.red)
+                                Image(systemName: "xmark.circle.fill").foregroundColor(.red)
+                                Text(message).font(.caption).foregroundColor(.red)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                         }
@@ -1351,43 +1334,40 @@ struct LoopInsights_SettingsView: View {
                                 nightscoutConfig.save()
                             }
                     }
-                    Button(action: testNightscoutConnection) {
-                        HStack(spacing: 6) {
-                            if isTestingNightscout {
-                                ProgressView().progressViewStyle(.circular).scaleEffect(0.8).tint(.black)
-                                Text("Testing...")
-                            } else {
-                                Image(systemName: "checkmark.shield")
+                    HStack(spacing: 12) {
+                        Button(action: testNightscoutConnection) {
+                            HStack(spacing: 6) {
+                                if isTestingNightscout {
+                                    ProgressView().scaleEffect(0.8)
+                                } else {
+                                    Image(systemName: "checkmark.seal")
+                                }
                                 Text("Test Connection")
                             }
+                            .foregroundColor(Color(red: 26/255, green: 138/255, blue: 158/255))
                         }
-                        .font(.body.weight(.medium))
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Color.white)
-                        .cornerRadius(10)
-                    }
-                    .disabled(isTestingNightscout || nightscoutConfig.siteURL.isEmpty)
-                    .opacity((isTestingNightscout || nightscoutConfig.siteURL.isEmpty) ? 0.5 : 1.0)
-                    .buttonStyle(.plain)
-                    if let result = nightscoutTestResult {
-                        switch result {
-                        case .success:
-                            HStack(spacing: 4) {
-                                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
-                                Text("Connected to Nightscout").font(.caption).foregroundColor(.green)
-                            }
-                        case .failure(let message):
-                            HStack(alignment: .top, spacing: 4) {
-                                Image(systemName: "xmark.circle.fill").foregroundColor(.red)
-                                Text(message).font(.caption).foregroundColor(.red)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        case .warning(let message):
-                            HStack(alignment: .top, spacing: 4) {
-                                Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.orange)
-                                Text(message).font(.caption).foregroundColor(.orange)
+                        .buttonStyle(.plain)
+                        .disabled(isTestingNightscout || nightscoutConfig.siteURL.isEmpty)
+                        .opacity((isTestingNightscout || nightscoutConfig.siteURL.isEmpty) ? 0.5 : 1.0)
+
+                        if let result = nightscoutTestResult {
+                            switch result {
+                            case .success:
+                                HStack(spacing: 4) {
+                                    Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                                    Text("Connected to Nightscout").font(.caption).foregroundColor(.green)
+                                }
+                            case .failure(let message):
+                                HStack(alignment: .top, spacing: 4) {
+                                    Image(systemName: "xmark.circle.fill").foregroundColor(.red)
+                                    Text(message).font(.caption).foregroundColor(.red)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            case .warning(let message):
+                                HStack(alignment: .top, spacing: 4) {
+                                    Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.orange)
+                                    Text(message).font(.caption).foregroundColor(.orange)
+                                }
                             }
                         }
                     }

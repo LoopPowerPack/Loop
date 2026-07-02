@@ -40,6 +40,10 @@ struct AISettingsView: View {
     @State private var showSpoonacularKey: Bool = false
     @State private var isTesting: Bool = false
     @State private var testResult: TestResult?
+    @State private var isTestingSpoonacular: Bool = false
+    @State private var spoonacularTestResult: TestResult?
+    @State private var isTestingUSDA: Bool = false
+    @State private var usdaTestResult: TestResult?
     @State private var showAdvanced: Bool = false
     @State private var formatOverride: RequestFormat?
     @State private var analysisRecords: [FoodFinder_AnalysisRecord] = []
@@ -406,75 +410,51 @@ extension AISettingsView {
                 }
 
                 // Test Connection
-                VStack(spacing: 8) {
+                HStack(spacing: 12) {
                     Button(action: testConnection) {
                         HStack(spacing: 6) {
                             if isTesting {
-                                ProgressView()
-                                    .progressViewStyle(.circular)
-                                    .scaleEffect(0.8)
-                                    .tint(.black)
-                                Text("Testing...")
+                                ProgressView().scaleEffect(0.8)
                             } else {
-                                Image(systemName: "checkmark.shield")
-                                Text("Test Connection")
+                                Image(systemName: "checkmark.seal")
                             }
+                            Text("Test Connection")
                         }
-                        .font(.body.weight(.medium))
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Color.white)
-                        .cornerRadius(10)
+                        .foregroundColor(Color(red: 107/255, green: 47/255, blue: 160/255))
                     }
+                    .buttonStyle(.plain)
                     .disabled(isTesting || apiKey.isEmpty || baseURL.isEmpty)
                     .opacity((isTesting || apiKey.isEmpty || baseURL.isEmpty) ? 0.5 : 1.0)
-                    .buttonStyle(.plain)
 
                     if let result = testResult {
                         switch result {
                         case .success:
                             HStack(spacing: 4) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                                Text("Connected")
-                                    .font(.caption)
-                                    .foregroundColor(.green)
+                                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                                Text("Connected").font(.caption).foregroundColor(.green)
                             }
                         case .successWithVisionWarning(let message):
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack(spacing: 4) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
-                                    Text("Connected")
-                                        .font(.caption)
-                                        .foregroundColor(.green)
+                                    Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                                    Text("Connected").font(.caption).foregroundColor(.green)
                                 }
                                 HStack(alignment: .top, spacing: 4) {
-                                    Image(systemName: "eye.trianglebadge.exclamationmark")
-                                        .foregroundColor(.orange)
-                                    Text(message)
-                                        .font(.caption)
-                                        .foregroundColor(.orange)
+                                    Image(systemName: "eye.trianglebadge.exclamationmark").foregroundColor(.orange)
+                                    Text(message).font(.caption).foregroundColor(.orange)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
                         case .warning(let message):
                             HStack(alignment: .top, spacing: 4) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.orange)
-                                Text(message)
-                                    .font(.caption)
-                                    .foregroundColor(.orange)
+                                Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.orange)
+                                Text(message).font(.caption).foregroundColor(.orange)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                         case .failure(let message):
                             HStack(alignment: .top, spacing: 4) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.red)
-                                Text(message)
-                                    .font(.caption)
-                                    .foregroundColor(.red)
+                                Image(systemName: "xmark.circle.fill").foregroundColor(.red)
+                                Text(message).font(.caption).foregroundColor(.red)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                         }
@@ -511,11 +491,52 @@ extension AISettingsView {
                     .autocorrectionDisabled()
                     .onChange(of: usdaAPIKey) { newValue in
                         saveUSDAKey(newValue)
+                        usdaTestResult = nil
                     }
                     Button(action: { showUSDAKey.toggle() }) {
                         Image(systemName: showUSDAKey ? "eye.slash" : "eye").foregroundColor(.green)
                     }
                     .buttonStyle(.plain)
+                }
+                HStack(spacing: 12) {
+                    Button(action: testUSDAKey) {
+                        HStack(spacing: 6) {
+                            if isTestingUSDA {
+                                ProgressView().scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "checkmark.seal")
+                            }
+                            Text("Test Connection")
+                        }
+                        .foregroundColor(.green)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isTestingUSDA || usdaAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .opacity((isTestingUSDA || usdaAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) ? 0.5 : 1.0)
+
+                    if let result = usdaTestResult {
+                        switch result {
+                        case .success:
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                                Text("Key works").font(.caption).foregroundColor(.green)
+                            }
+                        case .warning(let message):
+                            HStack(alignment: .top, spacing: 4) {
+                                Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.orange)
+                                Text(message).font(.caption).foregroundColor(.orange)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        case .failure(let message):
+                            HStack(alignment: .top, spacing: 4) {
+                                Image(systemName: "xmark.circle.fill").foregroundColor(.red)
+                                Text(message).font(.caption).foregroundColor(.red)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        case .successWithVisionWarning:
+                            EmptyView()
+                        }
+                    }
                 }
                 Button(action: { if let url = URL(string: "https://fdc.nal.usda.gov/api-guide") { openURL(url) } }) {
                     HStack { Image(systemName: "info.circle"); Text("How to get a key") }
@@ -569,11 +590,52 @@ extension AISettingsView {
                     .autocorrectionDisabled()
                     .onChange(of: spoonacularAPIKey) { newValue in
                         saveSpoonacularKey(newValue)
+                        spoonacularTestResult = nil
                     }
                     Button(action: { showSpoonacularKey.toggle() }) {
                         Image(systemName: showSpoonacularKey ? "eye.slash" : "eye").foregroundColor(.purple)
                     }
                     .buttonStyle(.plain)
+                }
+                HStack(spacing: 12) {
+                    Button(action: testSpoonacularKey) {
+                        HStack(spacing: 6) {
+                            if isTestingSpoonacular {
+                                ProgressView().scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "checkmark.seal")
+                            }
+                            Text("Test Connection")
+                        }
+                        .foregroundColor(.purple)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isTestingSpoonacular || spoonacularAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .opacity((isTestingSpoonacular || spoonacularAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) ? 0.5 : 1.0)
+
+                    if let result = spoonacularTestResult {
+                        switch result {
+                        case .success:
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                                Text("Key works").font(.caption).foregroundColor(.green)
+                            }
+                        case .warning(let message):
+                            HStack(alignment: .top, spacing: 4) {
+                                Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.orange)
+                                Text(message).font(.caption).foregroundColor(.orange)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        case .failure(let message):
+                            HStack(alignment: .top, spacing: 4) {
+                                Image(systemName: "xmark.circle.fill").foregroundColor(.red)
+                                Text(message).font(.caption).foregroundColor(.red)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        case .successWithVisionWarning:
+                            EmptyView()
+                        }
+                    }
                 }
                 Button(action: { if let url = URL(string: "https://spoonacular.com/food-api/console#Dashboard") { openURL(url) } }) {
                     HStack { Image(systemName: "info.circle"); Text("Get a free key") }
@@ -772,6 +834,68 @@ extension AISettingsView {
             configs.append(config)
             UserDefaults.standard.aiProviderConfigurations = configs
             UserDefaults.standard.activeAIProviderConfigurationId = config.id
+        }
+    }
+
+    /// Validates the Spoonacular key against a cheap request so a bad paste is
+    /// caught here rather than at a restaurant. Distinguishes a rejected key
+    /// (401) from a hit quota (402/429), which are otherwise both non-200.
+    private func testSpoonacularKey() {
+        let trimmed = spoonacularAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        // Persist the current field value so the service tests exactly this key.
+        saveSpoonacularKey(trimmed)
+        isTestingSpoonacular = true
+        spoonacularTestResult = nil
+
+        Task {
+            var result: TestResult
+            do {
+                try await FoodFinder_SpoonacularService.shared.validateSavedKey()
+                result = .success
+            } catch FoodFinder_SpoonacularService.SpoonacularError.quotaExceeded {
+                result = .warning("Key is valid, but its daily free quota is used up. It'll work again tomorrow.")
+            } catch let FoodFinder_SpoonacularService.SpoonacularError.server(code) where code == 401 {
+                result = .failure("Spoonacular rejected this key. Double-check you pasted it exactly, with no missing or extra characters.")
+            } catch {
+                result = .failure("Couldn't reach Spoonacular: \(error.localizedDescription)")
+            }
+            await MainActor.run {
+                isTestingSpoonacular = false
+                spoonacularTestResult = result
+            }
+        }
+    }
+
+    /// Validates the USDA key against a cheap search so a bad paste is caught
+    /// here rather than mid-search. USDA rejects a bad key with 403 and
+    /// rate-limits with 429, which we surface as distinct messages.
+    private func testUSDAKey() {
+        let trimmed = usdaAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        // Persist the current field value so the service tests exactly this key.
+        saveUSDAKey(trimmed)
+        isTestingUSDA = true
+        usdaTestResult = nil
+
+        Task {
+            var result: TestResult
+            do {
+                try await USDAFoodDataService.shared.validateSavedKey()
+                result = .success
+            } catch OpenFoodFactsError.rateLimitExceeded {
+                result = .warning("Key is valid, but it's rate-limited right now. Try again in a bit.")
+            } catch OpenFoodFactsError.serverError(let code) where code == 403 {
+                result = .failure("USDA rejected this key. Double-check you pasted it exactly, with no missing or extra characters.")
+            } catch {
+                result = .failure("Couldn't reach USDA: \(error.localizedDescription)")
+            }
+            await MainActor.run {
+                isTestingUSDA = false
+                usdaTestResult = result
+            }
         }
     }
 

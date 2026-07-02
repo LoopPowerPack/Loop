@@ -355,46 +355,33 @@ struct AutoPresets_SettingsView: View {
         }
 
         // Test Connection
-        VStack(spacing: 8) {
+        HStack(spacing: 12) {
             Button(action: testAIConnection) {
                 HStack(spacing: 6) {
                     if aiIsTesting {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .scaleEffect(0.8)
-                        Text("Testing...")
+                        ProgressView().scaleEffect(0.8)
                     } else {
-                        Image(systemName: "checkmark.shield")
-                        Text("Test Connection")
+                        Image(systemName: "checkmark.seal")
                     }
+                    Text("Test Connection")
                 }
-                .font(.body.weight(.medium))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(Color(.systemGray5))
-                .cornerRadius(10)
+                .foregroundColor(Color(red: 76/255, green: 175/255, blue: 80/255))
             }
+            .buttonStyle(.plain)
             .disabled(aiIsTesting || aiAPIKeyText.isEmpty || aiBaseURL.isEmpty)
             .opacity((aiIsTesting || aiAPIKeyText.isEmpty || aiBaseURL.isEmpty) ? 0.5 : 1.0)
-            .buttonStyle(.plain)
 
             if let result = aiTestResult {
                 switch result {
                 case .success:
                     HStack(spacing: 4) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                        Text("Connected")
-                            .font(.caption)
-                            .foregroundColor(.green)
+                        Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                        Text("Connected").font(.caption).foregroundColor(.green)
                     }
                 case .failure(let message):
                     HStack(alignment: .top, spacing: 4) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.red)
-                        Text(message)
-                            .font(.caption)
-                            .foregroundColor(.red)
+                        Image(systemName: "xmark.circle.fill").foregroundColor(.red)
+                        Text(message).font(.caption).foregroundColor(.red)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
