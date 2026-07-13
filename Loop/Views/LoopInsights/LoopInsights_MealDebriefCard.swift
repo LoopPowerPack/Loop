@@ -42,8 +42,8 @@ struct LoopInsights_MealDebriefCard: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
-                if canExpand {
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                if canExpand && !isExpanded {
+                    Image(systemName: "chevron.right")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }

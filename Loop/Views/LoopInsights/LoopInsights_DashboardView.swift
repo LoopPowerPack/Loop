@@ -140,6 +140,9 @@ struct LoopInsights_DashboardView: View {
                     onDismiss: { viewModel.dismissSuggestion(record) }
                 )
             }
+            // Sheets don't reliably inherit environment objects from the
+            // presenting hierarchy — re-inject or the detail view fatal-errors.
+            .environmentObject(viewModel.coordinator.displayGlucosePreference)
         }
         .sheet(isPresented: $showingHistory) {
             NavigationView {
@@ -148,6 +151,7 @@ struct LoopInsights_DashboardView: View {
                     onRevert: { record in viewModel.revertSuggestion(record) }
                 )
             }
+            .environmentObject(viewModel.coordinator.displayGlucosePreference)
         }
         .sheet(isPresented: $showingDebugLog) {
             // Debug log sheet — developer mode only. Button to trigger this

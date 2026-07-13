@@ -7,12 +7,14 @@
 //
 
 import SwiftUI
+import LoopKitUI
 
 /// Scrollable log of all past suggestions with status indicators.
 /// Shows the complete history of LoopInsights recommendations.
 struct LoopInsights_SuggestionHistoryView: View {
 
     @ObservedObject var store: LoopInsights_SuggestionStore
+    @EnvironmentObject private var displayGlucosePreference: DisplayGlucosePreference
     let onRevert: ((LoopInsightsSuggestionRecord) -> Bool)?
     @State private var selectedRecord: LoopInsightsSuggestionRecord?
     @State private var showingRevertConfirmation = false
@@ -70,6 +72,9 @@ struct LoopInsights_SuggestionHistoryView: View {
                     } : nil
                 )
             }
+            // Nested sheet loses the presenting hierarchy's environment
+            // objects — re-inject or the detail view fatal-errors on tap.
+            .environmentObject(displayGlucosePreference)
         }
         .alert(
             NSLocalizedString("Revert Changes?", comment: "LoopInsights revert confirmation title"),

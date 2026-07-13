@@ -19,6 +19,7 @@ struct LoopInsights_MealInsightsView: View {
 
     @StateObject private var viewModel: LoopInsights_MealInsightsViewModel
     @State private var selectedTab = 0
+    @State private var debriefDetailEvent: LoopInsightsMealEvent?
     @Environment(\.dismiss) private var dismiss
 
     init(coordinator: LoopInsights_Coordinator) {
@@ -153,9 +154,26 @@ struct LoopInsights_MealInsightsView: View {
         } message: { message in
             Text(message)
         }
+        .sheet(item: $debriefDetailEvent) { event in
+            NavigationView {
+                ScrollView {
+                    mealCard(event, debriefExpanded: true)
+                        .padding()
+                }
+                .navigationTitle(event.foodType)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(NSLocalizedString("Done", comment: "Done button")) {
+                            debriefDetailEvent = nil
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    private func mealCard(_ event: LoopInsightsMealEvent) -> some View {
+    private func mealCard(_ event: LoopInsightsMealEvent, debriefExpanded: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 10) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -305,7 +323,8 @@ struct LoopInsights_MealInsightsView: View {
                 .padding(.vertical, 4)
             }
 
-            // AI Meal Debrief section (expandable)
+            // AI Meal Debrief section — tapping opens the detail sheet
+            // (same pattern as Suggestion History) rather than expanding inline.
             if LoopInsights_FeatureFlags.mealDebriefEnabled && event.hasGlucoseData {
                 let readiness = viewModel.debriefReadiness(for: event)
                 if case .featureDisabled = readiness {
@@ -318,8 +337,12 @@ struct LoopInsights_MealInsightsView: View {
                         debrief: viewModel.debriefResults[event.id.uuidString],
                         isLoading: viewModel.debriefLoadingIDs.contains(event.id.uuidString),
                         errorMessage: viewModel.debriefErrors[event.id.uuidString],
-                        isExpanded: viewModel.expandedDebriefID == event.id.uuidString,
-                        onToggle: { viewModel.toggleDebrief(for: event) },
+                        isExpanded: debriefExpanded,
+                        onToggle: {
+                            guard !debriefExpanded else { return }
+                            viewModel.openDebrief(for: event)
+                            debriefDetailEvent = event
+                        },
                         unitContext: coordinator.unitContext
                     )
                 }

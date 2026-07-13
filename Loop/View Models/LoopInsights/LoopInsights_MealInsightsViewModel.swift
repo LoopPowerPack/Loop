@@ -29,7 +29,6 @@ final class LoopInsights_MealInsightsViewModel: ObservableObject {
     @Published var isLoadingAdvice = false
 
     // Debrief state per meal
-    @Published var expandedDebriefID: String?
     @Published var debriefResults: [String: LoopInsights_MealDebrief] = [:]
     @Published var debriefLoadingIDs: Set<String> = []
     @Published var debriefErrors: [String: String] = [:]
@@ -272,16 +271,10 @@ final class LoopInsights_MealInsightsViewModel: ObservableObject {
         return coordinator.mealDebriefService.isDebriefReady(for: record)
     }
 
-    /// Toggle debrief expansion for a meal event. Generates on first expand if needed.
-    func toggleDebrief(for event: LoopInsightsMealEvent) {
+    /// Kick off debrief generation for a meal event if needed. The result is
+    /// shown in the detail sheet, which observes debriefResults/loading/errors.
+    func openDebrief(for event: LoopInsightsMealEvent) {
         let eventID = event.id.uuidString
-
-        if expandedDebriefID == eventID {
-            expandedDebriefID = nil
-            return
-        }
-
-        expandedDebriefID = eventID
 
         // Already loaded or loading?
         if debriefResults[eventID] != nil || debriefLoadingIDs.contains(eventID) { return }
@@ -435,7 +428,6 @@ final class LoopInsights_MealInsightsViewModel: ObservableObject {
         debriefResults.removeValue(forKey: eventKey)
         debriefLoadingIDs.remove(eventKey)
         debriefErrors.removeValue(forKey: eventKey)
-        if expandedDebriefID == eventKey { expandedDebriefID = nil }
 
         // Refresh the list so the row disappears.
         await loadMealData()
