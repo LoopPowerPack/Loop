@@ -1121,7 +1121,7 @@ final class StatusTableViewController: LoopChartsTableViewController {
                 cell.setChartGenerator(generator: { [weak self] (frame) in
                     return self?.statusCharts.doseChart(withFrame: frame)?.view
                 })
-                cell.setTitleLabelText(label: NSLocalizedString("Insulin Delivery", comment: "The title of the insulin delivery graph"))
+                cell.setTitleLabelText(label: NSLocalizedString("Insulin Delivery (today)", comment: "The title of the insulin delivery graph"))
             case .cob:
                 cell.setChartGenerator(generator: { [weak self] (frame) in
                     return self?.statusCharts.cobChart(withFrame: frame)?.view
