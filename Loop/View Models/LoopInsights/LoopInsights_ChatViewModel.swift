@@ -77,7 +77,12 @@ final class LoopInsights_ChatViewModel: ObservableObject {
             do { stats = try await coordinator.dataAggregator.aggregateData(period: LoopInsights_FeatureFlags.analysisPeriod) }
             catch { LoopInsights_FeatureFlags.log.error("Chat prefetch: aggregate failed: \(error)") }
 
-            cachedTherapyContext = Self.buildTherapyContext(snapshot: snapshot, stats: stats)
+            var context = Self.buildTherapyContext(snapshot: snapshot, stats: stats)
+            let weekly = await fetchWeeklyHistoryContext()
+            if !weekly.isEmpty {
+                context += "\n\n" + weekly
+            }
+            cachedTherapyContext = context
             cachedStats = stats
             cacheTimestamp = Date()
         }
@@ -126,6 +131,10 @@ final class LoopInsights_ChatViewModel: ObservableObject {
                     do { stats = try await coordinator.dataAggregator.aggregateData(period: LoopInsights_FeatureFlags.analysisPeriod) }
                     catch { LoopInsights_FeatureFlags.log.error("Chat: failed to aggregate data: \(error)") }
                     context = Self.buildTherapyContext(snapshot: snapshot, stats: stats)
+                    let weekly = await fetchWeeklyHistoryContext()
+                    if !weekly.isEmpty {
+                        context += "\n\n" + weekly
+                    }
                     cachedTherapyContext = context
                     cachedStats = stats
                     cacheTimestamp = Date()
@@ -339,6 +348,98 @@ final class LoopInsights_ChatViewModel: ObservableObject {
             if let prev = lastShown, sample.date.timeIntervalSince(prev) < 25 * 60 { continue }
             ctx += "    \(formatter.string(from: sample.date)): \(String(format: "%.0f", sample.value)) mg/dL\n"
             lastShown = sample.date
+        }
+
+        return ctx
+    }
+
+    // MARK: - Weekly History
+
+    /// Fetch the last 7 days of glucose, bolus, and carb history for the chat context.
+    /// Lives in the 5-minute cached therapy context — a week of history doesn't
+    /// change per-message, so this adds no per-message fetch cost.
+    private func fetchWeeklyHistoryContext() async -> String {
+        let now = Date()
+        let weekAgo = now.addingTimeInterval(-7 * 24 * 3600)
+
+        var glucose: [(date: Date, value: Double)] = []
+        do {
+            glucose = try await coordinator.fetchGlucoseSamples(start: weekAgo, end: now)
+                .map { (date: $0.startDate, value: $0.quantity.doubleValue(for: .milligramsPerDeciliter)) }
+        } catch {
+            LoopInsights_FeatureFlags.log.error("Chat: failed to fetch weekly glucose: \(error)")
+        }
+
+        var boluses: [(date: Date, units: Double)] = []
+        do {
+            boluses = try await coordinator.fetchDoseEntries(start: weekAgo, end: now)
+                .filter { $0.type == .bolus }
+                .map { (date: $0.startDate, units: $0.deliveredUnits ?? $0.programmedUnits) }
+        } catch {
+            LoopInsights_FeatureFlags.log.error("Chat: failed to fetch weekly doses: \(error)")
+        }
+
+        var carbs: [(date: Date, grams: Double)] = []
+        do {
+            carbs = try await coordinator.fetchCarbEntries(start: weekAgo, end: now)
+                .map { (date: $0.startDate, grams: $0.quantity.doubleValue(for: .gram())) }
+        } catch {
+            LoopInsights_FeatureFlags.log.error("Chat: failed to fetch weekly carbs: \(error)")
+        }
+
+        return Self.buildWeeklyHistoryContext(glucose: glucose, boluses: boluses, carbs: carbs, now: now)
+    }
+
+    /// Format 7 days of history into a compact prompt block: hourly glucose
+    /// averages per day (so individual nights stay distinguishable, unlike the
+    /// whole-period hourly averages in the aggregated stats), plus each bolus
+    /// and carb entry with its timestamp.
+    static func buildWeeklyHistoryContext(
+        glucose: [(date: Date, value: Double)],
+        boluses: [(date: Date, units: Double)],
+        carbs: [(date: Date, grams: Double)],
+        now: Date = Date()
+    ) -> String {
+        guard !glucose.isEmpty || !boluses.isEmpty || !carbs.isEmpty else { return "" }
+
+        let calendar = Calendar.current
+        let dayFormatter = DateFormatter()
+        dayFormatter.dateFormat = "EEE MM/dd"
+        let timeFormatter = DateFormatter()
+        timeFormatter.timeStyle = .short
+
+        var ctx = "LAST 7 DAYS (today is \(dayFormatter.string(from: now))):\n"
+
+        if !glucose.isEmpty {
+            var buckets: [Date: [Int: [Double]]] = [:]
+            for sample in glucose {
+                let day = calendar.startOfDay(for: sample.date)
+                let hour = calendar.component(.hour, from: sample.date)
+                buckets[day, default: [:]][hour, default: []].append(sample.value)
+            }
+            ctx += "Hourly Glucose Averages by Day (mg/dL, hours 00-23, \"-\" = no data):\n"
+            for day in buckets.keys.sorted() {
+                let hours = buckets[day]!
+                let values = (0..<24).map { hour -> String in
+                    guard let vals = hours[hour], !vals.isEmpty else { return "-" }
+                    return String(format: "%.0f", vals.reduce(0, +) / Double(vals.count))
+                }
+                ctx += "  \(dayFormatter.string(from: day)): \(values.joined(separator: " "))\n"
+            }
+        }
+
+        if !boluses.isEmpty {
+            ctx += "Boluses:\n"
+            for bolus in boluses.sorted(by: { $0.date < $1.date }) {
+                ctx += "  \(dayFormatter.string(from: bolus.date)) \(timeFormatter.string(from: bolus.date)): \(String(format: "%.2f", bolus.units)) U\n"
+            }
+        }
+
+        if !carbs.isEmpty {
+            ctx += "Carb Entries:\n"
+            for entry in carbs.sorted(by: { $0.date < $1.date }) {
+                ctx += "  \(dayFormatter.string(from: entry.date)) \(timeFormatter.string(from: entry.date)): \(String(format: "%.0f", entry.grams)) g\n"
+            }
         }
 
         return ctx
