@@ -459,6 +459,11 @@ private struct AICarbRangeSlider: View {
     @State private var carbInput: String = ""
     @State private var isEditing: Bool = false
     @State private var manualOverride: Bool = false
+    /// True while sliderValue is being moved programmatically to mirror an
+    /// external carbsQuantity change (e.g. servings recompute). Prevents the
+    /// slider's own onChange from writing the — possibly clamped-to-a-stale-
+    /// range — value back into carbsQuantity and clobbering the new total.
+    @State private var syncingFromExternal: Bool = false
 
     private static let formatter: NumberFormatter = {
         let f = NumberFormatter()
@@ -485,6 +490,10 @@ private struct AICarbRangeSlider: View {
             .scaleEffect(0.75)
             .frame(height: 22)
             .onChange(of: sliderValue) { newValue in
+                if syncingFromExternal {
+                    syncingFromExternal = false
+                    return
+                }
                 let rounded = newValue.rounded()
                 carbsQuantity = rounded
                 if !isEditing {
@@ -537,13 +546,28 @@ private struct AICarbRangeSlider: View {
         .onChange(of: carbsQuantity) { newValue in
             // Sync from external changes (e.g. serving size update)
             if let v = newValue {
-                if abs(v - sliderValue) > 0.5 {
-                    sliderValue = min(max(v, rangeMin), rangeMax)
-                }
+                syncSlider(to: v)
                 if !isEditing {
                     carbInput = AICarbRangeSlider.formatter.string(from: NSNumber(value: v)) ?? ""
                 }
             }
+        }
+        .onChange(of: rangeMax) { _ in
+            // The confidence range is recomputed after the carbs value on a
+            // servings change; re-clamp the thumb against the fresh range.
+            if let v = carbsQuantity { syncSlider(to: v) }
+        }
+    }
+
+    /// Move the thumb to mirror an externally-written carbs value without
+    /// writing back into carbsQuantity. Only sets the suppression flag when
+    /// sliderValue actually changes — otherwise onChange never fires to clear
+    /// it and the next real drag would be swallowed.
+    private func syncSlider(to value: Double) {
+        let clamped = min(max(value, rangeMin), rangeMax)
+        if abs(clamped - sliderValue) > 0.001 {
+            syncingFromExternal = true
+            sliderValue = clamped
         }
     }
 }

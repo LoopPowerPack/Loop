@@ -261,10 +261,21 @@ final class GraphDetailViewModel: ObservableObject {
         commit(generation: gen) { $0.basalRate = rate }
     }
 
+    /// The override actually in effect at `date`, from Loop's override history.
+    /// Unlike `settings.scheduleOverride` (current override only) or the
+    /// AutoPresets activity log (misses manual cancels, natural expiry, and
+    /// deactivations across app restarts), the history records every
+    /// override's true start and actual end, so past scrub times resolve
+    /// correctly. Loop prunes this history to roughly ±10 hours, so scrubs
+    /// older than that show no override rather than a stale one.
+    private func overrideActive(at date: Date) -> TemporaryScheduleOverride? {
+        return deviceManager.loopManager.overrideHistory.getEvents()
+            .first { $0.actualEnd != .deleted && $0.startDate <= date && date < $0.actualEndDate }
+    }
+
     private func loadOverride(generation gen: Int, date: Date) {
         var name: String? = nil
-        if let override = deviceManager.loopManager.settings.scheduleOverride,
-           override.isActive(at: date) {
+        if let override = overrideActive(at: date) {
             switch override.context {
             case .preset(let preset):
                 name = "\(preset.symbol) \(preset.name)"
@@ -283,39 +294,23 @@ final class GraphDetailViewModel: ObservableObject {
         var name: String? = nil
         defer { commit(generation: gen) { $0.activeAutoPreset = name } }
 
+        guard let override = overrideActive(at: date),
+              case .preset(let preset) = override.context else { return }
+
+        // Only label the row when the active preset is one AutoPresets manages
+        // (i.e. mapped to an activity type in AutoPresets settings).
         guard let defaults = UserDefaults(suiteName: "com.loopkit.Loop.AutoPresets"),
               let settingsData = defaults.data(forKey: "settings") else { return }
 
-        struct MinimalLogEntry: Decodable {
-            let date: Date
-            let event: String
-            let presetName: String?
-        }
         struct MinimalSettings: Decodable {
-            let recentActivityLog: [MinimalLogEntry]?
+            let activityPresets: [String: String]?
         }
 
         guard let settings = try? JSONDecoder().decode(MinimalSettings.self, from: settingsData),
-              let entries = settings.recentActivityLog else { return }
+              let managedIds = settings.activityPresets?.values.compactMap({ UUID(uuidString: $0) }),
+              managedIds.contains(preset.id) else { return }
 
-        var lastActivation: (name: String, date: Date)?
-        var lastDeactivation: Date?
-
-        for entry in entries.sorted(by: { $0.date < $1.date }) {
-            guard entry.date <= date else { break }
-            if entry.event == "presetActivated" {
-                lastActivation = (entry.presetName ?? "Active", entry.date)
-            } else if entry.event == "presetDeactivated" {
-                lastDeactivation = entry.date
-            }
-        }
-
-        if let activation = lastActivation {
-            let isStillActive = lastDeactivation == nil || lastDeactivation! < activation.date
-            if isStillActive {
-                name = activation.name
-            }
-        }
+        name = preset.name
     }
 
     private func loadHeartRate(generation gen: Int, date: Date) {

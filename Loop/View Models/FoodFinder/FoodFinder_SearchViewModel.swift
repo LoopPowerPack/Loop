@@ -151,6 +151,7 @@ final class FoodFinder_SearchViewModel: ObservableObject {
 
     /// Flag to track if food search observers have been set up
     private var observersSetUp = false
+    private var servingsObserversSetUp = false
 
     /// Search result cache for improved performance
     private var searchCache: [String: CachedSearchResult] = [:]
@@ -227,6 +228,11 @@ final class FoodFinder_SearchViewModel: ObservableObject {
     /// the parent ViewModel's init).
     func setupObservers() {
         setupFoodSearchObservers()
+        // onAppear can fire more than once per sheet; without this guard each
+        // appearance stacked another servings/exclusion sink, so a single
+        // stepper tap triggered N interleaved recomputes.
+        guard !servingsObserversSetUp else { return }
+        servingsObserversSetUp = true
         observeNumberOfServingsChange()
         observeAIExclusionsChange()
     }
@@ -284,8 +290,16 @@ final class FoodFinder_SearchViewModel: ObservableObject {
                 #if DEBUG
                 print("🥄 numberOfServings changed to: \(servings), recalculating nutrition...")
                 #endif
-                self?.recalculateCarbsForServings(servings)
-                self?.recomputeAIAdjustments()
+                guard let self = self else { return }
+                if self.lastAIAnalysisResult != nil {
+                    // AI plate: the per-item recompute is the authoritative
+                    // writer. Running the product-based math too sent a second,
+                    // differing carbs value through onNutritionApplied on every
+                    // stepper tap, racing the recompute at the host.
+                    self.recomputeAIAdjustments()
+                } else {
+                    self.recalculateCarbsForServings(servings)
+                }
             }
             .store(in: &cancellables)
     }

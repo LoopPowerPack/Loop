@@ -187,6 +187,10 @@ struct FoodFinder_EntryPoint: View {
                 )
                 .id("servings-\(searchVM.selectedFoodServingSize ?? "none")")
                 .onChange(of: searchVM.numberOfServings) { newServings in
+                    // AI plates recompute per-item in the ViewModel's servings
+                    // observer — writing the product-based total here too made
+                    // a third, conflicting writer per stepper tap.
+                    guard searchVM.lastAIAnalysisResult == nil else { return }
                     if let selectedFood = searchVM.selectedFoodProduct {
                         let expectedCarbs = (selectedFood.carbsPerServing ?? selectedFood.nutriments.carbohydrates) * newServings
                         if abs((carbsQuantity ?? 0) - expectedCarbs) > 0.01 {
