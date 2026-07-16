@@ -3,7 +3,7 @@
 //  Loop (AID) PowerPack — based on LoopKit/Loop.
 //
 //  SiteAtlas — Central coordinator for site rotation tracking.
-//  Listens for pump deactivation notifications and prompts site logging.
+//  Listens for pump/pod and CGM sensor change notifications and prompts site logging.
 //
 //  Idea by Taylor Patterson. Coded by Claude Code.
 //  Copyright © 2026 LoopKit Authors and Taylor Patterson.
@@ -16,6 +16,7 @@ import Combine
 
 extension Notification.Name {
     static let pumpSiteDeactivated = Notification.Name("com.loopkit.Loop.pumpSiteDeactivated")
+    static let cgmSensorSessionStarted = Notification.Name("com.loopkit.Loop.cgmSensorSessionStarted")
     static let siteAtlasShouldPromptLog = Notification.Name("com.loopkit.Loop.siteAtlasShouldPromptLog")
 }
 
@@ -52,9 +53,11 @@ final class SiteAtlas_Coordinator: ObservableObject {
     }
 
     /// Manually trigger a site log prompt (e.g., from Settings).
+    /// Only sets the prompted type — the Settings screen drives its own
+    /// sheet presentation; `pendingSiteLog` is reserved for auto-prompts
+    /// so a manual log never leaves a stale global prompt behind.
     func promptManualLog(type: SiteAtlas_SiteType) {
         promptedSiteType = type
-        pendingSiteLog = true
     }
 
     /// All entries from storage.
@@ -88,10 +91,26 @@ final class SiteAtlas_Coordinator: ObservableObject {
         NotificationCenter.default.publisher(for: .pumpSiteDeactivated)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                guard let self = self, SiteAtlas_FeatureFlags.isEnabled else { return }
-                self.promptedSiteType = .pump
-                self.pendingSiteLog = true
+                self?.queueAutoPrompt(type: .pump)
             }
             .store(in: &cancellables)
+
+        NotificationCenter.default.publisher(for: .cgmSensorSessionStarted)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.queueAutoPrompt(type: .sensor)
+            }
+            .store(in: &cancellables)
+    }
+
+    /// Pend an auto-prompt and tell the UI layer to present it when the
+    /// status screen is clear. Device-change events fire mid-setup-flow
+    /// (e.g. right after pod pairing), so presentation is deferred rather
+    /// than shown over the device UI.
+    private func queueAutoPrompt(type: SiteAtlas_SiteType) {
+        guard SiteAtlas_FeatureFlags.isEnabled, SiteAtlas_FeatureFlags.autoPromptEnabled else { return }
+        promptedSiteType = type
+        pendingSiteLog = true
+        NotificationCenter.default.post(name: .siteAtlasShouldPromptLog, object: nil)
     }
 }

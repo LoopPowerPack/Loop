@@ -148,6 +148,11 @@ final class StatusTableViewController: LoopChartsTableViewController {
                     self?.presentCaregiverDigestIfPending()
                 }
             },
+            notificationCenter.addObserver(forName: .siteAtlasShouldPromptLog, object: nil, queue: nil) { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.presentSiteAtlasPromptIfPending()
+                }
+            },
         ]
 
         automaticDosingStatus.$automaticDosingEnabled
@@ -242,6 +247,10 @@ final class StatusTableViewController: LoopChartsTableViewController {
         // Cold-launch path: the digest reminder tap was handled before this screen was
         // observing, so the flag (not the post) routes us here once the screen appears.
         presentCaregiverDigestIfPending()
+
+        // Site change events fire while device setup UI is still up; retry here
+        // in case the pending prompt couldn't present at notification time.
+        presentSiteAtlasPromptIfPending()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -1834,7 +1843,14 @@ final class StatusTableViewController: LoopChartsTableViewController {
             rootView: SettingsView(viewModel: viewModel, localizedAppNameAndVersion: supportManager.localizedAppNameAndVersion)
                 .environmentObject(deviceManager.displayGlucosePreference)
                 .environment(\.appName, Bundle.main.bundleDisplayName),
-            isModalInPresentation: false)
+            isModalInPresentation: false,
+            onDisappear: { [weak self] in
+                // Pod/CGM changes done from inside Settings pend a SiteAtlas prompt;
+                // present it once the settings sheet has fully cleared the screen.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    self?.presentSiteAtlasPromptIfPending()
+                }
+            })
         present(hostingController, animated: true)
     }
 
@@ -2383,13 +2399,34 @@ extension StatusTableViewController {
             present()
         }
     }
+
+    /// Present the SiteAtlas logging sheet if an auto-prompt is pending and the
+    /// status screen is clear. Pod/sensor change events fire while device setup
+    /// UI is still presented, so this is re-attempted from every return-to-status
+    /// path (notification, viewDidAppear, settings dismissal, flow completion)
+    /// rather than presented over the setup flow.
+    @objc private func presentSiteAtlasPromptIfPending() {
+        guard SiteAtlas_FeatureFlags.isEnabled,
+              SiteAtlas_FeatureFlags.autoPromptEnabled,
+              SiteAtlas_Coordinator.shared.pendingSiteLog,
+              presentedViewController == nil
+        else { return }
+
+        // Consume the pending flag now — a swipe-down dismissal shouldn't re-prompt later.
+        SiteAtlas_Coordinator.shared.pendingSiteLog = false
+
+        let hostingController = UIHostingController(rootView: SiteAtlas_SiteSelectionSheet())
+        present(hostingController, animated: true)
+    }
 }
 
 extension StatusTableViewController: CompletionDelegate {
     func completionNotifyingDidComplete(_ object: CompletionNotifying) {
         if let vc = object as? UIViewController {
             if presentedViewController === vc {
-                dismiss(animated: true, completion: nil)
+                dismiss(animated: true) { [weak self] in
+                    self?.presentSiteAtlasPromptIfPending()
+                }
             } else {
                 vc.dismiss(animated: true, completion: nil)
             }

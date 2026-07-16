@@ -22,6 +22,7 @@ struct SiteAtlas_SettingsView: View {
     @State private var editingEntry: SiteAtlas_SiteEntry? = nil
     @State private var zoneToggleCount = 0
     @State private var featureEnabled = SiteAtlas_FeatureFlags.isEnabled
+    @State private var autoPromptEnabled = SiteAtlas_FeatureFlags.autoPromptEnabled
 
     var body: some View {
         List {
@@ -44,9 +45,6 @@ struct SiteAtlas_SettingsView: View {
         .navigationTitle("Site Atlas")
         .onAppear { entries = coordinator.allEntries() }
         .sheet(isPresented: $showSiteSelectionSheet, onDismiss: refreshEntries) {
-            SiteAtlas_SiteSelectionSheet()
-        }
-        .sheet(isPresented: $coordinator.pendingSiteLog, onDismiss: refreshEntries) {
             SiteAtlas_SiteSelectionSheet()
         }
         .sheet(item: $editingEntry, onDismiss: refreshEntries) { entry in
@@ -83,6 +81,25 @@ struct SiteAtlas_SettingsView: View {
                 }
             }
             .tint(SiteAtlas_Theme.primaryColor)
+
+            if featureEnabled {
+                Toggle(isOn: Binding(
+                    get: { autoPromptEnabled },
+                    set: {
+                        SiteAtlas_FeatureFlags.autoPromptEnabled = $0
+                        autoPromptEnabled = $0
+                    }
+                )) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Prompt After Site Change")
+                            .font(.body)
+                        Text("Pop up the site logger after you change your pod or sensor")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .tint(SiteAtlas_Theme.primaryColor)
+            }
         }
     }
 

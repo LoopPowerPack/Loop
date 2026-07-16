@@ -23,6 +23,14 @@ enum SiteAtlas_FeatureFlags {
         get { UserDefaults.standard.bool(forKey: Keys.siteAtlasEnabled) }
         set { UserDefaults.standard.set(newValue, forKey: Keys.siteAtlasEnabled) }
     }
+
+    /// Auto-prompt toggle — persisted in UserDefaults.
+    /// When on, the site logging sheet pops up after a pod/pump or CGM sensor change.
+    /// Defaults to false; user must manually enable.
+    static var autoPromptEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: Keys.siteAtlasAutoPromptEnabled) }
+        set { UserDefaults.standard.set(newValue, forKey: Keys.siteAtlasAutoPromptEnabled) }
+    }
 }
 
 // MARK: - UserDefaults Keys
@@ -30,5 +38,6 @@ enum SiteAtlas_FeatureFlags {
 extension SiteAtlas_FeatureFlags {
     enum Keys {
         static let siteAtlasEnabled = "com.loopkit.Loop.siteAtlasEnabled"
+        static let siteAtlasAutoPromptEnabled = "com.loopkit.Loop.siteAtlasAutoPromptEnabled"
     }
 }

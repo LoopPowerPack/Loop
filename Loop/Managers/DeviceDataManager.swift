@@ -1040,7 +1040,12 @@ extension DeviceDataManager: CGMManagerDelegate {
     func cgmManager(_ manager: CGMManager, didUpdate status: CGMManagerStatus) {
         DispatchQueue.main.async {
             if self.cgmHasValidSensorSession != status.hasValidSensorSession {
+                // Notify SiteAtlas — a false→true transition means a new sensor session started
+                let sessionStarted = !self.cgmHasValidSensorSession && status.hasValidSensorSession
                 self.cgmHasValidSensorSession = status.hasValidSensorSession
+                if sessionStarted {
+                    NotificationCenter.default.post(name: .cgmSensorSessionStarted, object: nil)
+                }
             }
         }
     }
@@ -1184,6 +1189,11 @@ extension DeviceDataManager: PumpManagerDelegate {
     }
 
     func pumpManagerPumpWasReplaced(_ pumpManager: PumpManager) {
+        // Notify SiteAtlas — a pod swap lands here (the manager stays alive,
+        // so pumpManagerWillDeactivate never fires for a routine pod change)
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .pumpSiteDeactivated, object: nil)
+        }
     }
     
     func pumpManagerWillDeactivate(_ pumpManager: PumpManager) {
