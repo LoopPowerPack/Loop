@@ -202,6 +202,9 @@ public final class InsulinDeliveryTableViewController: UITableViewController {
         case manualEntryDoses([DoseEntry])
     }
 
+    // Sorted ascending by startDate; used to look up the BG reading nearest each event
+    private var glucoseSamples: [StoredGlucoseSample] = []
+
     // Not thread-safe
     private var values = Values.reservoir([]) {
         didSet {
@@ -239,6 +242,15 @@ public final class InsulinDeliveryTableViewController: UITableViewController {
             self.tableView.backgroundView = nil
             self.tableView.tableHeaderView?.isHidden = false
             self.tableView.tableFooterView = nil
+
+            deviceManager?.glucoseStore.getGlucoseSamples(start: sinceDate) { (result) in
+                DispatchQueue.main.async {
+                    if case .success(let samples) = result {
+                        self.glucoseSamples = samples
+                        self.tableView.reloadData()
+                    }
+                }
+            }
 
             switch DataSourceSegment(rawValue: dataSourceSegmentedControl.selectedSegmentIndex)! {
             case .reservoir:
@@ -311,6 +323,46 @@ public final class InsulinDeliveryTableViewController: UITableViewController {
 
         return formatter
     }()
+
+    // History spans 24h, so entries can be from yesterday — those need a (numeric, compact) day
+    private lazy var dayTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+
+        formatter.setLocalizedDateFormatFromTemplate("Md jmm")
+
+        return formatter
+    }()
+
+    private func compactTimestamp(for date: Date) -> String {
+        if Calendar.current.isDateInToday(date) {
+            return timeFormatter.string(from: date)
+        } else {
+            return dayTimeFormatter.string(from: date)
+        }
+    }
+
+    /// Returns the display-unit BG value nearest to `date`, or nil when no CGM reading
+    /// landed within 15 minutes (covers missed-reading gaps without showing stale data)
+    private func glucoseValueText(at date: Date) -> String? {
+        guard let displayGlucosePreference = deviceManager?.displayGlucosePreference,
+              let nearest = glucoseSamples.min(by: { abs($0.startDate.timeIntervalSince(date)) < abs($1.startDate.timeIntervalSince(date)) }),
+              abs(nearest.startDate.timeIntervalSince(date)) <= TimeInterval(minutes: 15)
+        else {
+            return nil
+        }
+
+        return displayGlucosePreference.format(nearest.quantity, includeUnit: false)
+    }
+
+    private func detailText(for date: Date) -> String {
+        let time = compactTimestamp(for: date)
+
+        if let glucose = glucoseValueText(at: date) {
+            return "\(glucose) · \(time)"
+        }
+
+        return time
+    }
 
     private func updateIOB() {
         if case .display = state {
@@ -435,41 +487,43 @@ public final class InsulinDeliveryTableViewController: UITableViewController {
     public override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: ReuseIdentifier, for: indexPath)
 
+        cell.textLabel?.adjustsFontSizeToFitWidth = true
+        cell.textLabel?.minimumScaleFactor = 0.6
+        cell.detailTextLabel?.adjustsFontSizeToFitWidth = true
+        cell.detailTextLabel?.minimumScaleFactor = 0.6
+
         if case .display = state {
             switch self.values {
             case .reservoir(let values):
                 let entry = values[indexPath.row]
                 let volume = NumberFormatter.localizedString(from: NSNumber(value: entry.unitVolume), number: .decimal)
-                let time = timeFormatter.string(from: entry.startDate)
 
                 cell.textLabel?.text = String(format: NSLocalizedString("%1$@ U", comment: "Reservoir entry (1: volume value)"), volume)
                 cell.textLabel?.textColor = .label
-                cell.detailTextLabel?.text = time
+                cell.detailTextLabel?.text = detailText(for: entry.startDate)
                 cell.accessoryType = .none
                 cell.selectionStyle = .none
             case .history(let values):
                 let entry = values[indexPath.row]
-                let time = timeFormatter.string(from: entry.date)
 
                 if let attributedText = entry.localizedAttributedDescription {
                     cell.textLabel?.attributedText = attributedText
                 } else {
                     cell.textLabel?.text = NSLocalizedString("Unknown", comment: "The default description to use when an entry has no dose description")
                 }
-                
-                cell.detailTextLabel?.text = time
+
+                cell.detailTextLabel?.text = detailText(for: entry.date)
                 cell.accessoryType = entry.isUploaded ? .checkmark : .none
                 cell.selectionStyle = .default
             case .manualEntryDoses(let values):
                 let entry = values[indexPath.row]
-                let time = timeFormatter.string(from: entry.startDate)
                 let font = UIFont.preferredFont(forTextStyle: .body)
 
                 let description = String(format: NSLocalizedString("Manual Dose: <b>%1$@</b> %2$@", comment: "Description of a bolus dose entry (1: value (? if no value) in bold, 2: unit)"), numberFormatter.string(from: entry.programmedUnits) ?? "?", DoseEntry.units.shortLocalizedUnitString(avoidLineBreaking: false))
 
                 let attributedDescription = createAttributedDescription(from: description, with: font)
                 cell.textLabel?.attributedText = attributedDescription
-                cell.detailTextLabel?.text = time
+                cell.detailTextLabel?.text = detailText(for: entry.startDate)
                 cell.selectionStyle = .default
             }
         }
