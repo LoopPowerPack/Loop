@@ -365,24 +365,23 @@ public final class InsulinDeliveryTableViewController: UITableViewController {
         return nearest
     }
 
-    /// Color-codes a reading against the correction range in effect at its time:
-    /// green in range, yellow out of range by ≤25% of the nearer bound, red beyond that
+    /// Mirrors the 5-zone consensus TIR model LoopInsights reports with, so row
+    /// colors agree with the dashboard's Time in Range numbers
     private func glucoseColor(for sample: StoredGlucoseSample) -> UIColor {
-        guard let range = deviceManager?.loopManager.settings.glucoseTargetRangeSchedule?.quantityRange(at: sample.startDate) else {
-            return .secondaryLabel
-        }
+        let value = sample.quantity.doubleValue(for: .milligramsPerDeciliter)
 
-        let unit = HKUnit.milligramsPerDeciliter
-        let value = sample.quantity.doubleValue(for: unit)
-        let lower = range.lowerBound.doubleValue(for: unit)
-        let upper = range.upperBound.doubleValue(for: unit)
-
-        if (lower...upper).contains(value) {
+        switch value {
+        case ..<54:
+            return .systemRed
+        case ..<70:
+            return .systemYellow
+        case ...180:
             return .systemGreen
+        case ...250:
+            return .systemYellow
+        default:
+            return .systemRed
         }
-
-        let excursion = value > upper ? (value - upper) / upper : (lower - value) / lower
-        return excursion > 0.25 ? .systemRed : .systemYellow
     }
 
     private func detailAttributedText(for date: Date) -> NSAttributedString {
