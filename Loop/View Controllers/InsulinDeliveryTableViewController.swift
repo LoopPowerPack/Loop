@@ -6,6 +6,7 @@
 //  Copyright © 2016 Nathan Racklyeft. All rights reserved.
 //
 
+import HealthKit
 import UIKit
 import LoopCore
 import LoopKit
@@ -318,8 +319,9 @@ public final class InsulinDeliveryTableViewController: UITableViewController {
     private lazy var timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
 
-        formatter.dateStyle = .none
-        formatter.timeStyle = .short
+        // Explicit time-only template: on iOS 26, dateStyle .none + timeStyle .short
+        // still renders "Jul 23 at 10:43 AM" on device
+        formatter.setLocalizedDateFormatFromTemplate("jmm")
 
         return formatter
     }()
@@ -341,27 +343,53 @@ public final class InsulinDeliveryTableViewController: UITableViewController {
         }
     }
 
-    /// Returns the display-unit BG value nearest to `date`, or nil when no CGM reading
-    /// landed within 15 minutes (covers missed-reading gaps without showing stale data)
-    private func glucoseValueText(at date: Date) -> String? {
-        guard let displayGlucosePreference = deviceManager?.displayGlucosePreference,
-              let nearest = glucoseSamples.min(by: { abs($0.startDate.timeIntervalSince(date)) < abs($1.startDate.timeIntervalSince(date)) }),
+    /// Returns the CGM reading nearest to `date`, or nil when none landed within
+    /// 15 minutes (covers missed-reading gaps without showing stale data)
+    private func nearestGlucoseSample(at date: Date) -> StoredGlucoseSample? {
+        guard let nearest = glucoseSamples.min(by: { abs($0.startDate.timeIntervalSince(date)) < abs($1.startDate.timeIntervalSince(date)) }),
               abs(nearest.startDate.timeIntervalSince(date)) <= TimeInterval(minutes: 15)
         else {
             return nil
         }
 
-        return displayGlucosePreference.format(nearest.quantity, includeUnit: false)
+        return nearest
     }
 
-    private func detailText(for date: Date) -> String {
-        let time = compactTimestamp(for: date)
-
-        if let glucose = glucoseValueText(at: date) {
-            return "\(glucose) · \(time)"
+    /// Color-codes a reading against the correction range in effect at its time:
+    /// green in range, yellow out of range by ≤25% of the nearer bound, red beyond that
+    private func glucoseColor(for sample: StoredGlucoseSample) -> UIColor {
+        guard let range = deviceManager?.loopManager.settings.glucoseTargetRangeSchedule?.quantityRange(at: sample.startDate) else {
+            return .secondaryLabel
         }
 
-        return time
+        let unit = HKUnit.milligramsPerDeciliter
+        let value = sample.quantity.doubleValue(for: unit)
+        let lower = range.lowerBound.doubleValue(for: unit)
+        let upper = range.upperBound.doubleValue(for: unit)
+
+        if (lower...upper).contains(value) {
+            return .systemGreen
+        }
+
+        let excursion = value > upper ? (value - upper) / upper : (lower - value) / lower
+        return excursion > 0.25 ? .systemRed : .systemYellow
+    }
+
+    private func detailAttributedText(for date: Date) -> NSAttributedString {
+        let font = UIFont.preferredFont(forTextStyle: .subheadline)
+        let text = NSMutableAttributedString()
+
+        if let sample = nearestGlucoseSample(at: date),
+           let displayGlucosePreference = deviceManager?.displayGlucosePreference
+        {
+            let glucose = displayGlucosePreference.format(sample.quantity, includeUnit: false)
+            text.append(NSAttributedString(string: "@\(glucose)", attributes: [.font: font, .foregroundColor: glucoseColor(for: sample)]))
+            text.append(NSAttributedString(string: " · ", attributes: [.font: font, .foregroundColor: UIColor.secondaryLabel]))
+        }
+
+        text.append(NSAttributedString(string: compactTimestamp(for: date), attributes: [.font: font, .foregroundColor: UIColor.secondaryLabel]))
+
+        return text
     }
 
     private func updateIOB() {
@@ -487,6 +515,9 @@ public final class InsulinDeliveryTableViewController: UITableViewController {
     public override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: ReuseIdentifier, for: indexPath)
 
+        // Uniform smaller size across every row (attributed strings carry their own
+        // subheadline font); autoshrink stays as a backstop for extra-long rows
+        cell.textLabel?.font = UIFont.preferredFont(forTextStyle: .subheadline)
         cell.textLabel?.adjustsFontSizeToFitWidth = true
         cell.textLabel?.minimumScaleFactor = 0.6
         cell.detailTextLabel?.adjustsFontSizeToFitWidth = true
@@ -500,7 +531,7 @@ public final class InsulinDeliveryTableViewController: UITableViewController {
 
                 cell.textLabel?.text = String(format: NSLocalizedString("%1$@ U", comment: "Reservoir entry (1: volume value)"), volume)
                 cell.textLabel?.textColor = .label
-                cell.detailTextLabel?.text = detailText(for: entry.startDate)
+                cell.detailTextLabel?.attributedText = detailAttributedText(for: entry.startDate)
                 cell.accessoryType = .none
                 cell.selectionStyle = .none
             case .history(let values):
@@ -512,18 +543,18 @@ public final class InsulinDeliveryTableViewController: UITableViewController {
                     cell.textLabel?.text = NSLocalizedString("Unknown", comment: "The default description to use when an entry has no dose description")
                 }
 
-                cell.detailTextLabel?.text = detailText(for: entry.date)
+                cell.detailTextLabel?.attributedText = detailAttributedText(for: entry.date)
                 cell.accessoryType = entry.isUploaded ? .checkmark : .none
                 cell.selectionStyle = .default
             case .manualEntryDoses(let values):
                 let entry = values[indexPath.row]
-                let font = UIFont.preferredFont(forTextStyle: .body)
+                let font = UIFont.preferredFont(forTextStyle: .subheadline)
 
                 let description = String(format: NSLocalizedString("Manual Dose: <b>%1$@</b> %2$@", comment: "Description of a bolus dose entry (1: value (? if no value) in bold, 2: unit)"), numberFormatter.string(from: entry.programmedUnits) ?? "?", DoseEntry.units.shortLocalizedUnitString(avoidLineBreaking: false))
 
                 let attributedDescription = createAttributedDescription(from: description, with: font)
                 cell.textLabel?.attributedText = attributedDescription
-                cell.detailTextLabel?.text = detailText(for: entry.startDate)
+                cell.detailTextLabel?.attributedText = detailAttributedText(for: entry.startDate)
                 cell.selectionStyle = .default
             }
         }
@@ -684,7 +715,7 @@ fileprivate func createAttributedDescription(from description: String, with font
 extension PersistedPumpEvent {
 
     fileprivate var localizedAttributedDescription: NSAttributedString? {
-        let font = UIFont.preferredFont(forTextStyle: .body)
+        let font = UIFont.preferredFont(forTextStyle: .subheadline)
 
         let eventTitle = title ?? NSLocalizedString("Unknown", comment: "Event title displayed when StoredPumpEvent.title is not set")
 
