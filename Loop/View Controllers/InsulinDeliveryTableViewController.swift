@@ -319,8 +319,18 @@ public final class InsulinDeliveryTableViewController: UITableViewController {
     private lazy var timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
 
-        // Explicit time-only template: on iOS 26, dateStyle .none + timeStyle .short
-        // still renders "Jul 23 at 10:43 AM" on device
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+
+        return formatter
+    }()
+
+    // Kept separate from timeFormatter: upstream main configures that one with a
+    // date-bearing template ("MMMdjmm"), and the Option B installer 3-way merges
+    // our dev-based diff onto main — editing timeFormatter in place conflicts
+    private lazy var rowTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+
         formatter.setLocalizedDateFormatFromTemplate("jmm")
 
         return formatter
@@ -337,7 +347,7 @@ public final class InsulinDeliveryTableViewController: UITableViewController {
 
     private func compactTimestamp(for date: Date) -> String {
         if Calendar.current.isDateInToday(date) {
-            return timeFormatter.string(from: date)
+            return rowTimeFormatter.string(from: date)
         } else {
             return dayTimeFormatter.string(from: date)
         }
@@ -402,7 +412,7 @@ public final class InsulinDeliveryTableViewController: UITableViewController {
                         self.iobDateLabel.text = nil
                     case .success(let iob):
                         self.iobValueLabel.text = self.iobNumberFormatter.string(from: iob.value)
-                        self.iobDateLabel.text = String(format: NSLocalizedString("com.loudnate.InsulinKit.IOBDateLabel", value: "at %1$@", comment: "The format string describing the date of an IOB value. The first format argument is the localized date."), self.timeFormatter.string(from: iob.startDate))
+                        self.iobDateLabel.text = String(format: NSLocalizedString("com.loudnate.InsulinKit.IOBDateLabel", value: "at %1$@", comment: "The format string describing the date of an IOB value. The first format argument is the localized date."), self.rowTimeFormatter.string(from: iob.startDate))
                     }
                 }
             }
