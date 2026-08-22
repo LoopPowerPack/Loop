@@ -145,7 +145,7 @@ final class LoopInsights_MealDebriefService {
         )
 
         let response = try await LoopInsights_AIServiceAdapter.shared.sendPrompt(
-            "You are a diabetes meal analysis assistant. Analyze predicted vs actual glucose response. Be concise and practical.",
+            "You are a diabetes meal analysis assistant. Analyze predicted vs actual glucose response. Be concise and practical. You are speaking directly to the person who ate the meal: address them as \"you\"/\"your\", never \"the user\" or any third-person reference.",
             userPrompt: prompt
         )
 

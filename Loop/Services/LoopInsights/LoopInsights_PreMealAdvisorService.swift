@@ -127,7 +127,7 @@ final class LoopInsights_PreMealAdvisorService {
 
         do {
             let response = try await LoopInsights_AIServiceAdapter.shared.sendPrompt(
-                "You are a diabetes pre-meal advisor. Give brief, actionable advice based on the user's personal history. Keep it under 3 sentences.",
+                "You are a diabetes pre-meal advisor. Give brief, actionable advice based on this person's own history. Keep it under 3 sentences. You are speaking directly to them: address them as \"you\"/\"your\", never \"the user\" or any third-person reference.",
                 userPrompt: prompt
             )
             updated.aiAdvice = response

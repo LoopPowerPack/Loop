@@ -267,6 +267,8 @@ final class LoopInsights_ChatViewModel: ObservableObject {
         \(personality.promptInstruction)
 
         RULES:
+        - You are talking directly TO them. Address them as "you"/"your" — never "the user", \
+          "this user", "this person", or any other third-person reference.
         - Be brief. 2-3 sentences max for simple questions. Bullets for complex ones.
         - Just the facts — cite their specific numbers, skip explanations they already know.
         - Talk like a knowledgeable friend, not a doctor or a manual.

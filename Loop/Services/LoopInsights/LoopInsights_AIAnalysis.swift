@@ -329,6 +329,10 @@ final class LoopInsights_AIAnalysis {
         2. TIME FORMAT: Never write a time in 24-hour/military notation (e.g. "14:00", "17:00"). Always use \
            12-hour clock with AM/PM (e.g. "2:00 PM", "5:00 PM"), even though the data above is labeled in \
            24-hour form for your own calculations.
+        3. SECOND PERSON: You are speaking directly TO the person whose data this is. In every field they \
+           read, address them as "you"/"your" — never "the user", "this user", "the patient", or any other \
+           third-person reference. Write "TIR held stable, confirming that you tolerate the 4.0 g/U level \
+           safely", not "...confirming this user tolerates the 4.0 g/U level safely".
 
         RESPONSE FORMAT:
         Respond with valid JSON in this exact structure:

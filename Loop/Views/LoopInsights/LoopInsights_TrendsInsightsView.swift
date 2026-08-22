@@ -677,6 +677,9 @@ private final class TrendsViewModel: ObservableObject {
         average glucose of **142 mg/dL** and only **2.1%** time below range." The user can read \
         generic diabetes content anywhere — the value here is that you're interpreting THEIR data.
 
+        VOICE: You are speaking directly TO this person. Address them as "you"/"your" everywhere — \
+        never "the user", "this user", "this person", or any other third-person reference.
+
         RESPONSE FORMAT — you MUST use exactly this structure:
 
         SUMMARY:

@@ -329,7 +329,7 @@ final class LoopInsights_MealInsightsViewModel: ObservableObject {
         Task {
             do {
                 let response = try await LoopInsights_AIServiceAdapter.shared.sendPrompt(
-                    "You are a diabetes meal advisor. Be concise and practical.\n\(unitCtx.aiPromptUnitContext())",
+                    "You are a diabetes meal advisor. Be concise and practical. You are speaking directly to the person eating: address them as \"you\"/\"your\", never \"the user\" or any third-person reference.\n\(unitCtx.aiPromptUnitContext())",
                     userPrompt: prompt
                 )
                 self.aiAdvice = response
