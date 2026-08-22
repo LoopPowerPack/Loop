@@ -318,6 +318,18 @@ final class LoopInsights_AIAnalysis {
         4. If a previous change worsened outcomes, recommend reverting before making new suggestions.
         Return evaluations in "past_suggestion_evaluations" keyed by the suggestion's record_id.
 
+        REASONING STYLE — "reasoning", "overall_assessment", and evaluation "reasoning" fields are read \
+        directly by the user on their phone, not by another clinician:
+        1. BE CONCISE: 2-4 sentences maximum per field. State the single data pattern that drives the \
+           recommendation, the one setting-interaction consideration that matters (if any), and the safety \
+           rationale — nothing else. Do not restate the full clinical reasoning framework, walk through every \
+           setting you considered and ruled out, or repeat information already shown elsewhere on screen \
+           (the current → proposed values, confidence badge, and time blocks are already visible to the user). \
+           If a sentence doesn't change what the user should do or trust, cut it.
+        2. TIME FORMAT: Never write a time in 24-hour/military notation (e.g. "14:00", "17:00"). Always use \
+           12-hour clock with AM/PM (e.g. "2:00 PM", "5:00 PM"), even though the data above is labeled in \
+           24-hour form for your own calculations.
+
         RESPONSE FORMAT:
         Respond with valid JSON in this exact structure:
         {
@@ -687,7 +699,9 @@ final class LoopInsights_AIAnalysis {
 
     // MARK: - Response Parsing
 
-    private func parseResponse(rawResponse: String, settingType: LoopInsightsSettingType, period: LoopInsightsAnalysisPeriod, stats: LoopInsightsAggregatedStats) throws -> LoopInsightsAnalysisResponse {
+    // Internal (not private) so LoopTests can exercise the parsing/validation pipeline
+    // directly with fixture JSON, without a network round-trip through the AI service adapter.
+    func parseResponse(rawResponse: String, settingType: LoopInsightsSettingType, period: LoopInsightsAnalysisPeriod, stats: LoopInsightsAggregatedStats) throws -> LoopInsightsAnalysisResponse {
         // Extract JSON from the response (AI might wrap it in markdown code blocks)
         var jsonString = extractJSON(from: rawResponse)
 
@@ -779,6 +793,19 @@ final class LoopInsights_AIAnalysis {
                 if changePercent > maxAllowed {
                     LoopInsights_FeatureFlags.log.error(
                         "Guardrail REJECTED: \(settingType.displayName) proposed \(String(format: "%.1f", block.proposedValue)) at \(block.startTimeFormatted) — \(String(format: "%.0f", changePercent))%% change exceeds \(String(format: "%.0f", maxAllowed))%% limit"
+                    )
+                    return false
+                }
+
+                // Reject no-op blocks: after rounding to the setting's display increment,
+                // the proposed value is identical to the current value, so this block does
+                // not actually recommend a change. The AI sometimes "echoes" the current
+                // value in one block of a multi-block suggestion (e.g. after a change is
+                // clamped or when it's only confident about the other blocks).
+                let roundedCurrent = settingType.roundedToIncrement(block.currentValue)
+                if roundedCurrent == block.proposedValue {
+                    LoopInsights_FeatureFlags.log.info(
+                        "No-op block dropped: \(settingType.displayName) at \(block.startTimeFormatted) proposed \(block.proposedValue), unchanged from current \(roundedCurrent)"
                     )
                     return false
                 }
