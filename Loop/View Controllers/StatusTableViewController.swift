@@ -366,8 +366,8 @@ final class StatusTableViewController: LoopChartsTableViewController {
         func flexibleSpace() -> UIBarButtonItem {
             UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
         }
-        
-        if #available(iOS 26, *) {
+
+        if Self.usesLiquidGlassToolbarLayout {
             toolbarItems = [carbs, preMeal, bolus, workout, settings]
         } else {
             toolbarItems = [
@@ -384,6 +384,22 @@ final class StatusTableViewController: LoopChartsTableViewController {
         }
     }
 
+    /// Whether the iOS 26 Liquid Glass toolbar is actually rendering, which is what
+    /// decides whether the toolbar needs explicit flexible-space items.
+    ///
+    /// OS version alone is not enough: an app built with `UIDesignRequiresCompatibility`
+    /// = YES in Info.plist (the pre-Liquid-Glass upstream Loop default, still present in
+    /// Option B installs onto an older base clone) renders the LEGACY toolbar even on
+    /// iOS 26. Feeding that legacy toolbar the spacer-less item list bunches all five
+    /// buttons against the leading edge.
+    static var usesLiquidGlassToolbarLayout: Bool {
+        if #available(iOS 26, *) {
+            let optedOut = (Bundle.main.object(forInfoDictionaryKey: "UIDesignRequiresCompatibility") as? Bool) == true
+            return !optedOut
+        }
+        return false
+    }
+
     private func updateToolbarItems() {
         let isPumpOnboarded = onboardingManager.isComplete || deviceManager.pumpManager?.isOnboarded == true
 
@@ -393,12 +409,9 @@ final class StatusTableViewController: LoopChartsTableViewController {
         bolusButton.isEnabled = isPumpOnboarded
         settingsButton.accessibilityLabel = NSLocalizedString("Settings", comment: "The label of the settings button")
 
-        let preMealIndex: Int
-        if #available(iOS 26, *) {
-            preMealIndex = 1
-        } else {
-            preMealIndex = 2
-        }
+        // Must match the layout chosen in setupToolbarItems(): index 1 in the
+        // spacer-less Liquid Glass list, index 2 when flexible spaces are interleaved.
+        let preMealIndex = Self.usesLiquidGlassToolbarLayout ? 1 : 2
         toolbarItems![preMealIndex] = createPreMealButtonItem(selected: preMealMode == true && preMealModeAllowed, isEnabled: preMealModeAllowed)
         updateWorkoutButton(selected: workoutMode == true && workoutModeAllowed, isEnabled: workoutModeAllowed)
     }
@@ -1757,12 +1770,9 @@ final class StatusTableViewController: LoopChartsTableViewController {
             }
         } else {
             if FeatureFlags.sensitivityOverridesEnabled {
-                let overridesIndex: Int
-                if #available(iOS 26, *) {
-                    overridesIndex = 3
-                } else {
-                    overridesIndex = 6
-                }
+                // Must match setupToolbarItems(): index 3 in the spacer-less Liquid Glass
+                // list, index 6 when flexible spaces are interleaved.
+                let overridesIndex = Self.usesLiquidGlassToolbarLayout ? 3 : 6
                 performSegue(withIdentifier: OverrideSelectionViewController.className, sender: toolbarItems![overridesIndex])
             } else {
                 presentWorkoutModeAlertController()
