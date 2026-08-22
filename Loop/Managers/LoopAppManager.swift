@@ -129,6 +129,8 @@ class LoopAppManager: NSObject {
         resumeLaunch()
     }
 
+    var isInInitialState: Bool { state == .initialize }
+
     var isLaunchPending: Bool { state == .checkProtectedDataAvailable }
 
     var isLaunchComplete: Bool { state == .launchComplete }
