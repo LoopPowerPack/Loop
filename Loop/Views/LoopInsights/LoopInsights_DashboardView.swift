@@ -1783,9 +1783,24 @@ struct LoopInsights_PreFillEditorView: View {
             }
 
             Section(header: Text(NSLocalizedString("AI REASONING", comment: "LoopInsights pre-fill reasoning header"))) {
-                Text(record.suggestion.reasoning)
+                if let plainSummary = record.suggestion.plainSummary {
+                    // Conversational headline first; full clinical detail behind a drop-down.
+                    Text(plainSummary)
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                    DisclosureGroup(NSLocalizedString("Full analysis", comment: "LoopInsights detailed reasoning disclosure")) {
+                        Text(record.suggestion.reasoning)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                } else {
+                    Text(record.suggestion.reasoning)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
 
             Section {

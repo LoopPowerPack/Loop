@@ -155,9 +155,25 @@ struct LoopInsights_SuggestionDetailView: View {
 
     private var reasoningSection: some View {
         Section(header: Text(NSLocalizedString("AI Reasoning", comment: "LoopInsights reasoning header"))) {
-            Text(record.suggestion.reasoning)
+            if let plainSummary = record.suggestion.plainSummary {
+                // Conversational headline first; full clinical detail behind a drop-down.
+                Text(plainSummary)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                DisclosureGroup(NSLocalizedString("Full analysis", comment: "LoopInsights detailed reasoning disclosure")) {
+                    Text(record.suggestion.reasoning)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+            } else {
+                // Suggestions saved before plain_summary existed have only the detail text.
+                Text(record.suggestion.reasoning)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
         }
     }
 

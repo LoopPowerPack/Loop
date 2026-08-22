@@ -53,12 +53,18 @@ final class LoopInsights_AIAnalysisTests: XCTestCase {
         """
     }
 
-    private func responseJSON(timeBlocksJSON: String, reasoning: String = "Test reasoning citing a data pattern.") -> String {
-        """
+    private func responseJSON(
+        timeBlocksJSON: String,
+        reasoning: String = "Test reasoning citing a data pattern.",
+        plainSummary: String? = nil
+    ) -> String {
+        let plainSummaryLine = plainSummary.map { "\"plain_summary\": \"\($0)\"," } ?? ""
+        return """
         {
             "suggestions": [
                 {
                     "time_blocks": [\(timeBlocksJSON)],
+                    \(plainSummaryLine)
                     "reasoning": "\(reasoning)",
                     "confidence": "medium"
                 }
@@ -116,6 +122,39 @@ final class LoopInsights_AIAnalysisTests: XCTestCase {
 
         XCTAssertEqual(result.suggestions.count, 1)
         XCTAssertEqual(result.suggestions.first?.timeBlocks.first?.proposedValue, 26)
+    }
+
+    // MARK: - Plain summary parsing
+
+    /// The conversational headline ("plain_summary") must survive parsing into the
+    /// suggestion model so the UI can show it above the collapsed full reasoning.
+    func testPlainSummaryIsParsed() throws {
+        let json = responseJSON(
+            timeBlocksJSON: timeBlockJSON(start: 0, end: 21600, current: 29, proposed: 26),
+            plainSummary: "I think you need more insulin here, so I recommend changing your ISF from 29 to 26."
+        )
+
+        let result = try analysis.parseResponse(
+            rawResponse: json, settingType: .insulinSensitivity, period: .fourteenDays, stats: makeStats()
+        )
+
+        XCTAssertEqual(
+            result.suggestions.first?.plainSummary,
+            "I think you need more insulin here, so I recommend changing your ISF from 29 to 26."
+        )
+    }
+
+    /// A response without plain_summary (or an older stored record) must still parse,
+    /// with the field nil so the UI falls back to showing only the detailed reasoning.
+    func testMissingPlainSummaryParsesAsNil() throws {
+        let json = responseJSON(timeBlocksJSON: timeBlockJSON(start: 0, end: 21600, current: 29, proposed: 26))
+
+        let result = try analysis.parseResponse(
+            rawResponse: json, settingType: .insulinSensitivity, period: .fourteenDays, stats: makeStats()
+        )
+
+        XCTAssertEqual(result.suggestions.count, 1)
+        XCTAssertNil(result.suggestions.first?.plainSummary)
     }
 
     /// Basal rate rounds to a finer increment (0.05 U/hr) than ISF's whole numbers — verify

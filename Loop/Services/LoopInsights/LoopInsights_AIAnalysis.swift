@@ -333,6 +333,13 @@ final class LoopInsights_AIAnalysis {
            read, address them as "you"/"your" — never "the user", "this user", "the patient", or any other \
            third-person reference. Write "TIR held stable, confirming that you tolerate the 4.0 g/U level \
            safely", not "...confirming this user tolerates the 4.0 g/U level safely".
+        4. PLAIN SUMMARY: Every suggestion MUST include "plain_summary" — one or two conversational \
+           sentences a person with no clinical training instantly understands, stating what you think is \
+           happening and what you recommend. Example: "I think you need more insulin for your meal bolusing \
+           in this time slot, so I recommend we change your ISF from 33 to 29." Rules: no statistics, no \
+           percentages, no mg/dL citations, no clinical vocabulary beyond the setting's name. Numbers are \
+           allowed ONLY for the current and proposed setting values. The detailed "reasoning" field is \
+           where the numbers and evidence go — plain_summary is the headline a user reads first.
 
         RESPONSE FORMAT:
         Respond with valid JSON in this exact structure:
@@ -355,6 +362,7 @@ final class LoopInsights_AIAnalysis {
                             "proposed_value": 11.0
                         }
                     ],
+                    "plain_summary": "One or two conversational sentences a non-clinician instantly understands: what you think is happening and what you recommend, e.g. \"I think you need more insulin for your meal bolusing in this time slot, so I recommend we change your ISF from 33 to 29.\" No statistics, no jargon beyond the setting name, no percentages.",
                     "reasoning": "Specific data-backed explanation citing exact numbers that justify this change",
                     "confidence": "low|medium|high",
                     "success_criteria": {
@@ -836,6 +844,11 @@ final class LoopInsights_AIAnalysis {
                 }
             }
 
+            // Optional conversational headline; trimmed to nil when the model returns an empty string
+            let plainSummaryRaw = (suggestionJSON["plain_summary"] as? String)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let plainSummary = (plainSummaryRaw?.isEmpty ?? true) ? nil : plainSummaryRaw
+
             let suggestion = LoopInsightsSuggestion(
                 id: UUID(),
                 settingType: settingType,
@@ -844,7 +857,8 @@ final class LoopInsights_AIAnalysis {
                 confidence: confidence,
                 analysisPeriod: period,
                 createdAt: Date(),
-                successCriteria: successCriteria
+                successCriteria: successCriteria,
+                plainSummary: plainSummary
             )
             suggestions.append(suggestion)
         }
@@ -917,7 +931,8 @@ final class LoopInsights_AIAnalysis {
                 confidence: suggestion.confidence,
                 analysisPeriod: suggestion.analysisPeriod,
                 createdAt: suggestion.createdAt,
-                successCriteria: suggestion.successCriteria
+                successCriteria: suggestion.successCriteria,
+                plainSummary: suggestion.plainSummary
             )
         }
 
@@ -973,7 +988,8 @@ final class LoopInsights_AIAnalysis {
                     confidence: .low,
                     analysisPeriod: suggestion.analysisPeriod,
                     createdAt: suggestion.createdAt,
-                    successCriteria: suggestion.successCriteria
+                    successCriteria: suggestion.successCriteria,
+                    plainSummary: suggestion.plainSummary
                 )
             }
         }
@@ -1029,6 +1045,10 @@ final class LoopInsights_AIAnalysis {
         // Use the first suggestion's success criteria (all share same setting type)
         let mergedCriteria = suggestions.first(where: { $0.successCriteria != nil })?.successCriteria
 
+        // Use the first non-empty plain summary; joining several would defeat its
+        // purpose as a single-breath headline.
+        let mergedPlainSummary = suggestions.compactMap { $0.plainSummary }.first
+
         let merged = LoopInsightsSuggestion(
             id: UUID(),
             settingType: settingType,
@@ -1037,7 +1057,8 @@ final class LoopInsights_AIAnalysis {
             confidence: highestConfidence,
             analysisPeriod: period,
             createdAt: Date(),
-            successCriteria: mergedCriteria
+            successCriteria: mergedCriteria,
+            plainSummary: mergedPlainSummary
         )
         return [merged]
     }

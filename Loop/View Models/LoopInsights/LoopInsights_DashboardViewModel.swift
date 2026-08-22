@@ -459,7 +459,8 @@ final class LoopInsights_DashboardViewModel: ObservableObject {
             confidence: record.suggestion.confidence,
             analysisPeriod: record.suggestion.analysisPeriod,
             createdAt: record.suggestion.createdAt,
-            successCriteria: record.suggestion.successCriteria
+            successCriteria: record.suggestion.successCriteria,
+            plainSummary: record.suggestion.plainSummary
         )
 
         coordinator.applyTherapyChanges(suggestion: editedSuggestion)

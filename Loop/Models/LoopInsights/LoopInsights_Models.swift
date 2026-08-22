@@ -696,6 +696,33 @@ struct LoopInsightsSuggestion: Codable, Identifiable, Equatable {
     let analysisPeriod: LoopInsightsAnalysisPeriod
     let createdAt: Date
     let successCriteria: LoopInsightsSuccessCriteria?
+    /// One-to-two sentence conversational summary shown above the full clinical
+    /// reasoning (e.g. "I think you need more insulin for meals in this window,
+    /// so I recommend changing your ISF from 33 to 29."). Optional so suggestion
+    /// records stored before this field existed still decode.
+    let plainSummary: String?
+
+    init(
+        id: UUID,
+        settingType: LoopInsightsSettingType,
+        timeBlocks: [LoopInsightsTimeBlock],
+        reasoning: String,
+        confidence: LoopInsightsConfidence,
+        analysisPeriod: LoopInsightsAnalysisPeriod,
+        createdAt: Date,
+        successCriteria: LoopInsightsSuccessCriteria?,
+        plainSummary: String? = nil
+    ) {
+        self.id = id
+        self.settingType = settingType
+        self.timeBlocks = timeBlocks
+        self.reasoning = reasoning
+        self.confidence = confidence
+        self.analysisPeriod = analysisPeriod
+        self.createdAt = createdAt
+        self.successCriteria = successCriteria
+        self.plainSummary = plainSummary
+    }
 
     /// Summary of the overall change direction
     var summaryDescription: String {
