@@ -604,6 +604,8 @@
 		FC5E93D39794E71B0FA5C2FD /* LoopInsights_SuggestionRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20EB0E3DF88A1303EA105423 /* LoopInsights_SuggestionRecord.swift */; };
 		AAE5993C1E1A822BFCD8D5A9 /* LoopInsights_DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76F7734CE5F39086ACDF05E4 /* LoopInsights_DashboardViewModel.swift */; };
 		5B58FD84606E28D455284224 /* LoopInsights_DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2797FE7C4BD311CFD6130EE6 /* LoopInsights_DashboardView.swift */; };
+		53159200E890E6EF542E7152 /* LoopInsights_SignalGapHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04A8A9DA3E4AE45D2B239258 /* LoopInsights_SignalGapHistoryView.swift */; };
+		3166BE0D2738DC223151DCBF /* LoopInsights_SubstackPromo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0736076806BD15446A715501 /* LoopInsights_SubstackPromo.swift */; };
 		6985216D28A1B2ADE17B40A0 /* LoopInsights_SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298B9D3C1F836418FB49F5A4 /* LoopInsights_SettingsView.swift */; };
 		D062E93B8CA1AFF98CCB804D /* LoopInsights_SuggestionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FF964C8C711F6D2BC5ABADF /* LoopInsights_SuggestionDetailView.swift */; };
 		C55289DE70B96F1DDAD60001 /* LoopInsights_SuggestionHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30BE128F5152CCEFCE77A91 /* LoopInsights_SuggestionHistoryView.swift */; };
@@ -1538,6 +1540,8 @@
 		20EB0E3DF88A1303EA105423 /* LoopInsights_SuggestionRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_SuggestionRecord.swift; sourceTree = "<group>"; };
 		76F7734CE5F39086ACDF05E4 /* LoopInsights_DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_DashboardViewModel.swift; sourceTree = "<group>"; };
 		2797FE7C4BD311CFD6130EE6 /* LoopInsights_DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_DashboardView.swift; sourceTree = "<group>"; };
+		04A8A9DA3E4AE45D2B239258 /* LoopInsights_SignalGapHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_SignalGapHistoryView.swift; sourceTree = "<group>"; };
+		0736076806BD15446A715501 /* LoopInsights_SubstackPromo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_SubstackPromo.swift; sourceTree = "<group>"; };
 		298B9D3C1F836418FB49F5A4 /* LoopInsights_SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_SettingsView.swift; sourceTree = "<group>"; };
 		6FF964C8C711F6D2BC5ABADF /* LoopInsights_SuggestionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_SuggestionDetailView.swift; sourceTree = "<group>"; };
 		F30BE128F5152CCEFCE77A91 /* LoopInsights_SuggestionHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopInsights_SuggestionHistoryView.swift; sourceTree = "<group>"; };
@@ -2978,6 +2982,8 @@
 			isa = PBXGroup;
 			children = (
 				2797FE7C4BD311CFD6130EE6 /* LoopInsights_DashboardView.swift */,
+				04A8A9DA3E4AE45D2B239258 /* LoopInsights_SignalGapHistoryView.swift */,
+				0736076806BD15446A715501 /* LoopInsights_SubstackPromo.swift */,
 				298B9D3C1F836418FB49F5A4 /* LoopInsights_SettingsView.swift */,
 				6FF964C8C711F6D2BC5ABADF /* LoopInsights_SuggestionDetailView.swift */,
 				F30BE128F5152CCEFCE77A91 /* LoopInsights_SuggestionHistoryView.swift */,
@@ -4170,6 +4176,8 @@
 				FC5E93D39794E71B0FA5C2FD /* LoopInsights_SuggestionRecord.swift in Sources */,
 				AAE5993C1E1A822BFCD8D5A9 /* LoopInsights_DashboardViewModel.swift in Sources */,
 				5B58FD84606E28D455284224 /* LoopInsights_DashboardView.swift in Sources */,
+				53159200E890E6EF542E7152 /* LoopInsights_SignalGapHistoryView.swift in Sources */,
+				3166BE0D2738DC223151DCBF /* LoopInsights_SubstackPromo.swift in Sources */,
 				6985216D28A1B2ADE17B40A0 /* LoopInsights_SettingsView.swift in Sources */,
 				D062E93B8CA1AFF98CCB804D /* LoopInsights_SuggestionDetailView.swift in Sources */,
 				C55289DE70B96F1DDAD60001 /* LoopInsights_SuggestionHistoryView.swift in Sources */,

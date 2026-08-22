@@ -793,7 +793,7 @@ final class LoopInsights_AIAnalysis {
                 // clamped or when it's only confident about the other blocks).
                 let roundedCurrent = settingType.roundedToIncrement(block.currentValue)
                 if roundedCurrent == block.proposedValue {
-                    LoopInsights_FeatureFlags.log.default(
+                    LoopInsights_FeatureFlags.log.info(
                         "No-op block dropped: \(settingType.displayName) at \(block.startTimeFormatted) proposed \(block.proposedValue), unchanged from current \(roundedCurrent)"
                     )
                     return false
