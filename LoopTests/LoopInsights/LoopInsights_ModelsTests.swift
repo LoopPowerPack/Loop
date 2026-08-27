@@ -172,6 +172,8 @@ final class LoopInsights_ModelsTests: XCTestCase {
             carbRatioItems: [
                 .init(startTime: 0, value: 10)
             ],
+            insulinTypeName: nil,
+            insulinDiaHours: nil,
             capturedAt: Date()
         )
         let data = try JSONEncoder().encode(snapshot)
@@ -223,7 +225,7 @@ final class LoopInsights_ModelsTests: XCTestCase {
         XCTAssertEqual(config.model, "gpt-4o")
         XCTAssertEqual(config.requestFormat, .openAICompatible)
         XCTAssertEqual(config.maxTokens, 8192)
-        XCTAssertEqual(config.temperature, 0.3, accuracy: 0.001)
+        XCTAssertEqual(config.temperature, 0.0, accuracy: 0.001)
         XCTAssertNil(config.apiVersion)
         XCTAssertNil(config.organizationID)
     }

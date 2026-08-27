@@ -150,15 +150,76 @@ final class LoopInsights_SuggestionStoreTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(records[0].createdAt, records[1].createdAt)
     }
 
+    // MARK: - Superseding
+
+    func testAddSuggestionsSupersedesSameTypePending() {
+        // Older ISF suggestion from a previous analysis run
+        let old = store.addSuggestion(makeSuggestion(settingType: .insulinSensitivity))
+
+        // A newer analysis run produces a different ISF suggestion
+        _ = store.addSuggestions([makeSuggestion(
+            settingType: .insulinSensitivity,
+            blocks: [
+                LoopInsightsTimeBlock(startTime: 0, endTime: 21600, currentValue: 22, proposedValue: 20),
+                LoopInsightsTimeBlock(startTime: 21600, endTime: 43200, currentValue: 22, proposedValue: 20)
+            ]
+        )])
+
+        // Only the newest ISF suggestion may remain pending
+        XCTAssertEqual(store.pendingRecords.count, 1)
+        XCTAssertEqual(store.pendingRecords.first?.suggestion.timeBlocks.count, 2)
+        XCTAssertEqual(store.record(withID: old.id)?.status, .dismissed)
+    }
+
+    func testAddSuggestionSupersedesSameTypePending() {
+        let old = store.addSuggestion(makeSuggestion(settingType: .carbRatio))
+        _ = store.addSuggestion(makeSuggestion(settingType: .carbRatio))
+
+        XCTAssertEqual(store.pendingRecords.count, 1)
+        XCTAssertEqual(store.record(withID: old.id)?.status, .dismissed)
+    }
+
+    func testAddSuggestionsLeavesOtherSettingTypesPending() {
+        let carbRecord = store.addSuggestion(makeSuggestion(settingType: .carbRatio))
+        _ = store.addSuggestions([makeSuggestion(settingType: .insulinSensitivity)])
+
+        XCTAssertEqual(store.pendingRecords.count, 2)
+        XCTAssertEqual(store.record(withID: carbRecord.id)?.status, .pending)
+    }
+
+    func testAddSuggestionsDoesNotSupersedeWithinSameBatch() {
+        // One analysis batch may legitimately contain one suggestion per setting type
+        _ = store.addSuggestions([
+            makeSuggestion(settingType: .carbRatio),
+            makeSuggestion(settingType: .insulinSensitivity),
+            makeSuggestion(settingType: .basalRate)
+        ])
+
+        XCTAssertEqual(store.pendingRecords.count, 3)
+    }
+
+    func testSupersedeDoesNotTouchResolvedRecords() {
+        let applied = store.addSuggestion(makeSuggestion(settingType: .insulinSensitivity))
+        store.markApplied(recordID: applied.id, mode: .oneTap, snapshotBefore: nil, snapshotAfter: nil)
+
+        _ = store.addSuggestions([makeSuggestion(settingType: .insulinSensitivity)])
+
+        XCTAssertEqual(store.record(withID: applied.id)?.status, .applied)
+        XCTAssertEqual(store.pendingRecords.count, 1)
+    }
+
     // MARK: - Helpers
 
-    private func makeSuggestion() -> LoopInsightsSuggestion {
+    private func makeSuggestion(
+        settingType: LoopInsightsSettingType = .carbRatio,
+        blocks: [LoopInsightsTimeBlock] = [
+            LoopInsightsTimeBlock(startTime: 0, endTime: 21600, currentValue: 10, proposedValue: 11)
+        ]
+    ) -> LoopInsightsSuggestion {
         return LoopInsightsSuggestion(
             id: UUID(),
-            settingType: .carbRatio,
-            timeBlocks: [
-                LoopInsightsTimeBlock(startTime: 0, endTime: 21600, currentValue: 10, proposedValue: 11)
-            ],
+            settingType: settingType,
+            timeBlocks: blocks,
             reasoning: "Test reasoning",
             confidence: .medium,
             analysisPeriod: .fourteenDays,

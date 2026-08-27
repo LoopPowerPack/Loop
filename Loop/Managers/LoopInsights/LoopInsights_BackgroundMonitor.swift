@@ -175,12 +175,14 @@ final class LoopInsights_BackgroundMonitor: ObservableObject {
                 return
             }
 
-            // Check for genuinely new suggestions (not duplicates of existing pending ones)
+            // Check for genuinely new suggestions. Comparison must be by content
+            // (time ranges + values), not block count: a same-count suggestion with
+            // different values is a real update that must replace the stale pending
+            // one (the store supersedes same-type pending records on add).
             let existingPending = coordinator.suggestionStore.pendingRecords
             let genuinelyNew = newSuggestions.filter { suggestion in
                 !existingPending.contains { existing in
-                    existing.suggestion.settingType == suggestion.settingType &&
-                    existing.suggestion.timeBlocks.count == suggestion.timeBlocks.count
+                    Self.haveSameContent(existing.suggestion, suggestion)
                 }
             }
 
@@ -197,6 +199,20 @@ final class LoopInsights_BackgroundMonitor: ObservableObject {
 
         } catch {
             LoopInsights_FeatureFlags.log.error("Background analysis failed: \(error.localizedDescription)")
+        }
+    }
+
+    /// True when two suggestions recommend the same thing: same setting type and
+    /// identical time blocks (range, current value, proposed value). Compares by
+    /// content because LoopInsightsTimeBlock's synthesized == includes its random
+    /// UUID, which differs between analysis runs.
+    static func haveSameContent(_ a: LoopInsightsSuggestion, _ b: LoopInsightsSuggestion) -> Bool {
+        guard a.settingType == b.settingType, a.timeBlocks.count == b.timeBlocks.count else { return false }
+        return zip(a.timeBlocks, b.timeBlocks).allSatisfy { blockA, blockB in
+            blockA.startTime == blockB.startTime &&
+            blockA.endTime == blockB.endTime &&
+            blockA.currentValue == blockB.currentValue &&
+            blockA.proposedValue == blockB.proposedValue
         }
     }
 

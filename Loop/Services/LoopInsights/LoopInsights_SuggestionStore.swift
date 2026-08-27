@@ -67,8 +67,12 @@ final class LoopInsights_SuggestionStore: ObservableObject {
 
     // MARK: - Write
 
-    /// Add a new suggestion as a pending record
+    /// Add a new suggestion as a pending record.
+    /// Any pre-existing pending suggestion for the same setting type is dismissed
+    /// first, so the pending list never shows conflicting recommendations.
     func addSuggestion(_ suggestion: LoopInsightsSuggestion) -> LoopInsightsSuggestionRecord {
+        supersedePending(settingTypes: [suggestion.settingType])
+
         let record = LoopInsightsSuggestionRecord(suggestion: suggestion)
         records.append(record)
         saveRecords()
@@ -79,12 +83,26 @@ final class LoopInsights_SuggestionStore: ObservableObject {
         return record
     }
 
-    /// Add multiple suggestions as pending records
+    /// Add multiple suggestions as pending records.
+    /// Pre-existing pending suggestions whose setting type matches any of the new
+    /// suggestions are dismissed first; suggestions within this batch never
+    /// supersede each other (one analysis batch = one suggestion per setting type).
     func addSuggestions(_ suggestions: [LoopInsightsSuggestion]) -> [LoopInsightsSuggestionRecord] {
+        supersedePending(settingTypes: Set(suggestions.map { $0.settingType }))
+
         let newRecords = suggestions.map { LoopInsightsSuggestionRecord(suggestion: $0) }
         records.append(contentsOf: newRecords)
         saveRecords()
         return newRecords
+    }
+
+    /// Dismiss pending records for the given setting types. Automatic replacement,
+    /// not a user action — deliberately does NOT post the "dismissed" DataLayer
+    /// notification so analytics don't count these as user dismissals.
+    private func supersedePending(settingTypes: Set<LoopInsightsSettingType>) {
+        for index in records.indices where records[index].status == .pending && settingTypes.contains(records[index].suggestion.settingType) {
+            records[index].markDismissed()
+        }
     }
 
     /// Mark a record as applied

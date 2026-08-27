@@ -28,6 +28,12 @@ final class MockLoopInsightsDataProvider: LoopInsightsDataProviderProtocol {
         return mockCarbEntries.filter { $0.startDate >= start && $0.startDate <= end }
     }
 
+    func deleteCarbEntry(_ entry: StoredCarbEntry) async throws -> Bool {
+        let countBefore = mockCarbEntries.count
+        mockCarbEntries.removeAll { $0.syncIdentifier == entry.syncIdentifier }
+        return mockCarbEntries.count < countBefore
+    }
+
     func getNormalizedDoseEntries(start: Date, end: Date) async throws -> [DoseEntry] {
         return mockDoseEntries.filter { $0.startDate >= start && $0.startDate <= end }
     }
