@@ -6116,6 +6116,12 @@
             "value" : "Ajouter un élément à la ligne inférieure"
           }
         },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilføy element til bunnraden"
+          }
+        },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6137,6 +6143,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ajouter un élément à l'écran de verrouillage / CarPlay"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilføy en enhet til låseskjermen / CarPlay skjermen"
           }
         },
         "ro" : {
@@ -6303,6 +6315,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ajouter une ligne prédictive"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilføy forutsigende linje"
           }
         },
         "ro" : {
@@ -11286,6 +11304,12 @@
             "value" : "Ligne inférieure"
           }
         },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bunnrad"
+          }
+        },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11314,6 +11338,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Configuration de la ligne inférieure"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konfigurasjon av bunnraden"
           }
         },
         "ro" : {
@@ -12202,7 +12232,7 @@
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Legg til karbohydrater"
+            "value" : "Legg inn karbohydrater"
           }
         },
         "nl" : {
@@ -14837,10 +14867,22 @@
     "Configure Display" : {
       "comment" : "Title for the view to configure the lock screen display",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anzeige konfigurieren"
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Configurer l'affichage"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilpass skjermen"
           }
         },
         "nl" : {
@@ -14871,6 +14913,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Configurer l'écran de verrouillage / CarPlay"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilpass låseskjerm / Carplay rad"
           }
         },
         "ro" : {
@@ -16135,6 +16183,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Préréglage personnalisé"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Engendefinert forhåndsinnstilling"
           }
         },
         "ro" : {
@@ -18315,6 +18369,12 @@
             "value" : "Afficher les couleurs du glucose"
           }
         },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vis fargene for glukose."
+          }
+        },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18337,6 +18397,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Options de contrôle de l'affichage"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vis kontrollopsjonene"
           }
         },
         "ro" : {
@@ -18368,6 +18434,12 @@
             "value" : "Afficher la prédiction dans le graphique"
           }
         },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vis prognosen i et diagram."
+          }
+        },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18395,6 +18467,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Affiche jusqu'à 4 éléments. La forme abrégée du libellé figure entre parenthèses."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vis opp til 4 elementer. Visningsetiketten står i parantes."
           }
         },
         "ro" : {
@@ -19145,6 +19223,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Activé"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktivert"
           }
         },
         "nl" : {
@@ -23716,6 +23800,12 @@
             "value" : "Je suis un testeur"
           }
         },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeg er en tester"
+          }
+        },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26866,6 +26956,12 @@
             "value" : "Activité en direct"
           }
         },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live activity"
+          }
+        },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27059,6 +27155,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Écran verrouillé / Dynamic Island / CarPlay"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Låseskjerm / Dynamic Island / CarPlay"
           }
         },
         "ro" : {
@@ -29524,6 +29626,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mode"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modus"
           }
         },
         "ro" : {
@@ -37576,6 +37684,12 @@
             "value" : "Options d'affichage de l'écran verrouillé"
           }
         },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velg ut opsjonene til låseskjermvisning"
+          }
+        },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
@@ -39520,6 +39634,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Basculer sur main"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bytt til main"
           }
         },
         "nl" : {
@@ -41625,6 +41745,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Il s'agit de la version de développement de Loop, compilée à partir de la branche « dev ». Toute mise à jour de cette branche peut contenir de nouvelles fonctionnalités non testées et pourrait présenter des risques. Si vous n'êtes pas testeur, veuillez ne pas utiliser cette branche et passer plutôt à la branche « main »."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dette er utviklingsversjonen av Loop, bygget fra dev-grenen. Oppdateringer på denne grenen kan inneholde nye, utestede funksjoner og kan være usikre. Hvis du ikke er tester, bør du ikke bruke denne grenen, men bytte til main."
           }
         },
         "nl" : {
@@ -43955,6 +44081,12 @@
             "value" : "Utiliser la coloration de glycémie"
           }
         },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bruk BG fargelegging"
+          }
+        },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
@@ -44581,6 +44713,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Avertissement"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advarsel"
           }
         },
         "nl" : {

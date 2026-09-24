@@ -331,57 +331,47 @@ final class StatusTableViewController: LoopChartsTableViewController {
         deviceManager.pumpManagerHUDProvider?.visible = active && onscreen
     }
 
-    private lazy var carbEntryButton = makeToolbarButton(imageNamed: "carbs", tintColor: .carbTintColor, action: #selector(userTappedAddCarbs))
-    private lazy var bolusButton = makeToolbarButton(imageNamed: "bolus", tintColor: .insulinTintColor, action: #selector(presentBolusScreen))
-    private lazy var settingsButton = makeToolbarButton(imageNamed: "settings", tintColor: .secondaryLabel, action: #selector(onSettingsTapped))
+    private lazy var carbsItem = makeToolbarItem(title: NSLocalizedString("Add Meal", comment: "The label of the carb entry button"), image: UIImage(named: "carbs"), tintColor: .carbTintColor, action: #selector(userTappedAddCarbs))
+    private lazy var bolusItem = makeToolbarItem(title: NSLocalizedString("Bolus", comment: "The label of the bolus entry button"), image: UIImage(named: "bolus"), tintColor: .insulinTintColor, action: #selector(presentBolusScreen))
+    private lazy var settingsItem = makeToolbarItem(title: NSLocalizedString("Settings", comment: "The label of the settings button"), image: UIImage(named: "settings"), tintColor: .secondaryLabel, action: #selector(onSettingsTapped))
+    private lazy var preMealItem = makeToolbarItem(title: NSLocalizedString("Pre-Meal Targets", comment: "The label of the pre-meal mode toggle button"), image: UIImage.preMealImage(selected: false), tintColor: .carbTintColor, action: #selector(premealButtonTapped(_:)))
+    private lazy var workoutItem = makeToolbarItem(title: NSLocalizedString("Workout Targets", comment: "The label of the workout mode toggle button"), image: UIImage.workoutImage(selected: false), tintColor: .glucoseTintColor, action: #selector(toggleWorkoutMode(_:)))
 
-    private lazy var workoutButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.tintColor = .glucoseTintColor
-        button.addTarget(self, action: #selector(toggleWorkoutMode(_:)), for: .touchUpInside)
-        button.constrainToToolbarIconSize()
-        return button
-    }()
-
-    private func makeToolbarButton(imageNamed name: String, tintColor: UIColor, action: Selector) -> UIButton {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(named: name), for: .normal)
-        button.tintColor = tintColor
-        button.addTarget(self, action: action, for: .touchUpInside)
-        button.constrainToToolbarIconSize()
-        return button
+    private func makeToolbarItem(title: String, image: UIImage?, tintColor: UIColor, action: Selector) -> UIBarButtonItem {
+        let item = UIBarButtonItem(image: image, style: .plain, target: self, action: action)
+        item.title = title
+        item.tintColor = tintColor
+        return item
     }
 
     private func setupToolbarItems() {
-        let carbs = UIBarButtonItem(customView: carbEntryButton)
-        let bolus = UIBarButtonItem(customView: bolusButton)
-        let settings = UIBarButtonItem(customView: settingsButton)
-
-        carbs.title = "Add Meal"
-
-        let preMeal = createPreMealButtonItem(selected: false, isEnabled: true)
-        updateWorkoutButton(selected: false, isEnabled: true)
-        let workout = UIBarButtonItem(customView: workoutButton)
-
         func flexibleSpace() -> UIBarButtonItem {
             UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
         }
 
         if Self.usesLiquidGlassToolbarLayout {
-            toolbarItems = [carbs, preMeal, bolus, workout, settings]
+            toolbarItems = [carbsItem, preMealItem, bolusItem, workoutItem, settingsItem]
         } else {
             toolbarItems = [
-                carbs,
+                carbsItem,
                 flexibleSpace(),
-                preMeal,
+                preMealItem,
                 flexibleSpace(),
-                bolus,
+                bolusItem,
                 flexibleSpace(),
-                workout,
+                workoutItem,
                 flexibleSpace(),
-                settings
+                settingsItem
             ]
         }
+#if compiler(>=6.4)
+        if #available(iOS 27, *) {
+            for item in [carbsItem, preMealItem, bolusItem, workoutItem, settingsItem] {
+                item.isPaddingRemoved = true
+            }
+            settingsItem.visibilityPriority = .high
+        }
+#endif
     }
 
     /// Whether the iOS 26 Liquid Glass toolbar is actually rendering, which is what
@@ -403,17 +393,25 @@ final class StatusTableViewController: LoopChartsTableViewController {
     private func updateToolbarItems() {
         let isPumpOnboarded = onboardingManager.isComplete || deviceManager.pumpManager?.isOnboarded == true
 
-        carbEntryButton.accessibilityLabel = NSLocalizedString("Add Meal", comment: "The label of the carb entry button")
-        carbEntryButton.isEnabled = isPumpOnboarded
-        bolusButton.accessibilityLabel = NSLocalizedString("Bolus", comment: "The label of the bolus entry button")
-        bolusButton.isEnabled = isPumpOnboarded
-        settingsButton.accessibilityLabel = NSLocalizedString("Settings", comment: "The label of the settings button")
+        carbsItem.isEnabled = isPumpOnboarded
+        bolusItem.isEnabled = isPumpOnboarded
 
-        // Must match the layout chosen in setupToolbarItems(): index 1 in the
-        // spacer-less Liquid Glass list, index 2 when flexible spaces are interleaved.
-        let preMealIndex = Self.usesLiquidGlassToolbarLayout ? 1 : 2
-        toolbarItems![preMealIndex] = createPreMealButtonItem(selected: preMealMode == true && preMealModeAllowed, isEnabled: preMealModeAllowed)
-        updateWorkoutButton(selected: workoutMode == true && workoutModeAllowed, isEnabled: workoutModeAllowed)
+        let preMealSelected = preMealMode == true && preMealModeAllowed
+        updateToggleItem(preMealItem, image: UIImage.preMealImage(selected: preMealSelected), selected: preMealSelected, isEnabled: preMealModeAllowed)
+        let workoutSelected = workoutMode == true && workoutModeAllowed
+        updateToggleItem(workoutItem, image: UIImage.workoutImage(selected: workoutSelected), selected: workoutSelected, isEnabled: workoutModeAllowed)
+    }
+
+    private func updateToggleItem(_ item: UIBarButtonItem, image: UIImage?, selected: Bool, isEnabled: Bool) {
+        item.image = image
+        item.isEnabled = isEnabled
+        if selected {
+            item.accessibilityTraits.insert(.selected)
+            item.accessibilityHint = NSLocalizedString("Disables", comment: "The action hint of the workout mode toggle button when enabled")
+        } else {
+            item.accessibilityTraits.remove(.selected)
+            item.accessibilityHint = NSLocalizedString("Enables", comment: "The action hint of the workout mode toggle button when disabled")
+        }
     }
 
     public var basalDeliveryState: PumpManagerStatus.BasalDeliveryState? = nil {
@@ -1669,39 +1667,6 @@ final class StatusTableViewController: LoopChartsTableViewController {
         deviceManager.analyticsServicesManager.didDisplayBolusScreen()
     }
 
-    private func createPreMealButtonItem(selected: Bool, isEnabled: Bool) -> UIBarButtonItem {
-        let item = UIBarButtonItem(image: UIImage.preMealImage(selected: selected), style: .plain, target: self, action: #selector(premealButtonTapped(_:)))
-        item.accessibilityLabel = NSLocalizedString("Pre-Meal Targets", comment: "The label of the pre-meal mode toggle button")
-
-        if selected {
-            item.accessibilityTraits.insert(.selected)
-            item.accessibilityHint = NSLocalizedString("Disables", comment: "The action hint of the workout mode toggle button when enabled")
-        } else {
-            item.accessibilityHint = NSLocalizedString("Enables", comment: "The action hint of the workout mode toggle button when disabled")
-        }
-
-        item.tintColor = UIColor.carbTintColor
-        item.isEnabled = isEnabled
-
-        return item
-    }
-    
-    private func updateWorkoutButton(selected: Bool, isEnabled: Bool) {
-        workoutButton.setImage(UIImage.workoutImage(selected: selected), for: .normal)
-        workoutButton.accessibilityLabel = NSLocalizedString("Workout Targets", comment: "The label of the workout mode toggle button")
-
-        if selected {
-            workoutButton.accessibilityTraits.insert(.selected)
-            workoutButton.accessibilityHint = NSLocalizedString("Disables", comment: "The action hint of the workout mode toggle button when enabled")
-        } else {
-            workoutButton.accessibilityTraits.remove(.selected)
-            workoutButton.accessibilityHint = NSLocalizedString("Enables", comment: "The action hint of the workout mode toggle button when disabled")
-        }
-
-        workoutButton.isEnabled = isEnabled
-        workoutButton.sizeToFit()
-    }
-
     @IBAction func premealButtonTapped(_ sender: UIBarButtonItem) {
         togglePreMealMode(confirm: false)
     }
@@ -1770,10 +1735,7 @@ final class StatusTableViewController: LoopChartsTableViewController {
             }
         } else {
             if FeatureFlags.sensitivityOverridesEnabled {
-                // Must match setupToolbarItems(): index 3 in the spacer-less Liquid Glass
-                // list, index 6 when flexible spaces are interleaved.
-                let overridesIndex = Self.usesLiquidGlassToolbarLayout ? 3 : 6
-                performSegue(withIdentifier: OverrideSelectionViewController.className, sender: toolbarItems![overridesIndex])
+                performSegue(withIdentifier: OverrideSelectionViewController.className, sender: workoutItem)
             } else {
                 presentWorkoutModeAlertController()
             }
@@ -2296,15 +2258,6 @@ final class StatusTableViewController: LoopChartsTableViewController {
 
     @objc private func stepActiveScenarioBackward() {
         testingScenariosManager.stepActiveScenarioBackward { _ in }
-    }
-}
-
-private extension UIButton {
-    func constrainToToolbarIconSize() {
-        setContentHuggingPriority(.required, for: .horizontal)
-        setContentHuggingPriority(.required, for: .vertical)
-        setContentCompressionResistancePriority(.required, for: .horizontal)
-        setContentCompressionResistancePriority(.required, for: .vertical)
     }
 }
 
