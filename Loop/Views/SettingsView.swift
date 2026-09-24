@@ -701,14 +701,21 @@ fileprivate struct PowerPackGroupBorder: View {
     let position: PowerPackRowPosition
 
     private let purple = Color(red: 107/255, green: 47/255, blue: 160/255)
-    private let cornerRadius: CGFloat = 10
     private let lineWidth: CGFloat = 1.5
+
+    /// Must match the system's inset-grouped section corners, because the list clips
+    /// row backgrounds to that shape: a smaller radius gets its corners cut off.
+    /// Liquid Glass (iOS 26+) uses ~26pt; the legacy design uses 10pt.
+    private var cornerRadius: CGFloat {
+        StatusTableViewController.usesLiquidGlassToolbarLayout ? 26 : 10
+    }
 
     var body: some View {
         Color(.secondarySystemGroupedBackground)
             .overlay(
                 PowerPackBorderShape(position: position, cornerRadius: cornerRadius, lineWidth: lineWidth)
                     .stroke(purple, lineWidth: lineWidth)
+                    .clipped() // hide the parts of the box that extend past this row's open edges
             )
     }
 }
@@ -718,41 +725,30 @@ fileprivate struct PowerPackBorderShape: Shape {
     let cornerRadius: CGFloat
     let lineWidth: CGFloat
 
+    /// Draws one full continuous-corner rounded box that overhangs this row's open
+    /// edge(s) by more than a corner, so only this row's own corners fall inside the
+    /// row. The caller clips the overhang. Continuous corners match the system
+    /// section shape; hand-drawn quad curves did not.
     func path(in rect: CGRect) -> Path {
-        var path = Path()
         let inset = lineWidth / 2
-        let left = rect.minX + inset
-        let right = rect.maxX - inset
-        let top = rect.minY + inset
-        let bottom = rect.maxY - inset
-        let r = cornerRadius
+        let overhang = cornerRadius * 2
+        let top: CGFloat
+        let bottom: CGFloat
 
         switch position {
         case .top:
-            // Left + right sides run to the row's bottom edge (open) so they meet
-            // the next row; rounded top-left/top-right corners close the box top.
-            path.move(to: CGPoint(x: left, y: rect.maxY))
-            path.addLine(to: CGPoint(x: left, y: top + r))
-            path.addQuadCurve(to: CGPoint(x: left + r, y: top), control: CGPoint(x: left, y: top))
-            path.addLine(to: CGPoint(x: right - r, y: top))
-            path.addQuadCurve(to: CGPoint(x: right, y: top + r), control: CGPoint(x: right, y: top))
-            path.addLine(to: CGPoint(x: right, y: rect.maxY))
+            top = rect.minY + inset
+            bottom = rect.maxY + overhang
         case .middle:
-            // Just the two vertical sides, full height, to connect neighbors.
-            path.move(to: CGPoint(x: left, y: rect.minY))
-            path.addLine(to: CGPoint(x: left, y: rect.maxY))
-            path.move(to: CGPoint(x: right, y: rect.minY))
-            path.addLine(to: CGPoint(x: right, y: rect.maxY))
+            top = rect.minY - overhang
+            bottom = rect.maxY + overhang
         case .bottom:
-            // Sides start at the row's top edge (open); rounded bottom corners close it.
-            path.move(to: CGPoint(x: left, y: rect.minY))
-            path.addLine(to: CGPoint(x: left, y: bottom - r))
-            path.addQuadCurve(to: CGPoint(x: left + r, y: bottom), control: CGPoint(x: left, y: bottom))
-            path.addLine(to: CGPoint(x: right - r, y: bottom))
-            path.addQuadCurve(to: CGPoint(x: right, y: bottom - r), control: CGPoint(x: right, y: bottom))
-            path.addLine(to: CGPoint(x: right, y: rect.minY))
+            top = rect.minY - overhang
+            bottom = rect.maxY - inset
         }
-        return path
+
+        let box = CGRect(x: rect.minX + inset, y: top, width: rect.width - lineWidth, height: bottom - top)
+        return RoundedRectangle(cornerRadius: cornerRadius, style: .continuous).path(in: box)
     }
 }
 
