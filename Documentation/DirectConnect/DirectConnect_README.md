@@ -51,8 +51,21 @@ failed.
   from it) afterwards. If the Dexcom app pairs with the sensor again, DirectConnect re-pairs at the
   next sensor wake, but each takeover costs readings, and the sensor screen warns you when it
   keeps happening.
-- **What you lose without the Dexcom app:** Dexcom Clarity and Dexcom Share uploads. Loop's
-  Nightscout upload still works. Dexcom app alerts are replaced by DirectConnect alarms.
+- **Dexcom app alerts** are replaced by DirectConnect alarms (below).
+
+## What you don't get with DirectConnect
+
+| Dexcom app feature | With DirectConnect | Use instead |
+|---|---|---|
+| **Dexcom Clarity** reports | Not available. Only the Dexcom app can upload to Clarity, through Dexcom's private connection. Dexcom's public developer service only lets approved apps read readings, not send them. | **Tidepool.** Settings → Services → Tidepool. Loop uploads glucose, insulin and carbs, and Tidepool produces CGM reports (time in range, average glucose, daily patterns) similar to Clarity's. Many clinics accept Tidepool reports. |
+| **Dexcom Share** / Dexcom Follow app | Not available. Loop has no supported way to send readings to Share. | **Nightscout** or **LoopFollow.** Settings → Services → Nightscout uploads glucose, insulin and carbs; followers watch them in a web browser, the Nightscout app, or the LoopFollow app, with their own alarms. |
+
+**Apple Health is not lost.** Loop saves DirectConnect readings to Apple Health (source: Loop,
+device "PowerPack DirectConnect") when Loop has write permission. Check in the Health app → Browse
+→ Vitals → Blood Glucose → Data Sources & Access.
+
+The **Upload Readings** switch on the sensor screen controls whether DirectConnect readings go to
+Tidepool and Nightscout. Leave it on to use the services above.
 
 ## Alarms
 
