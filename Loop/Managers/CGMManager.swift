@@ -16,10 +16,8 @@ let staticCGMManagersByIdentifier: [String: CGMManager.Type] = [
 ]
 
 var availableStaticCGMManagers: [CGMManagerDescriptor] {
-    // DirectConnect (PowerPack) — listed only when its feature flag is on
-    let directConnect = DirectConnect_FeatureFlags.isEnabled
-        ? [CGMManagerDescriptor(identifier: DirectConnect_G7CGMManager.pluginIdentifier, localizedTitle: DirectConnect_G7CGMManager.pickerTitle)]
-        : []
+    // DirectConnect (PowerPack) — always listed so G7 users find it; choosing it turns its feature flag on
+    let directConnect = [CGMManagerDescriptor(identifier: DirectConnect_G7CGMManager.pluginIdentifier, localizedTitle: DirectConnect_G7CGMManager.pickerTitle)]
     if FeatureFlags.allowSimulators {
         return [
             CGMManagerDescriptor(identifier: MockCGMManager.pluginIdentifier, localizedTitle: MockCGMManager.localizedTitle)

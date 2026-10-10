@@ -160,6 +160,12 @@ Files: new `DirectConnect_RecoveryPolicy.swift` (+ tests); `DirectConnect_G7CGMM
   drew the emoji as a missing-glyph box. Centered with the private `titleTextAlignment` key,
   set only when present; `DirectConnect_PickerStyleTests` fails if a future iOS drops either key.
 
+### Always in the Add CGM list
+- DirectConnect is listed in Add CGM even while its switch is off. Choosing it sets
+  `DirectConnect_FeatureFlags.isEnabled = true` (in `setupViewController`), so the switch in
+  Settings → PowerPack → DirectConnect turns on. Before, the switch had to be on first and
+  Settings reopened.
+
 ### Open items
 - Run `DirectConnect_*` tests in Xcode.
 - Device checks: reading every 5 min and Loop runs; locked phone / background; gap fill after

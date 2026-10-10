@@ -31,7 +31,9 @@ extension DirectConnect_G7CGMManager: CGMManagerUI {
     static var onboardingImage: UIImage? { nil }
 
     static func setupViewController(bluetoothProvider: BluetoothProvider, displayGlucosePreference: DisplayGlucosePreference, colorPalette: LoopUIColorPalette, allowDebugFeatures: Bool, prefersToSkipUserInteraction: Bool) -> SetupUIResult<CGMManagerViewController, CGMManagerUI> {
-        .userInteractionRequired(DirectConnect_UICoordinator(colorPalette: colorPalette, displayGlucosePreference: displayGlucosePreference))
+        // Choosing DirectConnect in the Add CGM list is the same as switching it on in Settings.
+        DirectConnect_FeatureFlags.isEnabled = true
+        return .userInteractionRequired(DirectConnect_UICoordinator(colorPalette: colorPalette, displayGlucosePreference: displayGlucosePreference))
     }
 
     func settingsViewController(bluetoothProvider: BluetoothProvider, displayGlucosePreference: DisplayGlucosePreference, colorPalette: LoopUIColorPalette, allowDebugFeatures: Bool) -> CGMManagerViewController {

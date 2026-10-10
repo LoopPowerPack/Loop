@@ -19,12 +19,11 @@ sensors. The Dexcom app is not needed.
 
 ## Turning it on
 
-1. Settings → PowerPack → **DirectConnect** → switch on.
-2. Close and reopen Settings.
-3. Settings → CGM → **Dexcom G7/ONE+ using DirectConnect** (purple). Stelo sensors use the same
-   entry.
-4. Choose the sensor type, enter the code from the applicator, tap **Pair Sensor**.
-5. Keep the phone near the sensor. Pairing completes at the sensor's next wake (up to 5 minutes).
+1. Settings → Add CGM (or tap **Add CGM** at the top of the main screen) → **Dexcom G7/ONE+ using
+   DirectConnect** (purple). Stelo sensors use the same entry. Choosing it also switches on
+   Settings → PowerPack → DirectConnect.
+2. Choose the sensor type, enter the code from the applicator, tap **Pair Sensor**.
+3. Keep the phone near the sensor. Pairing completes at the sensor's next wake (up to 5 minutes).
    The G7 warmup period then runs before readings start.
 
 The switch cannot be turned off while DirectConnect is your CGM. Delete the CGM first
