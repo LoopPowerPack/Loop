@@ -746,6 +746,17 @@
         }
       }
     },
+    "%@ · code %@" : {
+      "comment" : "DirectConnect reconnect detail (1: sensor type, 2: code)",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · code %2$@"
+          }
+        }
+      }
+    },
     "%@ %@" : {
       "comment" : "The format for an active custom preset. (1: preset symbol)(2: preset name)",
       "localizations" : {
@@ -18216,6 +18227,9 @@
     },
     "Dexcom G7 / ONE+ / Stelo without the Dexcom app" : {
       "comment" : "Descriptive text for DirectConnect Settings"
+    },
+    "Dexcom G7/ONE+ using DirectConnect" : {
+      "comment" : "DirectConnect title in the Add CGM list"
     },
     "Dexcom G7/ONE+ using DirectConnect ⚡️" : {
       "comment" : "DirectConnect CGM display title"
@@ -37312,6 +37326,9 @@
     "Recommended Presets" : {
 
     },
+    "Reconnect to %@" : {
+      "comment" : "DirectConnect reconnect button (1: sensor name)"
+    },
     "Reconnects Stopped" : {
       "comment" : "DirectConnect diag blocked"
     },
@@ -45442,6 +45459,9 @@
         }
       }
     },
+    "Use this if that sensor is still on your body and running. Loop reconnects with the saved pairing at the sensor's next wake, within about 5 minutes. For a new sensor, use Pair Sensor below." : {
+      "comment" : "DirectConnect reconnect footer"
+    },
     "Use Workout Glucose Targets" : {
       "comment" : "The title of the alert controller used to select a duration for workout targets",
       "extractionState" : "manual",
@@ -47860,6 +47880,9 @@
           }
         }
       }
+    },
+    "Your last sensor" : {
+      "comment" : "DirectConnect reconnect section header"
     },
     "Your maximum bolus amount is %1$@." : {
       "comment" : "Warning for simple bolus when max bolus is exceeded. (1: maximum bolus)",
