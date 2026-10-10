@@ -10,16 +10,22 @@ import LoopKitUI
 import MockKit
 
 let staticCGMManagersByIdentifier: [String: CGMManager.Type] = [
-    MockCGMManager.pluginIdentifier: MockCGMManager.self
+    MockCGMManager.pluginIdentifier: MockCGMManager.self,
+    // DirectConnect (PowerPack) — always registered so a configured CGM restores even if the flag is later off
+    DirectConnect_G7CGMManager.pluginIdentifier: DirectConnect_G7CGMManager.self
 ]
 
 var availableStaticCGMManagers: [CGMManagerDescriptor] {
+    // DirectConnect (PowerPack) — listed only when its feature flag is on
+    let directConnect = DirectConnect_FeatureFlags.isEnabled
+        ? [CGMManagerDescriptor(identifier: DirectConnect_G7CGMManager.pluginIdentifier, localizedTitle: DirectConnect_G7CGMManager.displayTitle)]
+        : []
     if FeatureFlags.allowSimulators {
         return [
             CGMManagerDescriptor(identifier: MockCGMManager.pluginIdentifier, localizedTitle: MockCGMManager.localizedTitle)
-        ]
+        ] + directConnect
     } else {
-        return []
+        return directConnect
     }
 }
 
