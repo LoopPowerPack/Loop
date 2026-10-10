@@ -135,7 +135,7 @@ extension DirectConnect_G7CGMManager {
                                                attributes: [.foregroundColor: grey])
         if let heart = UIImage(systemName: "heart.fill")?.withTintColor(.systemRed, renderingMode: .alwaysOriginal) {
             let attachment = NSTextAttachment(image: heart)
-            attachment.bounds = CGRect(x: 0, y: -1, width: 8, height: 7)
+            attachment.bounds = CGRect(x: 0, y: -1, width: 10, height: 9)
             result.append(NSAttributedString(attachment: attachment))
         }
         result.append(NSAttributedString(string: " " + DirectConnect_HeartbeatText.when(state.latestConnect), attributes: [.foregroundColor: grey]))

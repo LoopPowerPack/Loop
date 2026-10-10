@@ -79,7 +79,7 @@ import LoopKitUI
     private lazy var footnoteLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = .systemFont(ofSize: 9)
+        label.font = .systemFont(ofSize: 11)
         label.textColor = .secondaryLabel
         label.textAlignment = .center
         label.adjustsFontSizeToFitWidth = true
