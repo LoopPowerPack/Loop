@@ -122,7 +122,7 @@ default `false`. Same pattern as `AutoPresets_FeatureFlags`.
 Restoring an already-configured DirectConnect CGM from saved state works regardless of the flag, so
 a flag flip can never orphan the active CGM.
 
-Identifier: `PowerPackDirectConnectG7`. Display title: `Dexcom G7 / ONE+ / Stelo — PowerPack DirectConnect ⚡`.
+Identifier: `PowerPackDirectConnectG7`. Display title: `Dexcom G7/ONE+ using DirectConnect ⚡️`.
 
 ### Turning the flag off
 

@@ -37,7 +37,7 @@ struct DirectConnect_SettingsView: View {
                         .foregroundColor(.secondary)
                 }
             } footer: {
-                Text(NSLocalizedString("Loop pairs directly with Dexcom G7, ONE+ and Stelo sensors using the code on the applicator. The Dexcom app is not needed. When this is on, \"Dexcom G7 / ONE+ / Stelo — PowerPack DirectConnect ⚡\" appears in Loop's CGM list after you close and reopen Settings.", comment: "DirectConnect feature description"))
+                Text(NSLocalizedString("Loop pairs directly with Dexcom G7, ONE+ and Stelo sensors using the code on the applicator. The Dexcom app is not needed. When this is on, \"Dexcom G7/ONE+ using DirectConnect ⚡️\" appears in Loop's CGM list after you close and reopen Settings.", comment: "DirectConnect feature description"))
             }
 
             if featureEnabled {

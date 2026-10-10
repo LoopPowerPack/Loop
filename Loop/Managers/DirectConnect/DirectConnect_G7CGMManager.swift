@@ -27,7 +27,7 @@ enum DirectConnect_LifecycleState: Equatable {
 
 final class DirectConnect_G7CGMManager: CGMManager {
     static let pluginIdentifier = "PowerPackDirectConnectG7"
-    static let displayTitle = NSLocalizedString("Dexcom G7 / ONE+ / Stelo — PowerPack DirectConnect ⚡", comment: "DirectConnect CGM display title")
+    static let displayTitle = NSLocalizedString("Dexcom G7/ONE+ using DirectConnect ⚡️", comment: "DirectConnect CGM display title")
 
     /// How long to keep following a sensor after a suspected session end before scanning.
     static let suspectedSessionEndGracePeriod: TimeInterval = 15 * 60

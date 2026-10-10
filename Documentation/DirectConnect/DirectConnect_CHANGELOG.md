@@ -137,6 +137,12 @@ Files: new `DirectConnect_RecoveryPolicy.swift` (+ tests); `DirectConnect_G7CGMM
 - DirectConnect green is now #74A52E, the In Range green used by LoopInsights Time in Range
   (`clarityGreen`), replacing the unverified #64A70B.
 
+### Add CGM list entry, shorter
+- Title is now "Dexcom G7/ONE+ using DirectConnect ⚡️" so it fits on one line in the Add CGM sheet
+  (the long title was shrunk to a small font). Stelo still works; only the list title omits it.
+- The bolt carries the emoji variation selector (U+FE0F): the sheet drew the bare U+26A1 as a
+  missing-glyph box.
+
 ### Open items
 - Run `DirectConnect_*` tests in Xcode.
 - Device checks: reading every 5 min and Loop runs; locked phone / background; gap fill after
