@@ -463,7 +463,16 @@ class BarcodeScannerService: NSObject, ObservableObject {
     
     deinit {
         NotificationCenter.default.removeObserver(self)
-        stopScanning()
+        // Not stopScanning(): it schedules blocks that capture self, which crashes during
+        // deallocation ("Cannot form weak reference ... over-released"). Clean up without self.
+        sessionHealthTimer?.invalidate()
+        duplicatePreventionTimer?.invalidate()
+        let session = captureSession
+        sessionQueue.async {
+            if session.isRunning {
+                session.stopRunning()
+            }
+        }
     }
     
     /// Request camera permission

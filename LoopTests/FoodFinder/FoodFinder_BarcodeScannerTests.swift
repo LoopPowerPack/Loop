@@ -221,6 +221,11 @@ class BarcodeScannerIntegrationTests: XCTestCase {
         // Simulate a barcode scan
         service.simulateScan(barcode: testBarcode)
 
+        // The simulate helpers publish on the main queue; let that run before checking.
+        let published = expectation(description: "main queue")
+        DispatchQueue.main.async { published.fulfill() }
+        wait(for: [published], timeout: 1)
+
         // Verify the result is available
         XCTAssertNotNil(service.lastScanResult)
         XCTAssertEqual(service.lastScanResult?.barcodeString, testBarcode)
@@ -232,6 +237,11 @@ class BarcodeScannerIntegrationTests: XCTestCase {
         let error = BarcodeScanError.cameraPermissionDenied
 
         service.simulateError(error)
+
+        // The simulate helpers publish on the main queue; let that run before checking.
+        let published = expectation(description: "main queue")
+        DispatchQueue.main.async { published.fulfill() }
+        wait(for: [published], timeout: 1)
 
         XCTAssertNotNil(service.scanError)
         XCTAssertEqual(service.scanError?.localizedDescription, error.localizedDescription)
