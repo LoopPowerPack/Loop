@@ -10,8 +10,9 @@ import UIKit
 import ObjectiveC
 
 enum DirectConnect_Branding {
-    /// Dexcom brand green (Pantone 369 C, #64A70B). The single DirectConnect color.
-    static let uiColor = UIColor(red: 100/255, green: 167/255, blue: 11/255, alpha: 1)
+    /// DirectConnect green, #74A52E: the same In Range green LoopInsights uses (`clarityGreen` in
+    /// LoopInsights_DashboardView.swift), so PowerPack shows one Dexcom-style green.
+    static let uiColor = UIColor(red: 116/255, green: 165/255, blue: 46/255, alpha: 1)
     static let color = Color(uiColor)
 
     /// PowerPack purple, kept only for the "PowerPack Exclusive" badge, which names PowerPack.

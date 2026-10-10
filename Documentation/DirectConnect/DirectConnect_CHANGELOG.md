@@ -133,12 +133,15 @@ Files: new `DirectConnect_RecoveryPolicy.swift` (+ tests); `DirectConnect_G7CGMM
   The powered-on callback then connected normally, so no reading was lost.
 - `DirectConnect_BluetoothManager.swift` now connects only when Bluetooth is powered on.
 
+### Color
+- DirectConnect green is now #74A52E, the In Range green used by LoopInsights Time in Range
+  (`clarityGreen`), replacing the unverified #64A70B.
+
 ### Open items
 - Run `DirectConnect_*` tests in Xcode.
 - Device checks: reading every 5 min and Loop runs; locked phone / background; gap fill after
   being out of range; reconnect after force-quit without re-entering the code; alarms fire;
   Urgent Low audible on silent (Loop lacks Apple's Critical Alerts permission).
-- Confirm Dexcom's official green value.
 - iOS 15 differences: "Re-enter Pairing Code" alert shows no text field (Pair New Sensor still
   works); sensor SF Symbol is blank.
 - Commit, then Option B installer support (plan Task 16).

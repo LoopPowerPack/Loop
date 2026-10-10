@@ -4,6 +4,10 @@ Design spec: `DirectConnect_DESIGN.md`. Implementation plan: `DirectConnect_PLAN
 
 ## Sources
 
+The core of DirectConnect comes from **xDrip4iOS, created by Johan Degraeve** and developed with the
+xDrip4iOS contributors. Credit appears in the README, in the DirectConnect settings screen
+(Credits), and in `LICENSE-GPL-3.0.txt`.
+
 | Origin | License | Used for |
 |---|---|---|
 | xDrip4iOS 7.1.1 (`c268542e`), native G7 support added in `ecbb493d` (2026-08-30) | GPL-3.0 | Pairing state machine, J-PAKE math, certificate and proof-of-possession exchange, calibration messages, battery/firmware/extended-version parsers, per-connection command order |

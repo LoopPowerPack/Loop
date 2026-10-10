@@ -1,6 +1,9 @@
 DirectConnect — GPL-3.0 notice
 ==============================
 
+Credit: the core of DirectConnect, its G7 sensor pairing and communication, is based on
+xDrip4iOS, created by Johan Degraeve and developed with the xDrip4iOS contributors.
+
 The files listed below contain code derived from xDrip4iOS
 (https://github.com/JohanDegraeve/xdripswift, version 7.1.1, commit c268542e),
 which is licensed under the GNU General Public License, version 3.

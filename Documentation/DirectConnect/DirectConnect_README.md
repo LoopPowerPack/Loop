@@ -132,6 +132,16 @@ Diagnostics (sensor screen → Diagnostics) shows:
 Send Copy Diagnostics, not the Xcode console, when reporting a problem: the console contains
 service login tokens; Copy Diagnostics does not.
 
+## Credits
+
+DirectConnect's core, the sensor pairing and communication with G7-family sensors, is based on
+**xDrip4iOS**, created by **Johan Degraeve** and developed with the xDrip4iOS contributors
+(https://github.com/JohanDegraeve/xdripswift). Thank you. Without their work, DirectConnect would
+not exist.
+
+Also used: LoopKit's G7SensorKit (MIT) for the CGM manager structure, and micro-ecc by Kenneth
+MacKay (BSD-2-Clause) for the P-256 arithmetic.
+
 ## License
 
 DirectConnect contains code derived from xDrip4iOS, licensed under the GNU GPL version 3. Builds
