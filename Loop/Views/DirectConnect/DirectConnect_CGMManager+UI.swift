@@ -127,13 +127,13 @@ enum DirectConnect_HeartbeatText {
 }
 
 extension DirectConnect_G7CGMManager {
-    /// "Last ♥ today @ 1:33p": when DirectConnect last heard from the sensor, so a user can see
-    /// it is working even between readings or while the sensor withholds values.
+    /// "Last sensor ♥ today @ 1:33p": when DirectConnect last heard from the sensor, so a user can
+    /// see it is working even between readings or while the sensor withholds values.
     var hudFootnote: NSAttributedString {
         let grey = UIColor.secondaryLabel
-        let result = NSMutableAttributedString(string: NSLocalizedString("Last ", comment: "DirectConnect HUD footnote prefix"),
+        let result = NSMutableAttributedString(string: NSLocalizedString("Last sensor ", comment: "DirectConnect HUD footnote prefix"),
                                                attributes: [.foregroundColor: grey])
-        if let heart = UIImage(systemName: "heart.fill")?.withTintColor(grey, renderingMode: .alwaysOriginal) {
+        if let heart = UIImage(systemName: "heart.fill")?.withTintColor(.systemRed, renderingMode: .alwaysOriginal) {
             let attachment = NSTextAttachment(image: heart)
             attachment.bounds = CGRect(x: 0, y: -1, width: 8, height: 7)
             result.append(NSAttributedString(attachment: attachment))

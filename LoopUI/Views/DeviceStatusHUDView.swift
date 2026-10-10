@@ -88,15 +88,21 @@ import LoopKitUI
         return label
     }()
 
+    /// The strip between the pill (or the progress bar, when shown) and the bottom of this view,
+    /// which is where the next block on the screen starts. The footnote is centered in it.
+    private let footnoteGap = UILayoutGuide()
     private var footnoteUnderPill: NSLayoutConstraint?
     private var footnoteUnderProgress: NSLayoutConstraint?
 
     private func installFootnoteLabel() {
         guard let backgroundView = backgroundView else { return }
         addSubview(footnoteLabel)
-        footnoteUnderPill = footnoteLabel.topAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: 2)
-        footnoteUnderProgress = footnoteLabel.topAnchor.constraint(equalTo: progressView.bottomAnchor, constant: 1)
+        addLayoutGuide(footnoteGap)
+        footnoteUnderPill = footnoteGap.topAnchor.constraint(equalTo: backgroundView.bottomAnchor)
+        footnoteUnderProgress = footnoteGap.topAnchor.constraint(equalTo: progressView.bottomAnchor)
         NSLayoutConstraint.activate([
+            footnoteGap.bottomAnchor.constraint(equalTo: bottomAnchor),
+            footnoteLabel.centerYAnchor.constraint(equalTo: footnoteGap.centerYAnchor),
             footnoteLabel.centerXAnchor.constraint(equalTo: backgroundView.centerXAnchor),
             footnoteLabel.widthAnchor.constraint(lessThanOrEqualTo: backgroundView.widthAnchor),
         ])

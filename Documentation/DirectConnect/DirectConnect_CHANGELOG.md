@@ -167,7 +167,8 @@ Files: new `DirectConnect_RecoveryPolicy.swift` (+ tests); `DirectConnect_G7CGMM
   Settings reopened.
 
 ### Last sensor contact under the main-screen CGM pill
-- When DirectConnect is the CGM, a small grey line under the pill reads "Last ♥ today @ 1:33p"
+- When DirectConnect is the CGM, a small grey line under the pill reads "Last sensor ♥ today @ 1:33p"
+  (red heart), vertically centered between the pill and the next block
   (`latestConnect`; "yesterday @", "Oct 7 @", or "none yet"). It moves below the sensor-life bar
   when that bar shows (last 48 h, grace period, expired).
 - `LoopUI/Views/DeviceStatusHUDView.swift`: new `footnote` (attributed string, nil hides it).
