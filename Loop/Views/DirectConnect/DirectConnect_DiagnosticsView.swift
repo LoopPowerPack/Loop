@@ -146,7 +146,10 @@ struct DirectConnect_DiagnosticsView: View {
                     Text(String(format: NSLocalizedString("Take-backs %d · pairing failures %d", comment: "DirectConnect health recovery (1: take-backs, 2: failures)"),
                                 summary.reclaims, summary.pairingFailures))
                 }
-                .font(.caption)
+                // One line each: these are short counts, and wrapped halves were hard to read.
+                .font(.caption2)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
                 .foregroundColor(.secondary)
             }
         }
