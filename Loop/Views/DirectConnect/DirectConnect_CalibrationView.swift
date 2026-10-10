@@ -18,13 +18,41 @@ struct DirectConnect_CalibrationView: View {
     @State private var status: DirectConnect_CalibrationStatus
     @State private var message: String?
     @State private var lastCompleted: DirectConnect_PendingCalibration?
+    @State private var queue: DirectConnect_CalibrationQueue
 
     init(cgmManager: DirectConnect_G7CGMManager, displayGlucosePreference: DisplayGlucosePreference) {
         self.cgmManager = cgmManager
         self.displayGlucosePreference = displayGlucosePreference
         _status = State(initialValue: cgmManager.state.calibration.status)
         _lastCompleted = State(initialValue: cgmManager.state.calibration.lastCompleted)
+        _queue = State(initialValue: cgmManager.state.calibration)
     }
+
+    /// What is happening to the current value, in words, so the fixed footer above (which
+    /// describes how calibration works) is not read as this value's status.
+    private var statusDetail: String? {
+        let format = { (value: Double) in
+            displayGlucosePreference.format(HKQuantity(unit: .milligramsPerDeciliter, doubleValue: value))
+        }
+        switch status {
+        case .queued:
+            guard let pending = queue.pending else { return nil }
+            return String(format: NSLocalizedString("%@ is waiting for the sensor's next connection (within about 5 minutes).", comment: "DirectConnect calibration queued detail (1: value)"), format(pending.glucose))
+        case .processing:
+            guard let value = queue.awaitingBounds else { return nil }
+            let accepted = queue.awaitingSince.map { Self.timeFormatter.string(from: $0) } ?? "–"
+            return String(format: NSLocalizedString("The sensor accepted %@ at %@ and is applying it. It confirms at a later connection, usually within 10 minutes.", comment: "DirectConnect calibration processing detail (1: value, 2: time)"), format(value.glucose), accepted)
+        default:
+            return nil
+        }
+    }
+
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter
+    }()
 
     private var isMmol: Bool { displayGlucosePreference.unit == .millimolesPerLiter }
 
@@ -37,7 +65,7 @@ struct DirectConnect_CalibrationView: View {
 
     var body: some View {
         Form {
-            Section(footer: Text(NSLocalizedString("Use a fresh fingerstick taken with clean, dry hands. The value is sent to the sensor at its next connection, within about 5 minutes. Most G7 sensors are factory calibrated and do not need this.", comment: "DirectConnect calibration footer"))) {
+            Section(footer: Text(NSLocalizedString("Use a fresh fingerstick taken with clean, dry hands. The value is sent to the sensor at its next connection, within 5 min.", comment: "DirectConnect calibration footer"))) {
                 HStack {
                     TextField(isMmol ? "5.5" : "100", text: $entry)
                         .keyboardType(.decimalPad)
@@ -61,6 +89,11 @@ struct DirectConnect_CalibrationView: View {
 
             Section(header: Text(NSLocalizedString("Status", comment: "DirectConnect calibration status section"))) {
                 Text(status.text)
+                if let detail = statusDetail {
+                    Text(detail)
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
                 if let message = message {
                     Text(message).foregroundColor(.red)
                 }
@@ -86,6 +119,7 @@ struct DirectConnect_CalibrationView: View {
     private func refresh() {
         status = cgmManager.state.calibration.status
         lastCompleted = cgmManager.state.calibration.lastCompleted
+        queue = cgmManager.state.calibration
     }
 
     private static let dateFormatter: DateFormatter = {
