@@ -144,3 +144,29 @@ final class DirectConnect_PickerStyleTests: XCTestCase {
         XCTAssertTrue(names.contains("_titleTextAlignment"), "titleTextAlignment key missing on this iOS")
     }
 }
+
+final class DirectConnect_HeartbeatTextTests: XCTestCase {
+    private var calendar: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "America/Los_Angeles")!
+        return c
+    }()
+    private let locale = Locale(identifier: "en_US")
+    private func date(_ day: Int, _ hour: Int, _ minute: Int) -> Date {
+        calendar.date(from: DateComponents(year: 2026, month: 10, day: day, hour: hour, minute: minute))!
+    }
+
+    func testTodayUsesShortTime() {
+        XCTAssertEqual(DirectConnect_HeartbeatText.when(date(10, 13, 33), now: date(10, 14, 0), calendar: calendar, locale: locale), "today @ 1:33p")
+        XCTAssertEqual(DirectConnect_HeartbeatText.when(date(10, 9, 5), now: date(10, 14, 0), calendar: calendar, locale: locale), "today @ 9:05a")
+    }
+
+    func testYesterdayAndOlder() {
+        XCTAssertEqual(DirectConnect_HeartbeatText.when(date(9, 22, 0), now: date(10, 8, 0), calendar: calendar, locale: locale), "yesterday @ 10:00p")
+        XCTAssertEqual(DirectConnect_HeartbeatText.when(date(7, 22, 0), now: date(10, 8, 0), calendar: calendar, locale: locale), "Oct 7 @ 10:00p")
+    }
+
+    func testNoContactYet() {
+        XCTAssertEqual(DirectConnect_HeartbeatText.when(nil, now: date(10, 8, 0), calendar: calendar, locale: locale), "none yet")
+    }
+}

@@ -92,3 +92,54 @@ extension DirectConnect_G7CGMManager: CGMManagerUI {
         }
     }
 }
+
+// MARK: - Last sensor contact under the main-screen CGM pill
+
+/// Wording for the "Last ♥ today @ 1:33p" line. Pure, so it can be tested with a fixed clock.
+enum DirectConnect_HeartbeatText {
+    static func when(_ contact: Date?, now: Date = Date(), calendar: Calendar = .current, locale: Locale = .current) -> String {
+        guard let contact = contact else {
+            return NSLocalizedString("none yet", comment: "DirectConnect HUD: no sensor contact yet")
+        }
+        let time = DateFormatter()
+        time.locale = locale
+        time.calendar = calendar
+        time.timeZone = calendar.timeZone
+        time.setLocalizedDateFormatFromTemplate("jmm")
+        // "1:33 PM" → "1:33p": the line under the pill has room for about 20 characters.
+        let clock = time.string(from: contact)
+            .replacingOccurrences(of: "\u{202F}", with: " ")
+            .replacingOccurrences(of: " AM", with: "a")
+            .replacingOccurrences(of: " PM", with: "p")
+        if calendar.isDate(contact, inSameDayAs: now) {
+            return String(format: NSLocalizedString("today @ %@", comment: "DirectConnect HUD contact today (1: time)"), clock)
+        }
+        if let yesterday = calendar.date(byAdding: .day, value: -1, to: now), calendar.isDate(contact, inSameDayAs: yesterday) {
+            return String(format: NSLocalizedString("yesterday @ %@", comment: "DirectConnect HUD contact yesterday (1: time)"), clock)
+        }
+        let day = DateFormatter()
+        day.locale = locale
+        day.calendar = calendar
+        day.timeZone = calendar.timeZone
+        day.setLocalizedDateFormatFromTemplate("MMMd")
+        return "\(day.string(from: contact)) @ \(clock)"
+    }
+}
+
+extension DirectConnect_G7CGMManager {
+    /// "Last ♥ today @ 1:33p": when DirectConnect last heard from the sensor, so a user can see
+    /// it is working even between readings or while the sensor withholds values.
+    var hudFootnote: NSAttributedString {
+        let grey = UIColor.secondaryLabel
+        let result = NSMutableAttributedString(string: NSLocalizedString("Last ", comment: "DirectConnect HUD footnote prefix"),
+                                               attributes: [.foregroundColor: grey])
+        if let heart = UIImage(systemName: "heart.fill")?.withTintColor(grey, renderingMode: .alwaysOriginal) {
+            let attachment = NSTextAttachment(image: heart)
+            attachment.bounds = CGRect(x: 0, y: -1, width: 8, height: 7)
+            result.append(NSAttributedString(attachment: attachment))
+        }
+        result.append(NSAttributedString(string: " " + DirectConnect_HeartbeatText.when(state.latestConnect), attributes: [.foregroundColor: grey]))
+        return result
+    }
+}
+

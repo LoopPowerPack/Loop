@@ -166,6 +166,15 @@ Files: new `DirectConnect_RecoveryPolicy.swift` (+ tests); `DirectConnect_G7CGMM
   Settings → PowerPack → DirectConnect turns on. Before, the switch had to be on first and
   Settings reopened.
 
+### Last sensor contact under the main-screen CGM pill
+- When DirectConnect is the CGM, a small grey line under the pill reads "Last ♥ today @ 1:33p"
+  (`latestConnect`; "yesterday @", "Oct 7 @", or "none yet"). It moves below the sensor-life bar
+  when that bar shows (last 48 h, grace period, expired).
+- `LoopUI/Views/DeviceStatusHUDView.swift`: new `footnote` (attributed string, nil hides it).
+  `StatusTableViewController.swift` sets it from `DirectConnect_G7CGMManager.hudFootnote`.
+  Wording: `DirectConnect_HeartbeatText` (tests in `DirectConnect_StateTests.swift`).
+- The line refreshes when the main screen reloads (each reading or Loop cycle), not every minute.
+
 ### Open items
 - Run `DirectConnect_*` tests in Xcode.
 - Device checks: reading every 5 min and Loop runs; locked phone / background; gap fill after
