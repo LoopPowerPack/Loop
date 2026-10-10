@@ -58,7 +58,7 @@ struct DirectConnect_SettingsView: View {
             }
 
             Section(header: Text(NSLocalizedString("Credits", comment: "DirectConnect credits header"))) {
-                Text(NSLocalizedString("DirectConnect's sensor pairing and communication are based on xDrip4iOS, created by Johan Degraeve and developed with the xDrip4iOS contributors. Thank you. xDrip4iOS is open source under the GNU GPL version 3.", comment: "DirectConnect xDrip4iOS credit"))
+                Text(NSLocalizedString("DirectConnect's sensor pairing and communication are based on xDrip4iOS, created by Johan Degraeve and developed with the xDrip4iOS contributors. Thank you. xDrip4iOS is open source under the GNU GPL ver 3.", comment: "DirectConnect xDrip4iOS credit"))
                     .font(.footnote)
                 Link(NSLocalizedString("xDrip4iOS on GitHub", comment: "DirectConnect xDrip4iOS link"), destination: URL(string: "https://github.com/JohanDegraeve/xdripswift")!)
                     .font(.footnote)
