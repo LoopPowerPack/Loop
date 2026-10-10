@@ -36,7 +36,8 @@ FoodFinder runs on a **bring-your-own API key** model. You configure your prefer
 4. **Adjust serving count** if you ate more or less than one serving.
 5. **Tap Apply.**
 
-If a product isn't in OpenFoodFacts, the result screen offers a "Try AI Camera" fallback.
+If a product isn't in OpenFoodFacts, or its entry has neither a product name nor a brand, the
+result screen offers a "Try AI Camera" fallback.
 
 **QR codes.** The scanner also reads QR and Data Matrix codes that contain a product number. Many
 packages print a QR code (often a marketing link) beside the barcode, and the barcode is the more

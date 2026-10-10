@@ -39,6 +39,7 @@ carries `Portions derived from xDrip4iOS … GPL-3.0` and is listed in
 | `…/DirectConnect_AlarmSettings.swift` | Alarm settings model and persistence |
 | `…/DirectConnect_Diagnostics.swift` | 3,000-line log kept on disk (`Application Support/DirectConnect/diagnostics.log`) |
 | `…/DirectConnect_ConnectionHealth.swift` | 7 days of connection events on disk (`health.json`) and the pure `DirectConnect_HealthSummary` (received/missed wakes, gaps) |
+| `…/DirectConnect_KeyStore.swift` (also) | `DirectConnect_LastSensor` / `DirectConnect_LastSensorStore`: the one sensor remembered after Delete CGM (UserDefaults `com.loopkit.Loop.directConnect.lastSensor`); remembering or pairing another sensor erases the older Keychain key |
 | `…/DirectConnect_RecoveryPolicy.swift` | Pure timing rules for take-back and the watchdog |
 | `Views/DirectConnect/DirectConnect_Tips.swift` | Tip card, numbered steps, all guidance text |
 | `Views/DirectConnect/DirectConnect_Branding.swift` | DirectConnect color (Dexcom green) and picker-entry styling |
@@ -46,6 +47,21 @@ carries `Portions derived from xDrip4iOS … GPL-3.0` and is listed in
 | `…/Crypto/DirectConnect_ECC.c/.h`, `micro-ecc/` | P-256 point add/subtract/multiply (CryptoKit lacks these) |
 | `…/DirectConnect-Bridging.h` | Loop target bridging header (C → Swift) |
 | `Views/DirectConnect/*` | CGMManagerUI conformance, coordinator, setup, status, calibration, diagnostics, settings, alarms |
+
+## Delete CGM and reconnect
+
+`delete()` remembers the current sensor (`DirectConnect_LastSensorStore.remember`), keeps its key,
+and calls `sensor.shutDown()` → `BluetoothManager.shutDown()`: no scan, discovery or reconnect
+afterwards (a plain disconnect rescans 2 s later). Setup shows "Reconnect to <name>";
+`DirectConnect_UICoordinator.completeReconnect(to:)` builds the manager from
+`DirectConnect_LastSensor.reconnectState` (short authentication; full pairing with the stored code
+if the key is refused). `didPairWith` calls `forget(unless:)` and erases the previous sensor's key.
+Untested on a device: the deleted and new managers briefly hold CBCentralManagers with the same
+restore identifier.
+
+The Add CGM list shows `pickerTitle` (no bolt: with the private purple title color the sheet drew
+the emoji as a missing-glyph box), centered with the private `titleTextAlignment` key.
+`DirectConnect_PickerStyleTests` fails if iOS drops `_titleTextColor` or `_titleTextAlignment`.
 
 ## Changes to existing Loop files
 

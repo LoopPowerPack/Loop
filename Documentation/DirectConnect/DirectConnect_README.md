@@ -21,7 +21,8 @@ sensors. The Dexcom app is not needed.
 
 1. Settings → PowerPack → **DirectConnect** → switch on.
 2. Close and reopen Settings.
-3. Settings → CGM → **Dexcom G7/ONE+ using DirectConnect ⚡️**.
+3. Settings → CGM → **Dexcom G7/ONE+ using DirectConnect** (purple). Stelo sensors use the same
+   entry.
 4. Choose the sensor type, enter the code from the applicator, tap **Pair Sensor**.
 5. Keep the phone near the sensor. Pairing completes at the sensor's next wake (up to 5 minutes).
    The G7 warmup period then runs before readings start.
@@ -106,6 +107,10 @@ urgent level Loop can request. Test with your phone on silent before relying on 
 Sensor screen → **Calibrate**. Enter a fresh fingerstick value. It is sent at the next sensor
 connection (within about 5 minutes). The status shows Queued → Sent → Processing → Completed, or
 the reason the sensor rejected it. Values older than 5 minutes are not sent.
+
+A line under the status says what is happening to your value: while Queued, that it is waiting for
+the next connection; while Processing, the time the sensor accepted it. The text under the entry
+box is a fixed explanation of how calibration works, not the status of your value.
 
 - A new value can be entered while an earlier one still shows Processing; the new one replaces it.
 - Processing ends after 30 minutes at most. If the sensor never confirmed the value, the status
