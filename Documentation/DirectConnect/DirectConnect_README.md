@@ -29,6 +29,12 @@ sensors. The Dexcom app is not needed.
 The switch cannot be turned off while DirectConnect is your CGM. Delete the CGM first
 (Settings → CGM → DirectConnect → Delete CGM).
 
+**Deleting and adding back.** Delete CGM stops all DirectConnect Bluetooth activity and remembers
+that one sensor: its name, code and saved pairing. When you add DirectConnect again, setup shows
+**Reconnect to DXCM…** with the code; tap it to reconnect at the sensor's next wake, without the
+applicator. Loop remembers only the last sensor; pairing a different sensor erases the remembered
+one and its saved pairing.
+
 ## Changing sensors
 
 The sensor screen shows a "What to do now" tip for the sensor's current state, and a "How to

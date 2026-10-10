@@ -79,6 +79,7 @@ final class DirectConnect_BluetoothManager: NSObject {
     /// when the sensor has not connected for longer than two wake cycles.
     func restartConnection() {
         managerQueue.async {
+            guard !self.isShutDown else { return }
             if let peripheral = self.activePeripheral, peripheral.state != .connected {
                 self.centralManager.cancelPeripheralConnection(peripheral)
                 self.centralManager.connect(peripheral)
@@ -131,9 +132,28 @@ final class DirectConnect_BluetoothManager: NSObject {
         }
     }
 
+    /// Set by `shutDown()`; on `managerQueue` only.
+    private var isShutDown = false
+
+    /// Stops scanning, cancels every connection and forgets the sensor, then refuses any later
+    /// scan or reconnect. Used when the CGM is deleted, so the old manager cannot keep a link open.
+    func shutDown() {
+        dispatchPrecondition(condition: .notOnQueue(managerQueue))
+        managerQueue.sync {
+            isShutDown = true
+            managerQueue_stopScanning()
+            for manager in managedPeripherals.values where manager.peripheral.state != .disconnected {
+                centralManager.cancelPeripheralConnection(manager.peripheral)
+            }
+            activePeripheralManager = nil
+            managedPeripherals.removeAll()
+        }
+        knownPeripheralIdentifier.value = nil
+    }
+
     private func managerQueue_scanForPeripheral() {
         dispatchPrecondition(condition: .onQueue(managerQueue))
-        guard centralManager.state == .poweredOn else { return }
+        guard !isShutDown, centralManager.state == .poweredOn else { return }
         guard (activePeripheral?.state ?? .disconnected) != .connected else { return }
 
         if let identifier = activePeripheralIdentifier ?? knownPeripheralIdentifier.value,
@@ -165,7 +185,7 @@ final class DirectConnect_BluetoothManager: NSObject {
 
     private func handleDiscoveredPeripheral(_ peripheral: CBPeripheral) {
         dispatchPrecondition(condition: .onQueue(managerQueue))
-        guard let delegate = delegate else { return }
+        guard !isShutDown, let delegate = delegate else { return }
 
         switch delegate.bluetoothManager(self, shouldConnectPeripheral: peripheral) {
         case .makeActive:

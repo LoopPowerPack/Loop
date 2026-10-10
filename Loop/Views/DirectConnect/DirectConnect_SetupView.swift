@@ -13,6 +13,9 @@ struct DirectConnect_SetupView: View {
     let continueLabel: String
     let checklist: [String]
     let onContinue: (DirectConnect_SensorType, String) -> Void
+    /// The sensor remembered from the last "Delete CGM", offered for a one-tap reconnect.
+    let lastSensor: DirectConnect_LastSensor?
+    let onReconnect: ((DirectConnect_LastSensor) -> Void)?
     let onCancel: () -> Void
 
     @State private var sensorType: DirectConnect_SensorType = .g7
@@ -22,9 +25,13 @@ struct DirectConnect_SetupView: View {
     init(title: String = NSLocalizedString("DirectConnect", comment: "DirectConnect setup title"),
          continueLabel: String = NSLocalizedString("Pair Sensor", comment: "DirectConnect setup continue button"),
          checklist: [String] = DirectConnect_Tips.firstPairingChecklist,
+         lastSensor: DirectConnect_LastSensor? = nil,
+         onReconnect: ((DirectConnect_LastSensor) -> Void)? = nil,
          onContinue: @escaping (DirectConnect_SensorType, String) -> Void,
          onCancel: @escaping () -> Void)
     {
+        self.lastSensor = lastSensor
+        self.onReconnect = onReconnect
         self.title = title
         self.continueLabel = continueLabel
         self.checklist = checklist
@@ -46,6 +53,23 @@ struct DirectConnect_SetupView: View {
                         .foregroundColor(.secondary)
                 }
                 .padding(.vertical, 4)
+            }
+
+            if let last = lastSensor, let onReconnect = onReconnect {
+                Section(header: Text(NSLocalizedString("Your last sensor", comment: "DirectConnect reconnect section header")),
+                        footer: Text(NSLocalizedString("Use this if that sensor is still on your body and running. Loop reconnects with the saved pairing at the sensor's next wake, within about 5 minutes. For a new sensor, use Pair Sensor below.", comment: "DirectConnect reconnect footer"))) {
+                    Button {
+                        onReconnect(last)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(String(format: NSLocalizedString("Reconnect to %@", comment: "DirectConnect reconnect button (1: sensor name)"), last.sensorID))
+                                .font(.headline)
+                            Text(String(format: NSLocalizedString("%@ · code %@", comment: "DirectConnect reconnect detail (1: sensor type, 2: code)"), last.sensorType.displayName, last.pairingCode))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
             }
 
             if dexcomAppInstalled {

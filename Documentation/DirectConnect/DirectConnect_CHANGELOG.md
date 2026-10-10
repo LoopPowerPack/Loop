@@ -143,6 +143,23 @@ Files: new `DirectConnect_RecoveryPolicy.swift` (+ tests); `DirectConnect_G7CGMM
 - The bolt carries the emoji variation selector (U+FE0F): the sheet drew the bare U+26A1 as a
   missing-glyph box.
 
+### Delete CGM, then add back
+- Delete now remembers that one sensor (name, type, code, peripheral ID) in UserDefaults
+  (`com.loopkit.Loop.directConnect.lastSensor`) and keeps its Keychain key. Setup offers
+  "Reconnect to <name>", which starts a manager following that sensor (short authentication;
+  full pairing with the stored code if the key is refused). Only one sensor is remembered:
+  remembering or pairing a different sensor erases the older key (`DirectConnect_LastSensorStore`).
+- Pairing a new sensor also erases the previous sensor's key, so old keys do not accumulate.
+- Delete calls `shutDown()`: no scan, discovery or reconnect after it. A plain disconnect used to
+  rescan 2 seconds later while the deleted manager was still alive.
+- Not yet tested on a phone: both the old and new manager briefly own a CBCentralManager with the
+  same restore identifier.
+
+### Add CGM entry
+- The list uses its own title without the bolt (`pickerTitle`); with the purple color the sheet
+  drew the emoji as a missing-glyph box. Centered with the private `titleTextAlignment` key,
+  set only when present; `DirectConnect_PickerStyleTests` fails if a future iOS drops either key.
+
 ### Open items
 - Run `DirectConnect_*` tests in Xcode.
 - Device checks: reading every 5 min and Loop runs; locked phone / background; gap fill after

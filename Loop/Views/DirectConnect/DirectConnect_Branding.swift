@@ -43,16 +43,18 @@ enum DirectConnect_Branding {
     /// public text-color API; the private `titleTextColor` key is set only after confirming the
     /// backing ivar exists, so a future iOS without it shows the default color instead of crashing.
     static func style(_ action: UIAlertAction) {
-        guard action.title == DirectConnect_G7CGMManager.displayTitle, supportsTitleTextColor else { return }
+        guard action.title == DirectConnect_G7CGMManager.pickerTitle, alertActionIvars.contains("_titleTextColor") else { return }
         action.setValue(pickerUIColor, forKey: "titleTextColor")
+        // A custom title color leaves the entry left-aligned; the other entries are centered.
+        if alertActionIvars.contains("_titleTextAlignment") {
+            action.setValue(NSTextAlignment.center.rawValue, forKey: "titleTextAlignment")
+        }
     }
 
-    private static let supportsTitleTextColor: Bool = {
+    private static let alertActionIvars: Set<String> = {
         var count: UInt32 = 0
-        guard let ivars = class_copyIvarList(UIAlertAction.self, &count) else { return false }
+        guard let ivars = class_copyIvarList(UIAlertAction.self, &count) else { return [] }
         defer { free(ivars) }
-        return (0..<Int(count)).contains { index in
-            ivar_getName(ivars[index]).map { String(cString: $0) } == "_titleTextColor"
-        }
+        return Set((0..<Int(count)).compactMap { ivar_getName(ivars[$0]).map { String(cString: $0) } })
     }()
 }

@@ -18214,11 +18214,11 @@
     "Developer mode has been enabled. You now have access to test data fixtures and auto-apply mode." : {
       "comment" : "LoopInsights developer mode unlocked message"
     },
-    "Dexcom G7 / ONE+ / Stelo — PowerPack DirectConnect ⚡" : {
-      "comment" : "DirectConnect CGM display title"
-    },
     "Dexcom G7 / ONE+ / Stelo without the Dexcom app" : {
       "comment" : "Descriptive text for DirectConnect Settings"
+    },
+    "Dexcom G7/ONE+ using DirectConnect ⚡️" : {
+      "comment" : "DirectConnect CGM display title"
     },
     "Diabetes Treatment" : {
       "comment" : "Descriptive text for Therapy Settings",
@@ -28693,7 +28693,7 @@
         }
       }
     },
-    "Loop pairs directly with Dexcom G7, ONE+ and Stelo sensors using the code on the applicator. The Dexcom app is not needed. When this is on, \"Dexcom G7 / ONE+ / Stelo — PowerPack DirectConnect ⚡\" appears in Loop's CGM list after you close and reopen Settings." : {
+    "Loop pairs directly with Dexcom G7, ONE+ and Stelo sensors using the code on the applicator. The Dexcom app is not needed. When this is on, \"Dexcom G7/ONE+ using DirectConnect ⚡️\" appears in Loop's CGM list after you close and reopen Settings." : {
       "comment" : "DirectConnect feature description"
     },
     "Loop stops using the old sensor as soon as you tap Pair New Sensor." : {

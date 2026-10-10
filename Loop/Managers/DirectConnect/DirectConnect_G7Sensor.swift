@@ -157,6 +157,11 @@ final class DirectConnect_G7Sensor {
         bluetoothManager.disconnect()
     }
 
+    /// Permanently stops this sensor's Bluetooth activity (Delete CGM).
+    func shutDown() {
+        bluetoothManager.shutDown()
+    }
+
     var isScanning: Bool { bluetoothManager.isScanning }
     var isConnected: Bool { bluetoothManager.isConnected }
     var bluetoothState: CBManagerState { bluetoothManager.bluetoothState }

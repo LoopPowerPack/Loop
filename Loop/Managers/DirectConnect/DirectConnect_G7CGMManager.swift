@@ -28,6 +28,9 @@ enum DirectConnect_LifecycleState: Equatable {
 final class DirectConnect_G7CGMManager: CGMManager {
     static let pluginIdentifier = "PowerPackDirectConnectG7"
     static let displayTitle = NSLocalizedString("Dexcom G7/ONE+ using DirectConnect ⚡️", comment: "DirectConnect CGM display title")
+    /// Title in the Add CGM action sheet. No bolt: with the purple title color that sheet draws
+    /// the emoji as a missing-glyph box.
+    static let pickerTitle = NSLocalizedString("Dexcom G7/ONE+ using DirectConnect", comment: "DirectConnect title in the Add CGM list")
 
     /// How long to keep following a sensor after a suspected session end before scanning.
     static let suspectedSessionEndGracePeriod: TimeInterval = 15 * 60
@@ -151,11 +154,19 @@ final class DirectConnect_G7CGMManager: CGMManager {
     func getSounds() -> [Alert.Sound] { [] }
 
     func delete(completion: @escaping () -> Void) {
-        if let sensorID = state.sensorID {
+        if let sensorID = state.sensorID, let code = state.pairingCode {
+            // Keep this one sensor's key and code so DirectConnect can be added back to it; the
+            // code is printed only on the applicator, which is often discarded by then.
+            DirectConnect_LastSensorStore.remember(
+                DirectConnect_LastSensor(sensorID: sensorID, sensorType: state.sensorType, pairingCode: code, peripheralIdentifier: state.peripheralIdentifier),
+                keyStore: keyStore)
+            logDeviceCommunication("Deleted; remembering \(sensorID) for reconnect", type: .connection)
+        } else if let sensorID = state.sensorID {
             keyStore.delete(sensor: sensorID)
         }
         monitorTimer?.cancel()
-        sensor.stopScanning()
+        // Fully off: a plain disconnect re-scans 2 s later, and this manager can outlive deletion.
+        sensor.shutDown()
         for kind in DirectConnect_AlarmKind.allCases {
             retract(kind)
         }
@@ -445,6 +456,11 @@ extension DirectConnect_G7CGMManager: DirectConnect_G7SensorDelegate {
     }
 
     func sensor(_ sensor: DirectConnect_G7Sensor, didPairWith name: String) {
+        DirectConnect_LastSensorStore.forget(unless: name, keyStore: keyStore)
+        if let previous = state.previousSensorID, previous != name {
+            // Only the current sensor's key is kept.
+            keyStore.delete(sensor: previous)
+        }
         mutateState { state in
             state.sensorID = name
             state.pairingFailure = nil

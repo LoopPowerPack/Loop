@@ -81,3 +81,52 @@ final class DirectConnect_MemoryKeyStore: DirectConnect_KeyStoring {
         keys = keys.filter { !$0.key.hasPrefix("\(sensor).") }
     }
 }
+
+// MARK: - Last sensor
+
+/// The one sensor Loop remembers after "Delete CGM", so DirectConnect can be added back and
+/// reconnect to it with the saved key instead of the code printed on a discarded applicator.
+struct DirectConnect_LastSensor: Codable, Equatable {
+    let sensorID: String
+    let sensorType: DirectConnect_SensorType
+    let pairingCode: String
+    let peripheralIdentifier: String?
+
+    /// Starting state for a CGM manager that follows this sensor (short authentication with the
+    /// saved key; the code is the fallback if the key is refused).
+    var reconnectState: DirectConnect_G7State {
+        var state = DirectConnect_G7State()
+        state.sensorID = sensorID
+        state.sensorType = sensorType
+        state.pairingCode = pairingCode
+        state.peripheralIdentifier = peripheralIdentifier
+        return state
+    }
+}
+
+/// Keeps at most one remembered sensor. Remembering or pairing another sensor erases the
+/// previous one's saved key, so keys of past sensors never accumulate.
+enum DirectConnect_LastSensorStore {
+    static let defaultsKey = "com.loopkit.Loop.directConnect.lastSensor"
+
+    static func load(defaults: UserDefaults = .standard) -> DirectConnect_LastSensor? {
+        defaults.data(forKey: defaultsKey).flatMap { try? JSONDecoder().decode(DirectConnect_LastSensor.self, from: $0) }
+    }
+
+    static func remember(_ sensor: DirectConnect_LastSensor, keyStore: DirectConnect_KeyStoring, defaults: UserDefaults = .standard) {
+        if let previous = load(defaults: defaults), previous.sensorID != sensor.sensorID {
+            keyStore.delete(sensor: previous.sensorID)
+        }
+        defaults.set(try? JSONEncoder().encode(sensor), forKey: defaultsKey)
+    }
+
+    /// Called when a sensor pairs. The remembered record is cleared either way (the sensor is in
+    /// use again, or replaced); its key is erased only when a different sensor paired.
+    static func forget(unless pairedSensorID: String, keyStore: DirectConnect_KeyStoring, defaults: UserDefaults = .standard) {
+        guard let previous = load(defaults: defaults) else { return }
+        if previous.sensorID != pairedSensorID {
+            keyStore.delete(sensor: previous.sensorID)
+        }
+        defaults.removeObject(forKey: defaultsKey)
+    }
+}

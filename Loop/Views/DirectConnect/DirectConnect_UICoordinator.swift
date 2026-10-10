@@ -40,6 +40,10 @@ final class DirectConnect_UICoordinator: UINavigationController, CGMManagerOnboa
 
     private func setupScreen() -> UIViewController {
         let view = DirectConnect_SetupView(
+            lastSensor: DirectConnect_LastSensorStore.load(),
+            onReconnect: { [weak self] last in
+                self?.completeReconnect(to: last)
+            },
             onContinue: { [weak self] type, code in
                 self?.completeSetup(type: type, code: code)
             },
@@ -70,6 +74,20 @@ final class DirectConnect_UICoordinator: UINavigationController, CGMManagerOnboa
                 }
             })
         return DismissibleHostingController(content: view, colorPalette: colorPalette)
+    }
+
+    /// Adds DirectConnect back following the remembered sensor: short authentication with its
+    /// saved key, falling back to full pairing with its code if the key is refused.
+    private func completeReconnect(to last: DirectConnect_LastSensor) {
+        let keyStore = DirectConnect_KeychainKeyStore()
+        // The record has done its job; clear it but keep the key the new manager will use.
+        DirectConnect_LastSensorStore.forget(unless: last.sensorID, keyStore: keyStore)
+        let manager = DirectConnect_G7CGMManager(state: last.reconnectState, keyStore: keyStore)
+        cgmManager = manager
+        cgmManagerOnboardingDelegate?.cgmManagerOnboarding(didCreateCGMManager: manager)
+        cgmManagerOnboardingDelegate?.cgmManagerOnboarding(didOnboardCGMManager: manager)
+        manager.logDeviceCommunication("Reconnecting to remembered sensor \(last.sensorID)", type: .connection)
+        setViewControllers([statusScreen()], animated: true)
     }
 
     private func completeSetup(type: DirectConnect_SensorType, code: String) {
