@@ -735,6 +735,9 @@
 		3899284456069E71DE92D3E4 /* PowerPack_UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 987E5D2B695A97D178511EC9 /* PowerPack_UpdateChecker.swift */; };
 		5F98171F4CC40844F719FAD0 /* PowerPack_APIUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F49F3796521706FE90018866 /* PowerPack_APIUsage.swift */; };
 		FADE0001000000000000DE02 /* DevelopmentBranchAlerter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE0001000000000000DE01 /* DevelopmentBranchAlerter.swift */; };
+		330001C7F46F82CC54985DBA /* PowerPack_ModelFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECD885CE92AF94E65A4495D2 /* PowerPack_ModelFinder.swift */; };
+		FEBD22F20417AF37389238A1 /* PowerPack_ModelFinderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D14B64D51F1390475658AA17 /* PowerPack_ModelFinderView.swift */; };
+		6E3638F47CFE70F23DF31FA3 /* PowerPack_ModelFinderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3914844F3B46275DADCD356 /* PowerPack_ModelFinderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1746,6 +1749,9 @@
 				C19C8BCE28651F520056D5E4 /* LoopKitUI.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
+		ECD885CE92AF94E65A4495D2 /* PowerPack_ModelFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PowerPack_ModelFinder.swift"; sourceTree = "<group>"; };
+		D14B64D51F1390475658AA17 /* PowerPack_ModelFinderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PowerPack_ModelFinderView.swift"; sourceTree = "<group>"; };
+		B3914844F3B46275DADCD356 /* PowerPack_ModelFinderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PowerPack_ModelFinderTests.swift"; sourceTree = "<group>"; };
 		};
 		43A9437B1B926B7B0051FA24 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -2462,6 +2468,7 @@
 		4F75288C1DFE1DC600C322D6 /* LoopUI */ = {
 			isa = PBXGroup;
 			children = (
+				73B25506DA231DCF67593716 /* PowerPack */,
 				7D23667B21250C5A0028B67D /* Common */,
 				B66D1F3D2E6A5D6600471149 /* Localizable.xcstrings */,
 				B66D1F202E6A5D6500471149 /* InfoPlist.xcstrings */,
@@ -2538,6 +2545,7 @@
 		};
 		4FE3475F20D5D7FA00A86D03 /* Managers */ = {
 			isa = PBXGroup;
+				CC70CFCD214F323E150C74E4 /* PowerPack */,
 			children = (
 				4FDDD23620DC51DF00D04B16 /* LoopDataManager.swift */,
 				898ECA62218ABD21001E9D35 /* ComplicationChartManager.swift */,
@@ -3269,6 +3277,7 @@
 				9807F50B2A84D11791A7C992 /* LoopInsights_ModelsTests.swift */,
 				8E9EE7EF28AC643A5A61BA90 /* LoopInsights_SuggestionStoreTests.swift */,
 				1DF3371B113CDE1971B80A91 /* LoopInsights_DataAggregatorTests.swift */,
+				1768D383F1C0F21EC69B8D49 /* PowerPack */,
 				6A21FDC5E312391945077D76 /* LoopInsights_AIAnalysisTests.swift */,
 			);
 			path = LoopInsights;
@@ -3647,6 +3656,30 @@
 			name = WatchApp;
 			productName = WatchApp;
 			productReference = 43A943721B926B7B0051FA24 /* WatchApp.app */;
+		1768D383F1C0F21EC69B8D49 /* PowerPack */ = {
+			isa = PBXGroup;
+			children = (
+				ECD885CE92AF94E65A4495D2 /* PowerPack_ModelFinder.swift */,
+			);
+			path = "PowerPack";
+			sourceTree = "<group>";
+		};
+		73B25506DA231DCF67593716 /* PowerPack */ = {
+			isa = PBXGroup;
+			children = (
+				D14B64D51F1390475658AA17 /* PowerPack_ModelFinderView.swift */,
+			);
+			path = "PowerPack";
+			sourceTree = "<group>";
+		};
+		CC70CFCD214F323E150C74E4 /* PowerPack */ = {
+			isa = PBXGroup;
+			children = (
+				B3914844F3B46275DADCD356 /* PowerPack_ModelFinderTests.swift */,
+			);
+			path = "PowerPack";
+			sourceTree = "<group>";
+		};
 			productType = "com.apple.product-type.application.watchapp2";
 		};
 		43A9437D1B926B7B0051FA24 /* WatchApp Extension */ = {
@@ -4804,6 +4837,8 @@
 				4FAC02541E22F6B20087A773 /* NSTimeInterval.swift in Sources */,
 				4F2C15831E0757E600E160D4 /* HKUnit.swift in Sources */,
 				C1FB4290217922A100FAB378 /* PumpManagerUI.swift in Sources */,
+				330001C7F46F82CC54985DBA /* PowerPack_ModelFinder.swift in Sources */,
+				FEBD22F20417AF37389238A1 /* PowerPack_ModelFinderView.swift in Sources */,
 				1D4990E824A25931005CC357 /* FeatureFlags.swift in Sources */,
 				A90EF53C25DEF06200F32D61 /* PluginManager.swift in Sources */,
 				C1FB428D21791D2500FAB378 /* PumpManager.swift in Sources */,
@@ -5024,6 +5059,7 @@
 				7D9BEF862335EC8B005DCFD6 /* fi */,
 				7D9BF13E23370E8C005DCFD6 /* ro */,
 				F5D9C01C27DABBE1002E48F6 /* tr */,
+				6E3638F47CFE70F23DF31FA3 /* PowerPack_ModelFinderTests.swift in Sources */,
 				F5E0BDD827E1D71E0033557E /* he */,
 				C1C3127A297E4BFE00296DA4 /* ar */,
 				B6656C6D2FB3EE1400FFC8BE /* ko */,

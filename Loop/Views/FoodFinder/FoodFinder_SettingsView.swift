@@ -409,6 +409,9 @@ extension AISettingsView {
                     }
                 }
 
+                // Model finder (PowerPack) — web search for models that accept FoodFinder's requests
+                PowerPack_ModelFinderBar(purpose: .vision)
+
                 // Test Connection
                 HStack(spacing: 12) {
                     Button(action: testConnection) {
@@ -420,7 +423,7 @@ extension AISettingsView {
                             }
                             Text("Test Connection")
                         }
-                        .foregroundColor(Color(red: 107/255, green: 47/255, blue: 160/255))
+                        .foregroundColor(.green)
                     }
                     .buttonStyle(.plain)
                     .disabled(isTesting || apiKey.isEmpty || baseURL.isEmpty)
@@ -607,7 +610,7 @@ extension AISettingsView {
                             }
                             Text("Test Connection")
                         }
-                        .foregroundColor(.purple)
+                        .foregroundColor(.green)
                     }
                     .buttonStyle(.plain)
                     .disabled(isTestingSpoonacular || spoonacularAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
