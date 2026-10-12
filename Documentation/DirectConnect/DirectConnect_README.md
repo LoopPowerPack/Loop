@@ -88,8 +88,13 @@ Settings → PowerPack → DirectConnect → Glucose Alarms (also from the senso
 | Sensor Expiring | 24 h and 2 h before the end | on/off |
 | Sensor Ended or Failed | when the sensor stops | on/off |
 
-**Silent switch:** Loop does not have Apple's Critical Alerts permission. Urgent Low uses the most
-urgent level Loop can request. Test with your phone on silent before relying on it.
+**Sound, silent switch and Focus:** every alarm plays Loop's notification sound and shows a
+banner, including when Loop is open. With the phone's ring/silent switch set to silent, **every
+alarm only vibrates, Urgent Low included**: sounding through silent needs Apple's Critical Alerts
+permission, which Loop builds do not have. Low, High, Falling Fast, Signal Loss and Sensor Ended
+still arrive during a Focus; Rising Fast and Sensor Expiring can be held by a Focus. Loop's own
+**Mute Alerts** setting silences all of them while it is on. **Keep the ring switch on (not
+silent) overnight** if you need to hear Urgent Low, and test it once before relying on it.
 
 ## Sensor screen
 
