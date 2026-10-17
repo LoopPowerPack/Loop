@@ -38678,8 +38678,17 @@
     "Sensor\nWarmup" : {
       "comment" : "DirectConnect highlight warmup"
     },
+    "Sensor %@ accepted the code but refused the next pairing step. Loop tries again at each sensor wake (every 5 minutes). A newly inserted sensor can refuse this step for 20 minutes or more." : {
+      "comment" : "DirectConnect certificate step refused (1: sensor name)"
+    },
     "Sensor %@ did not accept the code. Check the 4 digits on the applicator." : {
       "comment" : "DirectConnect wrong code (1: sensor name)"
+    },
+    "Sensor %@ did not start pairing. If it is your new sensor, Loop tries again at its next wake (every 5 minutes)." : {
+      "comment" : "DirectConnect sensor refused to start pairing (1: sensor name)"
+    },
+    "Sensor %@ refused the code, so it is not the new sensor (it is probably your previous sensor). Loop is still searching for the new sensor. If nothing pairs within 15 minutes, check the 4 digits on the applicator and tap Pair New Sensor." : {
+      "comment" : "DirectConnect nearby sensor refused the new code during search (1: sensor name)"
     },
     "Sensor active" : {
       "comment" : "DirectConnect status ok"

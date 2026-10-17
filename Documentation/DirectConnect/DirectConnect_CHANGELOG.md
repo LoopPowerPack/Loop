@@ -176,6 +176,43 @@ Files: new `DirectConnect_RecoveryPolicy.swift` (+ tests); `DirectConnect_G7CGMM
   Wording: `DirectConnect_HeartbeatText` (tests in `DirectConnect_StateTests.swift`).
 - The line refreshes when the main screen reloads (each reading or Loop cycle), not every minute.
 
+### 2026-10-16 — Pairing a new sensor showed "did not accept the code" for the old sensor
+- Device: Pair New Sensor with code 7553 showed "Sensor DXCMSq did not accept the code. Check the
+  4 digits on the applicator." DXCMSq was the previous sensor. It refused the new code as
+  expected, and Loop skipped it and kept searching, but the screen reported a wrong code.
+- Now a refusal during a new-sensor search shows a message that names the skipped sensor and says
+  Loop is still searching (`DirectConnect_PairingFailure.skippedSensor`, `DirectConnect_G7Sensor.swift`).
+- "Re-enter Pairing Code" is hidden while searching for a new sensor; Pair New Sensor changes the
+  code (`DirectConnect_SensorStatusView.swift`).
+
+### 2026-10-16 — New sensor DXCMcw took 20 minutes to pair (diagnostics log)
+- The code was correct. From 01:21 to 01:41 UTC the sensor accepted the code-derived key but
+  refused the certificate step about 15 times, then paired. It started accepting about 22 minutes
+  after the sensor started (warmup 27 minutes). Cause not confirmed.
+- Twice the sensor refused to start the code exchange. Loop reported "did not accept the code"
+  and skipped the sensor permanently, so from 01:24 to 01:39 Loop did not try it at all, until
+  Re-enter Pairing Code emptied the skip list.
+- The old sensor DXCMSq was tried twice and refused; it was not the main cause.
+
+Changes:
+- A refusal to start the code exchange is no longer reported as a wrong code. It shows a grey status
+  line and is retried at the next wake (`.pakeRefused` in `DirectConnect_G7Pairing.swift`).
+- A refused certificate step shows a grey status line that says the code was accepted and Loop
+  keeps trying (`.certificateRefused`). Grey status lines use `pairingNotice` in
+  `DirectConnect_G7State.swift` (not persisted); the red pairing problem is unchanged.
+- A sensor that truly refuses the code during a search is skipped for 10 minutes, not
+  permanently, and is identified by its Bluetooth ID, not its name (`DirectConnect_SkipList` in
+  `DirectConnect_SensorModel.swift`). A scan restarts when the 10 minutes end.
+- Pair New Sensor with a code different from the previous sensor's does not connect to the
+  previous sensor at all. It is matched by its saved Bluetooth ID, or by name when no ID was saved
+  (`DirectConnect_previousSensorToExclude`, `DirectConnect_isExcluded`). After Delete CGM, the
+  remembered sensor is used as the previous sensor. The same code still re-pairs the same sensor.
+- The previous sensor's code and Bluetooth ID are persisted (`previousPairingCode`,
+  `previousPeripheralIdentifier`) so a search resumed after an app restart keeps the exclusion.
+- Test changed on purpose: `testWrongCodeRejectionDoesNotPersistKey` became
+  `testPakeRefusalIsNotACodeRejectionAndDoesNotPersistKey` (expects `.pakeRefused`). The real
+  wrong-code case stays covered by `testFullBootstrapAuthRejectionReportsCodeRejected`.
+
 ### Open items
 - Run `DirectConnect_*` tests in Xcode.
 - Device checks: reading every 5 min and Loop runs; locked phone / background; gap fill after

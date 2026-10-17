@@ -72,6 +72,7 @@ final class DirectConnect_G7CGMManager: CGMManager {
                                         sensorType: state.sensorType,
                                         pairingCode: state.pairingCode,
                                         excludedName: state.previousSensorID,
+                                        excluded: state.sensorID == nil ? DirectConnect_previousSensorToExclude(name: state.previousSensorID, code: state.previousPairingCode, identifier: state.previousPeripheralIdentifier, newCode: state.pairingCode ?? "") : nil,
                                         knownPeripheralIdentifier: state.peripheralIdentifier.flatMap(UUID.init(uuidString:)),
                                         keyStore: keyStore)
         sensor.restoreSessionInfo(calibration: state.calibration,
@@ -237,10 +238,22 @@ final class DirectConnect_G7CGMManager: CGMManager {
     // MARK: - User actions
 
     /// Starts pairing a new sensor with the code from its applicator.
-    func configure(type: DirectConnect_SensorType, pairingCode: String) {
-        let previous = state.sensorID ?? state.previousSensorID
+    /// - Parameter remembered: the sensor kept from a deleted DirectConnect, used as the previous
+    ///   sensor when this manager has none.
+    func configure(type: DirectConnect_SensorType, pairingCode: String, remembered: DirectConnect_LastSensor? = nil) {
+        let previous: (name: String?, code: String?, identifier: String?)
+        if let name = state.sensorID {
+            previous = (name, state.pairingCode, state.peripheralIdentifier)
+        } else if let name = state.previousSensorID {
+            previous = (name, state.previousPairingCode, state.previousPeripheralIdentifier)
+        } else {
+            previous = (remembered?.sensorID, remembered?.pairingCode, remembered?.peripheralIdentifier)
+        }
+        let excluded = DirectConnect_previousSensorToExclude(name: previous.name, code: previous.code, identifier: previous.identifier, newCode: pairingCode)
         mutateState { state in
-            state.previousSensorID = previous
+            state.previousSensorID = previous.name
+            state.previousPairingCode = previous.code
+            state.previousPeripheralIdentifier = previous.identifier
             state.sensorID = nil
             state.sensorType = type
             state.pairingCode = pairingCode
@@ -253,11 +266,15 @@ final class DirectConnect_G7CGMManager: CGMManager {
             state.versionInfo = nil
             state.calibration = DirectConnect_CalibrationQueue()
             state.pairingFailure = nil
+            state.pairingNotice = nil
             state.recentReadings = []
             state.suspectedSessionEndAt = nil
         }
         logDeviceCommunication("Scanning for new \(type.displayName) sensor", type: .connection)
-        sensor.scanForNewSensor(type: type, pairingCode: pairingCode, excludedName: previous)
+        if let excluded = excluded {
+            logDeviceCommunication("Not connecting to previous sensor \(excluded.name) (different code)", type: .connection)
+        }
+        sensor.scanForNewSensor(type: type, pairingCode: pairingCode, excludedName: previous.name, excluded: excluded)
     }
 
     /// Pairs the current sensor again with a new or corrected code.
@@ -265,6 +282,7 @@ final class DirectConnect_G7CGMManager: CGMManager {
         mutateState { state in
             state.pairingCode = pairingCode
             state.pairingFailure = nil
+            state.pairingNotice = nil
         }
         logDeviceCommunication("Re-pairing with new code", type: .connection)
         sensor.repair(pairingCode: pairingCode)
@@ -464,6 +482,7 @@ extension DirectConnect_G7CGMManager: DirectConnect_G7SensorDelegate {
         mutateState { state in
             state.sensorID = name
             state.pairingFailure = nil
+            state.pairingNotice = nil
         }
         logDeviceCommunication("Paired with \(name)", type: .connection)
     }
@@ -642,7 +661,16 @@ extension DirectConnect_G7CGMManager: DirectConnect_G7SensorDelegate {
             takeBack(reason: "saved key refused")
             return
         }
-        mutateState { $0.pairingFailure = failure.message }
+        mutateState { state in
+            // The latest event replaces the earlier one, so a red problem and a status line never both show.
+            if failure.isNotice {
+                state.pairingNotice = failure.message
+                state.pairingFailure = nil
+            } else {
+                state.pairingFailure = failure.message
+                state.pairingNotice = nil
+            }
+        }
     }
 
     func sensor(_ sensor: DirectConnect_G7Sensor, calibrationDidChange queue: DirectConnect_CalibrationQueue) {

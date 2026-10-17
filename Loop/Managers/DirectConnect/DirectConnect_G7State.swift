@@ -19,6 +19,10 @@ struct DirectConnect_G7State: RawRepresentable, Equatable {
     var pairingCode: String?
     /// The sensor used before the current one; skipped while scanning for a replacement.
     var previousSensorID: String?
+    /// The previous sensor's code and Bluetooth identifier. A search with a different code does
+    /// not connect to that sensor; the same code means it is being paired again.
+    var previousPairingCode: String?
+    var previousPeripheralIdentifier: String?
     var activatedAt: Date?
     var extendedVersion: DirectConnect_G7ExtendedVersion?
     var latestReading: DirectConnect_G7GlucoseMessage?
@@ -33,6 +37,8 @@ struct DirectConnect_G7State: RawRepresentable, Equatable {
     var calibration = DirectConnect_CalibrationQueue()
     var alarmState = DirectConnect_AlarmState()
     var pairingFailure: String?
+    /// A pairing refusal Loop retries by itself, shown as a status line. Not persisted.
+    var pairingNotice: String?
     /// The last six delivered values, for the stuck-sensor rule.
     var recentReadings: [Double] = []
     /// CoreBluetooth identifier of the paired sensor, so Loop can queue a connection to it at
@@ -50,6 +56,8 @@ struct DirectConnect_G7State: RawRepresentable, Equatable {
         sensorType = (rawValue["sensorType"] as? String).flatMap(DirectConnect_SensorType.init(rawValue:)) ?? .g7
         pairingCode = rawValue["pairingCode"] as? String
         previousSensorID = rawValue["previousSensorID"] as? String
+        previousPairingCode = rawValue["previousPairingCode"] as? String
+        previousPeripheralIdentifier = rawValue["previousPeripheralIdentifier"] as? String
         activatedAt = rawValue["activatedAt"] as? Date
         extendedVersion = (rawValue["extendedVersion"] as? Data).flatMap(DirectConnect_G7ExtendedVersion.init(data:))
         latestReading = (rawValue["latestReading"] as? Data).flatMap(DirectConnect_G7GlucoseMessage.init(data:))
@@ -75,6 +83,8 @@ struct DirectConnect_G7State: RawRepresentable, Equatable {
         raw["sensorType"] = sensorType.rawValue
         raw["pairingCode"] = pairingCode
         raw["previousSensorID"] = previousSensorID
+        raw["previousPairingCode"] = previousPairingCode
+        raw["previousPeripheralIdentifier"] = previousPeripheralIdentifier
         raw["activatedAt"] = activatedAt
         raw["extendedVersion"] = extendedVersion?.data
         raw["latestReading"] = latestReading?.data

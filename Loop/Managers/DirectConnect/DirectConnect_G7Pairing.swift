@@ -35,6 +35,11 @@ enum DirectConnect_PairingEvent: Equatable {
     case needsCleanReconnect
     /// The sensor refused the applicator code during first pairing.
     case codeRejected
+    /// The sensor refused a step of the code exchange. J-PAKE checks the code only at key
+    /// confirmation (`codeRejected`), so this does not mean the code is wrong.
+    case pakeRefused
+    /// The sensor accepted the code-derived key but refused the certificate step.
+    case certificateRefused
     case failed(String)
 }
 
@@ -184,7 +189,8 @@ final class DirectConnect_G7Pairing {
 
         case .exchangePake:
             guard data.count >= 3, data.dcByte(at: 1) == 0 else {
-                return [.codeRejected]
+                // J-PAKE cannot detect a wrong code before key confirmation (handleAuthStatus).
+                return [.pakeRefused]
             }
             pendingPakePhase = data.dcByte(at: 2)
             return processPendingPake()
@@ -336,8 +342,13 @@ final class DirectConnect_G7Pairing {
     }
 
     private func handleCertificateStatus(_ data: Data) -> [DirectConnect_PairingEvent] {
-        guard stage == .certificateExchange, data.count >= 7, data.dcByte(at: 1) == 0 else {
+        guard stage == .certificateExchange, data.count >= 7 else {
             return [.failed("Certificate exchange was rejected")]
+        }
+        guard data.dcByte(at: 1) == 0 else {
+            // A new G7 refused this step for about 20 minutes after insertion on 2026-10-16,
+            // then accepted it with the same code.
+            return [.certificateRefused]
         }
         let phase = data.dcByte(at: 2)
         guard phase == expectedCertificatePhase, phase <= 2 else {

@@ -90,3 +90,49 @@ func DirectConnect_shouldConnect(peripheralName: String?, followedName: String?,
     }
     return .connect
 }
+
+/// Sensors that refused the code during the current search. Each is skipped for a limited
+/// time, not permanently, so a sensor that refused while not ready is tried again.
+struct DirectConnect_SkipList: Equatable {
+    static let duration: TimeInterval = 10 * 60
+
+    private var skippedUntil: [UUID: Date] = [:]
+
+    /// Skips the sensor with this Bluetooth identifier for `duration` from `now`.
+    mutating func skip(_ identifier: UUID, now: Date) {
+        skippedUntil[identifier] = now.addingTimeInterval(Self.duration)
+    }
+
+    /// True while the sensor's skip time has not passed.
+    func isSkipped(_ identifier: UUID, now: Date) -> Bool {
+        skippedUntil[identifier].map { $0 > now } ?? false
+    }
+}
+
+/// The sensor used before a new-sensor search, which the search does not connect to.
+struct DirectConnect_ExcludedSensor: Equatable {
+    let name: String
+    /// Its CoreBluetooth identifier, when Loop saved one.
+    let identifier: UUID?
+}
+
+/// The previous sensor to leave alone while searching with `newCode`.
+/// - Returns: nil when the codes match (the user is pairing the same sensor again) or when
+///   the previous sensor's name or code is unknown.
+func DirectConnect_previousSensorToExclude(name: String?, code: String?, identifier: String?, newCode: String) -> DirectConnect_ExcludedSensor? {
+    guard let name = name, let code = code, code != newCode else { return nil }
+    return DirectConnect_ExcludedSensor(name: name, identifier: identifier.flatMap(UUID.init(uuidString:)))
+}
+
+/// Whether an advertising peripheral is the excluded previous sensor.
+/// - Returns: a match on the Bluetooth identifier when it is known. Only without one is the
+///   name used, because two sensors can share the last two characters of their names.
+func DirectConnect_isExcluded(peripheralName: String?, identifier: UUID, excluded: DirectConnect_ExcludedSensor?) -> Bool {
+    guard let excluded = excluded else { return false }
+    if let excludedIdentifier = excluded.identifier {
+        return identifier == excludedIdentifier
+    }
+    guard let name = peripheralName else { return false }
+    let isDexcomName = DirectConnect_SensorType.from(peripheralName: name) != nil || name.hasPrefix("Dexcom")
+    return isDexcomName && name.suffix(2) == excluded.name.suffix(2)
+}

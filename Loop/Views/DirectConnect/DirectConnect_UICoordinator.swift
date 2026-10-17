@@ -95,7 +95,7 @@ final class DirectConnect_UICoordinator: UINavigationController, CGMManagerOnboa
         cgmManager = manager
         cgmManagerOnboardingDelegate?.cgmManagerOnboarding(didCreateCGMManager: manager)
         cgmManagerOnboardingDelegate?.cgmManagerOnboarding(didOnboardCGMManager: manager)
-        manager.configure(type: type, pairingCode: code)
+        manager.configure(type: type, pairingCode: code, remembered: DirectConnect_LastSensorStore.load())
         // Stay on screen to show search and pairing progress instead of closing immediately.
         setViewControllers([statusScreen()], animated: true)
     }

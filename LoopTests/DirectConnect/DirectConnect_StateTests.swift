@@ -34,6 +34,17 @@ final class DirectConnect_StateTests: XCTestCase {
         XCTAssertEqual(DirectConnect_G7State(rawValue: s.rawValue), s)
     }
 
+    func testPreviousSensorCodeAndIdentifierRoundTrip() {
+        // Kept so a search that resumes after an app restart still leaves the previous sensor alone.
+        var s = DirectConnect_G7State()
+        s.previousSensorID = "DXCMSq"
+        s.previousPairingCode = "1111"
+        s.previousPeripheralIdentifier = "6F1D2C3B-0000-4000-8000-000000000001"
+        let restored = DirectConnect_G7State(rawValue: s.rawValue)
+        XCTAssertEqual(restored.previousPairingCode, "1111")
+        XCTAssertEqual(restored.previousPeripheralIdentifier, "6F1D2C3B-0000-4000-8000-000000000001")
+    }
+
     func testEmptyRawStateUsesDefaults() {
         let s = DirectConnect_G7State(rawValue: [:])
         XCTAssertNil(s.sensorID)

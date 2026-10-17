@@ -14,6 +14,13 @@ import LoopKit
 enum DirectConnect_PairingFailure: Equatable {
     /// The sensor refused the applicator code (sensor name included).
     case wrongCode(String)
+    /// While searching for a new sensor, a nearby sensor (usually the previous one) refused the
+    /// code and was skipped; the search continues.
+    case skippedSensor(String)
+    /// The sensor refused to start pairing; not caused by the code. Retried at its next wake.
+    case pakeRefused(String)
+    /// The sensor accepted the code but refused the next pairing step. Retried at each wake.
+    case certificateRefused(String)
     /// The saved key was refused; another app may own the sensor now.
     case keyRejected
     case protocolError(String)
@@ -22,10 +29,25 @@ enum DirectConnect_PairingFailure: Equatable {
         switch self {
         case .wrongCode(let name):
             return String(format: NSLocalizedString("Sensor %@ did not accept the code. Check the 4 digits on the applicator.", comment: "DirectConnect wrong code (1: sensor name)"), name)
+        case .skippedSensor(let name):
+            return String(format: NSLocalizedString("Sensor %@ refused the code, so it is not the new sensor (it is probably your previous sensor). Loop is still searching for the new sensor. If nothing pairs within 15 minutes, check the 4 digits on the applicator and tap Pair New Sensor.", comment: "DirectConnect nearby sensor refused the new code during search (1: sensor name)"), name)
+        case .pakeRefused(let name):
+            return String(format: NSLocalizedString("Sensor %@ did not start pairing. If it is your new sensor, Loop tries again at its next wake (every 5 minutes).", comment: "DirectConnect sensor refused to start pairing (1: sensor name)"), name)
+        case .certificateRefused(let name):
+            return String(format: NSLocalizedString("Sensor %@ accepted the code but refused the next pairing step. Loop tries again at each sensor wake (every 5 minutes). A newly inserted sensor can refuse this step for 20 minutes or more.", comment: "DirectConnect certificate step refused (1: sensor name)"), name)
         case .keyRejected:
             return NSLocalizedString("Pairing lost. Another app may have connected to the sensor. Re-enter the code to pair again.", comment: "DirectConnect key rejected")
         case .protocolError(let detail):
             return String(format: NSLocalizedString("Pairing error: %@", comment: "DirectConnect protocol error (1: detail)"), detail)
+        }
+    }
+
+    /// True for refusals the user cannot fix and Loop retries by itself; shown as a status
+    /// line, not as a pairing problem.
+    var isNotice: Bool {
+        switch self {
+        case .pakeRefused, .certificateRefused: return true
+        case .wrongCode, .skippedSensor, .keyRejected, .protocolError: return false
         }
     }
 }
@@ -57,7 +79,9 @@ final class DirectConnect_G7Sensor {
         var sensorName: String?
         var sensorType: DirectConnect_SensorType
         var excludedName: String?
-        var rejectedCandidates: Set<String> = []
+        /// The previous sensor, not connected to while searching for a new one.
+        var excluded: DirectConnect_ExcludedSensor?
+        var skipList = DirectConnect_SkipList()
         var authenticationBlocked = false
         /// Without a code a new sensor cannot be paired, so unknown sensors are not connected.
         var hasPairingCode = false
@@ -90,11 +114,11 @@ final class DirectConnect_G7Sensor {
     private var clock: DirectConnect_ClockReference?
     private var backfillBuffer: [DirectConnect_G7BackfillMessage] = []
 
-    init(sensorName: String?, sensorType: DirectConnect_SensorType, pairingCode: String?, excludedName: String?, knownPeripheralIdentifier: UUID?, keyStore: DirectConnect_KeyStoring) {
+    init(sensorName: String?, sensorType: DirectConnect_SensorType, pairingCode: String?, excludedName: String?, excluded: DirectConnect_ExcludedSensor?, knownPeripheralIdentifier: UUID?, keyStore: DirectConnect_KeyStoring) {
         self.keyStore = keyStore
         self.pairingCode = pairingCode
         let known = sensorName == nil ? nil : knownPeripheralIdentifier
-        scanConfig = Locked(ScanConfig(sensorName: sensorName, sensorType: sensorType, excludedName: excludedName, hasPairingCode: pairingCode != nil, knownIdentifier: known))
+        scanConfig = Locked(ScanConfig(sensorName: sensorName, sensorType: sensorType, excludedName: excludedName, excluded: excluded, hasPairingCode: pairingCode != nil, knownIdentifier: known))
         bluetoothManager = DirectConnect_BluetoothManager()
         bluetoothManager.setKnownPeripheral(known)
         bluetoothManager.delegate = self
@@ -103,7 +127,7 @@ final class DirectConnect_G7Sensor {
     // MARK: - Commands from the CGM manager
 
     /// Forgets the current sensor and looks for a new one of `type`, pairing with `pairingCode`.
-    func scanForNewSensor(type: DirectConnect_SensorType, pairingCode: String, excludedName: String?) {
+    func scanForNewSensor(type: DirectConnect_SensorType, pairingCode: String, excludedName: String?, excluded: DirectConnect_ExcludedSensor?) {
         stateQueue.sync {
             self.pairingCode = pairingCode
             self.pairing = nil
@@ -116,7 +140,8 @@ final class DirectConnect_G7Sensor {
             $0.sensorName = nil
             $0.sensorType = type
             $0.excludedName = excludedName
-            $0.rejectedCandidates = []
+            $0.excluded = excluded
+            $0.skipList = DirectConnect_SkipList()
             $0.authenticationBlocked = false
             $0.hasPairingCode = true
             $0.knownIdentifier = nil
@@ -138,7 +163,7 @@ final class DirectConnect_G7Sensor {
         }
         scanConfig.mutate {
             $0.authenticationBlocked = false
-            $0.rejectedCandidates = []
+            $0.skipList = DirectConnect_SkipList()
             $0.hasPairingCode = true
         }
         bluetoothManager.scanForPeripheral()
@@ -301,13 +326,33 @@ final class DirectConnect_G7Sensor {
 
             case .codeRejected:
                 let name = connectionIdentity ?? "?"
-                if scanConfig.value.sensorName == nil {
+                let searching = scanConfig.value.sensorName == nil
+                if searching {
                     // While scanning, a nearby sensor that is not the user's also refuses the
-                    // code. Skip it and keep looking.
-                    scanConfig.mutate { _ = $0.rejectedCandidates.insert(name) }
+                    // code. Skip it for a while and keep looking.
+                    let identifier = manager.peripheral.identifier
+                    scanConfig.mutate { $0.skipList.skip(identifier, now: Date()) }
+                    // The watchdog does not run during a search, so nothing else would scan again
+                    // when the skip ends.
+                    DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + DirectConnect_SkipList.duration + 5) { [weak self] in
+                        self?.bluetoothManager.scanForPeripheral()
+                    }
                 }
                 log("Sensor \(name) rejected the applicator code")
-                notify { $0.sensor(self, pairingDidFail: .wrongCode(name)) }
+                let failure: DirectConnect_PairingFailure = searching ? .skippedSensor(name) : .wrongCode(name)
+                notify { $0.sensor(self, pairingDidFail: failure) }
+                bluetoothManager.disconnect(manager)
+
+            case .pakeRefused:
+                let name = connectionIdentity ?? "?"
+                log("Sensor \(name) did not start pairing")
+                notify { $0.sensor(self, pairingDidFail: .pakeRefused(name)) }
+                bluetoothManager.disconnect(manager)
+
+            case .certificateRefused:
+                let name = connectionIdentity ?? "?"
+                log("Sensor \(name) accepted the code but refused the certificate step")
+                notify { $0.sensor(self, pairingDidFail: .certificateRefused(name)) }
                 bluetoothManager.disconnect(manager)
 
             case .failed(let reason):
@@ -533,7 +578,11 @@ final class DirectConnect_G7Sensor {
 extension DirectConnect_G7Sensor: DirectConnect_BluetoothManagerDelegate {
     func bluetoothManager(_ manager: DirectConnect_BluetoothManager, shouldConnectPeripheral peripheral: CBPeripheral) -> DirectConnect_ConnectDecision {
         let config = scanConfig.value
-        if let name = peripheral.name, config.rejectedCandidates.contains(name) {
+        if config.skipList.isSkipped(peripheral.identifier, now: Date()) {
+            return .ignore
+        }
+        if config.sensorName == nil,
+           DirectConnect_isExcluded(peripheralName: peripheral.name, identifier: peripheral.identifier, excluded: config.excluded) {
             return .ignore
         }
         if config.sensorName == nil && !config.hasPairingCode {

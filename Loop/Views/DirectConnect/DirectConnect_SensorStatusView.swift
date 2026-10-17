@@ -36,6 +36,11 @@ struct DirectConnect_SensorStatusView: View {
             headerSection
             if let failure = viewModel.state.pairingFailure {
                 pairingProblemSection(failure)
+            } else if let notice = viewModel.state.pairingNotice {
+                Section {
+                    Label(notice, systemImage: "info.circle")
+                        .foregroundColor(.secondary)
+                }
             }
             if dexcomAppInstalled {
                 Section { DirectConnect_TipView(tip: DirectConnect_Tips.dexcomAppWarning) }
@@ -113,6 +118,16 @@ struct DirectConnect_SensorStatusView: View {
         Section {
             Label(failure, systemImage: "exclamationmark.triangle.fill")
                 .foregroundColor(guidanceColors.critical)
+            // While searching for a new sensor the failure comes from a skipped nearby sensor, and
+            // re-entering the code would only retry it; Pair New Sensor below changes the code.
+            if viewModel.state.sensorID != nil {
+                repairButton
+            }
+        }
+    }
+
+    private var repairButton: some View {
+        Group {
             Button(NSLocalizedString("Re-enter Pairing Code", comment: "DirectConnect re-enter code button")) {
                 repairCode = ""
                 showingRepair = true

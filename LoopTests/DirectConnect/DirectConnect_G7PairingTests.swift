@@ -86,11 +86,28 @@ final class DirectConnect_G7PairingTests: XCTestCase {
         guard case .failed = p.start() else { return XCTFail("expected failure") }
     }
 
-    func testWrongCodeRejectionDoesNotPersistKey() {
+    func testPakeRefusalIsNotACodeRejectionAndDoesNotPersistKey() {
+        // The sensor refuses before it has received anything derived from the code, so the
+        // refusal says nothing about the code. A new G7 did this twice on 2026-10-16 with the
+        // correct code, and treating it as a wrong code made Loop skip that sensor.
         let (p, store) = pairing(savedKey: false, code: "1234")
         _ = p.start()
-        XCTAssertEqual(p.receiveControl(Data([0x0A, 0x01, 0x00])), [.codeRejected])
+        XCTAssertEqual(p.receiveControl(Data([0x0A, 0x01, 0x00])), [.pakeRefused])
         XCTAssertNil(store.key(sensor: "DXCMab", slot: 2))
+    }
+
+    func testCertificateRefusalIsReportedSeparately() {
+        // Reached only after the sensor accepted the code-derived key.
+        let (p, store) = pairing(savedKey: false, code: "1234")
+        p.testHook_setCandidateKey(key, stage: .certificateExchange, fullBootstrap: true)
+        XCTAssertEqual(p.receiveControl(Data([0x0B, 0x01, 0x00, 0, 0, 0, 0])), [.certificateRefused])
+        XCTAssertNil(store.key(sensor: "DXCMab", slot: 2))
+    }
+
+    func testCertificateMessageOutsideTheExchangeStillFails() {
+        let (p, _) = pairing(savedKey: false, code: "1234")
+        p.testHook_setCandidateKey(key, stage: .authenticating, fullBootstrap: true)
+        guard case .failed = p.receiveControl(Data([0x0B, 0x00, 0x00, 0, 0, 0, 0])).first else { return XCTFail() }
     }
 
     func testFullBootstrapAuthRejectionReportsCodeRejected() {
