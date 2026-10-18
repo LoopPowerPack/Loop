@@ -47,10 +47,10 @@ enum PowerPack_BuildInfo {
 
     /// User-facing display string for the footer card. Two formats:
     ///   "PowerPack v0.1.0 (8bd0a85)" — installer build
-    ///   "PowerPack v0.1.0-dev"        — developer build (Option A)
+    ///   "PowerPack v0.1.0"            — clone-and-build (Option A), which is a release build too
     static var displayString: String {
         if commitShortSHA == "dev" || commitShortSHA.isEmpty {
-            return "PowerPack v\(version)-dev"
+            return "PowerPack v\(version)"
         }
         return "PowerPack v\(version) (\(commitShortSHA))"
     }
