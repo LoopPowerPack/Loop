@@ -1,13 +1,15 @@
 name: Upstream Probe
 
-# Weekly automated probe that pulls LoopKit/Loop:dev into PowerPack's
-# feat/AllFeatures branch. Conflict-free merges are pushed automatically;
-# conflicts open an issue flagging that manual resolution is needed.
-# After a conflict-free merge, dev is fast-forwarded to the merged upstream
-# commit so Option B's diff base (dev) matches feat/AllFeatures.
+# Weekly automated probe that pulls LoopKit's latest RELEASED Loop into
+# PowerPack's feat/AllFeatures branch. Conflict-free merges are pushed
+# automatically; conflicts open an issue flagging that manual resolution
+# is needed. After a conflict-free merge, dev is fast-forwarded to the
+# merged release commit so Option B's diff base (dev) matches
+# feat/AllFeatures.
 #
-# Tracking dev (not main) per Marion Barker (LoopKit maintainer):
-# LoopKit/Loop:main is no longer maintained; :dev is the active mainline.
+# Release = the Loop commit pinned by LoopKit/LoopWorkspace:main. Not
+# LoopKit/Loop:dev (contains unreleased work) and not LoopKit/Loop:main
+# (unmaintained; last updated 2025-04). Taylor, 2026-10-12 and 2026-11-18.
 #
 # See DIVERGENCE.md "Upstream-merge cadence" for the published policy.
 
@@ -37,17 +39,25 @@ jobs:
           git config user.name "powerpack-upstream-bot"
           git config user.email "actions@github.com"
 
-      - name: Add upstream remote
+      - name: Fetch LoopKit's released Loop commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          RELEASE_SHA=$(gh api 'repos/LoopKit/LoopWorkspace/contents/Loop?ref=main' --jq .sha)
+          if [ -z "$RELEASE_SHA" ]; then
+            echo "::error::Could not read the Loop submodule pin from LoopKit/LoopWorkspace main."
+            exit 1
+          fi
           git remote add upstream https://github.com/LoopKit/Loop.git
-          git fetch upstream dev
+          git fetch upstream "$RELEASE_SHA"
+          git update-ref refs/remotes/upstream/release "$RELEASE_SHA"
 
-      - name: Capture upstream HEAD info
+      - name: Capture upstream release info
         id: upstream
         run: |
-          UPSTREAM_SHA=$(git rev-parse upstream/dev)
+          UPSTREAM_SHA=$(git rev-parse upstream/release)
           UPSTREAM_SHORT=${UPSTREAM_SHA:0:7}
-          UPSTREAM_SUBJECT=$(git log -1 --pretty=%s upstream/dev)
+          UPSTREAM_SUBJECT=$(git log -1 --pretty=%s upstream/release)
           echo "sha=$UPSTREAM_SHA"               >> $GITHUB_OUTPUT
           echo "short=$UPSTREAM_SHORT"           >> $GITHUB_OUTPUT
           echo "subject<<EOF"                    >> $GITHUB_OUTPUT
@@ -57,9 +67,9 @@ jobs:
       - name: Skip if already merged
         id: ahead_check
         run: |
-          if git merge-base --is-ancestor upstream/dev HEAD; then
+          if git merge-base --is-ancestor upstream/release HEAD; then
             echo "already_merged=true" >> $GITHUB_OUTPUT
-            echo "Upstream dev is already an ancestor of feat/AllFeatures — nothing to do."
+            echo "LoopKit's released Loop is already an ancestor of feat/AllFeatures — nothing to do."
           else
             echo "already_merged=false" >> $GITHUB_OUTPUT
           fi
@@ -70,7 +80,8 @@ jobs:
         continue-on-error: true
         run: |
           set +e
-          git merge --no-edit --no-ff upstream/dev
+          git merge --no-edit --no-ff upstream/release \
+            -m "Merge LoopKit released Loop ${{ steps.upstream.outputs.short }} into feat/AllFeatures"
           MERGE_RC=$?
           set -e
           if [ $MERGE_RC -ne 0 ]; then
@@ -90,17 +101,17 @@ jobs:
       # already have it (2026-11-18: duplicate applyFullBleedBackground() and
       # conflict markers in StatusTableViewController). Runs after the push,
       # never before, and only as a fast-forward.
-      - name: Fast-forward dev to merged upstream commit
+      - name: Fast-forward dev to merged release commit
         if: steps.merge.outputs.conflicts != 'true'
         run: |
           git fetch origin dev
-          if git merge-base --is-ancestor upstream/dev origin/dev; then
-            echo "dev already contains upstream/dev — nothing to do."
-          elif git merge-base --is-ancestor origin/dev upstream/dev \
-               && git merge-base --is-ancestor upstream/dev HEAD; then
-            git push origin upstream/dev:refs/heads/dev
+          if git merge-base --is-ancestor upstream/release origin/dev; then
+            echo "dev already contains the release commit — nothing to do."
+          elif git merge-base --is-ancestor origin/dev upstream/release \
+               && git merge-base --is-ancestor upstream/release HEAD; then
+            git push origin upstream/release:refs/heads/dev
           else
-            echo "::warning::dev is not an ancestor of upstream/dev; not moved. Fix dev by hand."
+            echo "::warning::dev is not an ancestor of the release commit; not moved. Fix dev by hand."
           fi
 
       - name: Open conflict issue
@@ -114,7 +125,7 @@ jobs:
             const subject = `${{ steps.upstream.outputs.subject }}`;
             const title = `Upstream merge conflict — LoopKit/Loop@${short}`;
             const body = [
-              `Automated weekly upstream probe hit conflicts when merging \`LoopKit/Loop:dev\` into \`feat/AllFeatures\`.`,
+              `Automated weekly upstream probe hit conflicts when merging LoopKit's released Loop (the commit pinned by \`LoopKit/LoopWorkspace:main\`) into \`feat/AllFeatures\`.`,
               ``,
               `**Upstream commit:** [${sha}](https://github.com/LoopKit/Loop/commit/${sha})`,
               `**Subject:** ${subject}`,
@@ -123,10 +134,11 @@ jobs:
               `**Resolve manually:**`,
               `\`\`\`bash`,
               `git checkout feat/AllFeatures`,
-              `git fetch upstream dev`,
-              `git merge upstream/dev`,
+              `git fetch upstream ${sha}`,
+              `git merge ${sha}`,
               `# resolve conflicts`,
               `git push origin feat/AllFeatures`,
+              `git push origin ${sha}:refs/heads/dev   # after feat/AllFeatures, fast-forward only`,
               `\`\`\``,
             ].join('\n');
             try {
