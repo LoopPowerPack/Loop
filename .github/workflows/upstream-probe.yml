@@ -3,6 +3,8 @@ name: Upstream Probe
 # Weekly automated probe that pulls LoopKit/Loop:dev into PowerPack's
 # feat/AllFeatures branch. Conflict-free merges are pushed automatically;
 # conflicts open an issue flagging that manual resolution is needed.
+# After a conflict-free merge, dev is fast-forwarded to the merged upstream
+# commit so Option B's diff base (dev) matches feat/AllFeatures.
 #
 # Tracking dev (not main) per Marion Barker (LoopKit maintainer):
 # LoopKit/Loop:main is no longer maintained; :dev is the active mainline.
@@ -81,6 +83,25 @@ jobs:
       - name: Push merge commit
         if: steps.ahead_check.outputs.already_merged == 'false' && steps.merge.outputs.conflicts == 'false'
         run: git push origin feat/AllFeatures
+
+      # install_features.sh (Option B) builds its patches as
+      # `git diff dev..feat/AllFeatures`. If dev stays behind the upstream
+      # commit merged above, Option B re-applies upstream code to users who
+      # already have it (2026-11-18: duplicate applyFullBleedBackground() and
+      # conflict markers in StatusTableViewController). Runs after the push,
+      # never before, and only as a fast-forward.
+      - name: Fast-forward dev to merged upstream commit
+        if: steps.merge.outputs.conflicts != 'true'
+        run: |
+          git fetch origin dev
+          if git merge-base --is-ancestor upstream/dev origin/dev; then
+            echo "dev already contains upstream/dev — nothing to do."
+          elif git merge-base --is-ancestor origin/dev upstream/dev \
+               && git merge-base --is-ancestor upstream/dev HEAD; then
+            git push origin upstream/dev:refs/heads/dev
+          else
+            echo "::warning::dev is not an ancestor of upstream/dev; not moved. Fix dev by hand."
+          fi
 
       - name: Open conflict issue
         if: steps.ahead_check.outputs.already_merged == 'false' && steps.merge.outputs.conflicts == 'true'
