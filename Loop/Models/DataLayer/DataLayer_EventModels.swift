@@ -93,6 +93,9 @@ enum DataLayer_EventType: String, Codable, CaseIterable {
     // SiteAtlas
     case siteAtlasPlaced
 
+    // PowerProfiles
+    case powerProfilesSaved
+
     /// The consent category this event type belongs to.
     var consentCategory: DataLayer_ConsentCategory {
         switch self {
@@ -103,7 +106,8 @@ enum DataLayer_EventType: String, Codable, CaseIterable {
         case .carbEntry, .mealAnalysis, .mealConfirmed, .barcodeScanned, .mealDebrief, .bolusProEntry:
             return .carbsAndMeals
         case .aiSuggestionGenerated, .aiSuggestionApplied, .aiSuggestionDismissed,
-             .aiSuggestionReverted, .chatMessage, .backgroundAlert, .therapySettingsChanged:
+             .aiSuggestionReverted, .chatMessage, .backgroundAlert, .therapySettingsChanged,
+             .powerProfilesSaved:
             return .aiBehavioral
         case .biometricSnapshot:
             return .biometrics
@@ -340,4 +344,14 @@ struct DataLayer_SiteAtlasPlacedPayload: Codable {
     /// True when the placement replaces a recently-hidden entry —
     /// signals churn / rapid replacement vs. fresh rotation.
     let replacementOfHidden: Bool
+}
+
+/// PowerProfiles save or Undo (`PowerProfiles_Coordinator.savedNotification`).
+struct DataLayer_PowerProfilesSavedPayload: Codable {
+    /// `"saveNew"`, `"saveExisting"`, `"saveAndLoad"` or `"undo"`.
+    let action: String
+    /// The profile written (for Undo: the profile name that is active again, or empty).
+    let profileName: String
+    /// Percent applied per ticked setting, keyed by `PowerProfiles_Setting` raw value. Empty for Undo.
+    let percents: [String: Int]
 }

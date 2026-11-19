@@ -787,6 +787,18 @@
 		EA78340342C2CA685AEC6D14 /* DirectConnect_ConnectionHealthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26E9A1AE34FC4C65A419D336 /* DirectConnect_ConnectionHealthTests.swift */; };
 		9D1307F1720ECF41E332D240 /* PowerPack_AIRequestOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AC9ECD6ADD9BB2DCFC042D3 /* PowerPack_AIRequestOptions.swift */; };
 		28C2416CB56B3E97580705D5 /* PowerPack_AIRequestOptionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7123616351481431FB43BA1C /* PowerPack_AIRequestOptionsTests.swift */; };
+		91D119FB50A7294003CCE37E /* PowerProfiles_Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05093EB16FCBC55B3E0CF587 /* PowerProfiles_Models.swift */; };
+		394C7F99F75FE31E1665D25C /* PowerProfiles_Scaler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 683A05C7A2331D0D6E668D84 /* PowerProfiles_Scaler.swift */; };
+		FD14AC0F3BFAF6C1F5B2ED1F /* PowerProfiles_ProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 467641329B047035F7F26E63 /* PowerProfiles_ProfileStore.swift */; };
+		530ECCCA353C3D65679F1AA5 /* PowerProfiles_UndoStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BA994D600C0DBF94FC376D /* PowerProfiles_UndoStore.swift */; };
+		D4B28DCDF83856CCF6EC71CC /* PowerProfiles_Coordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09F90E69200214CE87D84198 /* PowerProfiles_Coordinator.swift */; };
+		29B0442673BEA166C5D0A626 /* PowerProfiles_ViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF4F02CD61A5287CF9A587A /* PowerProfiles_ViewModel.swift */; };
+		BF1C0C543D8DD3C2E7F31D1F /* PowerProfiles_View.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6657F37DEEA668024AF953C1 /* PowerProfiles_View.swift */; };
+		C62A537F0C7A3FF8868CBAA5 /* PowerProfiles_ProfilesPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DFA1DB0190C2B4FAF48F75E /* PowerProfiles_ProfilesPage.swift */; };
+		32E925EC9AC6B38E401FBD67 /* PowerProfiles_ModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EACE1DDC65FEED74F814EFB6 /* PowerProfiles_ModelsTests.swift */; };
+		1459B59F116F8D0A6C3A853A /* PowerProfiles_ScalerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A25CF99DDC2F1C87F122385A /* PowerProfiles_ScalerTests.swift */; };
+		622726A81149466A37F58055 /* PowerProfiles_ProfileStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D43E51CB3BBCEF3EB17B9D4 /* PowerProfiles_ProfileStoreTests.swift */; };
+		15685E5C49EF273CDBD7AE80 /* PowerProfiles_UndoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 452F03752AE622C57B14F83A /* PowerProfiles_UndoTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1823,6 +1835,18 @@
 		26E9A1AE34FC4C65A419D336 /* DirectConnect_ConnectionHealthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DirectConnect_ConnectionHealthTests.swift"; sourceTree = "<group>"; };
 		2AC9ECD6ADD9BB2DCFC042D3 /* PowerPack_AIRequestOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PowerPack_AIRequestOptions.swift"; sourceTree = "<group>"; };
 		7123616351481431FB43BA1C /* PowerPack_AIRequestOptionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PowerPack_AIRequestOptionsTests.swift"; sourceTree = "<group>"; };
+		05093EB16FCBC55B3E0CF587 /* PowerProfiles_Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PowerProfiles_Models.swift"; sourceTree = "<group>"; };
+		683A05C7A2331D0D6E668D84 /* PowerProfiles_Scaler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PowerProfiles_Scaler.swift"; sourceTree = "<group>"; };
+		467641329B047035F7F26E63 /* PowerProfiles_ProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PowerProfiles_ProfileStore.swift"; sourceTree = "<group>"; };
+		A1BA994D600C0DBF94FC376D /* PowerProfiles_UndoStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PowerProfiles_UndoStore.swift"; sourceTree = "<group>"; };
+		09F90E69200214CE87D84198 /* PowerProfiles_Coordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PowerProfiles_Coordinator.swift"; sourceTree = "<group>"; };
+		1EF4F02CD61A5287CF9A587A /* PowerProfiles_ViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PowerProfiles_ViewModel.swift"; sourceTree = "<group>"; };
+		6657F37DEEA668024AF953C1 /* PowerProfiles_View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PowerProfiles_View.swift"; sourceTree = "<group>"; };
+		6DFA1DB0190C2B4FAF48F75E /* PowerProfiles_ProfilesPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PowerProfiles_ProfilesPage.swift"; sourceTree = "<group>"; };
+		EACE1DDC65FEED74F814EFB6 /* PowerProfiles_ModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PowerProfiles_ModelsTests.swift"; sourceTree = "<group>"; };
+		A25CF99DDC2F1C87F122385A /* PowerProfiles_ScalerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PowerProfiles_ScalerTests.swift"; sourceTree = "<group>"; };
+		4D43E51CB3BBCEF3EB17B9D4 /* PowerProfiles_ProfileStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PowerProfiles_ProfileStoreTests.swift"; sourceTree = "<group>"; };
+		452F03752AE622C57B14F83A /* PowerProfiles_UndoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PowerProfiles_UndoTests.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2182,6 +2206,7 @@
 				1394E0FB790EB3D4C7A22A5E /* LoopInsights */,
 				AB1ECE9B6639456C061F3765 /* DataLayer */,
 				6CFC448741092C876AD030C9 /* SiteAtlas */,
+				E67BACF83ED366D8441CB37F /* PowerProfiles */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -2517,6 +2542,7 @@
 				889763863213CA976E18850D /* SiteAtlas */,
 				754059120AD39C18D87B00E7 /* DirectConnect */,
 				73B25506DA231DCF67593716 /* PowerPack */,
+				93534D31F226599D4ACCD953 /* PowerProfiles */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -2598,6 +2624,7 @@
 				A9003624677C30C77E7B43C1 /* LoopInsights */,
 				0B1A2222C97445B13EC30765 /* DirectConnect */,
 				CC70CFCD214F323E150C74E4 /* PowerPack */,
+				AF595CF48D33E1AB8F33F98D /* PowerProfiles */,
 			);
 			path = LoopTests;
 			sourceTree = "<group>";
@@ -2896,6 +2923,7 @@
 				88C428BA6D11553B8D7CF090 /* FoodFinder */,
 				4518A52E78C49C9F320E25BE /* FoodFinder */,
 				853E8B26A762B09BC2CC95B1 /* LoopInsights */,
+				3B239E898D354542EB20F5DE /* PowerProfiles */,
 			);
 			path = "View Models";
 			sourceTree = "<group>";
@@ -3329,6 +3357,7 @@
 				78A132379753FE176147ADB0 /* DataLayer */,
 				510BD1AC420DD61DBA9B7E33 /* SiteAtlas */,
 				1768D383F1C0F21EC69B8D49 /* PowerPack */,
+				654AD8069D526E868B9FE081 /* PowerProfiles */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -3833,6 +3862,53 @@
 				7123616351481431FB43BA1C /* PowerPack_AIRequestOptionsTests.swift */,
 			);
 			path = "PowerPack";
+			sourceTree = "<group>";
+		};
+		E67BACF83ED366D8441CB37F /* PowerProfiles */ = {
+			isa = PBXGroup;
+			children = (
+				05093EB16FCBC55B3E0CF587 /* PowerProfiles_Models.swift */,
+				683A05C7A2331D0D6E668D84 /* PowerProfiles_Scaler.swift */,
+			);
+			path = PowerProfiles;
+			sourceTree = "<group>";
+		};
+		654AD8069D526E868B9FE081 /* PowerProfiles */ = {
+			isa = PBXGroup;
+			children = (
+				467641329B047035F7F26E63 /* PowerProfiles_ProfileStore.swift */,
+				A1BA994D600C0DBF94FC376D /* PowerProfiles_UndoStore.swift */,
+				09F90E69200214CE87D84198 /* PowerProfiles_Coordinator.swift */,
+			);
+			path = PowerProfiles;
+			sourceTree = "<group>";
+		};
+		3B239E898D354542EB20F5DE /* PowerProfiles */ = {
+			isa = PBXGroup;
+			children = (
+				1EF4F02CD61A5287CF9A587A /* PowerProfiles_ViewModel.swift */,
+			);
+			path = PowerProfiles;
+			sourceTree = "<group>";
+		};
+		93534D31F226599D4ACCD953 /* PowerProfiles */ = {
+			isa = PBXGroup;
+			children = (
+				6657F37DEEA668024AF953C1 /* PowerProfiles_View.swift */,
+				6DFA1DB0190C2B4FAF48F75E /* PowerProfiles_ProfilesPage.swift */,
+			);
+			path = PowerProfiles;
+			sourceTree = "<group>";
+		};
+		AF595CF48D33E1AB8F33F98D /* PowerProfiles */ = {
+			isa = PBXGroup;
+			children = (
+				EACE1DDC65FEED74F814EFB6 /* PowerProfiles_ModelsTests.swift */,
+				A25CF99DDC2F1C87F122385A /* PowerProfiles_ScalerTests.swift */,
+				4D43E51CB3BBCEF3EB17B9D4 /* PowerProfiles_ProfileStoreTests.swift */,
+				452F03752AE622C57B14F83A /* PowerProfiles_UndoTests.swift */,
+			);
+			path = PowerProfiles;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -4926,6 +5002,14 @@
 				330001C7F46F82CC54985DBA /* PowerPack_ModelFinder.swift in Sources */,
 				9D1307F1720ECF41E332D240 /* PowerPack_AIRequestOptions.swift in Sources */,
 				FEBD22F20417AF37389238A1 /* PowerPack_ModelFinderView.swift in Sources */,
+				91D119FB50A7294003CCE37E /* PowerProfiles_Models.swift in Sources */,
+				394C7F99F75FE31E1665D25C /* PowerProfiles_Scaler.swift in Sources */,
+				FD14AC0F3BFAF6C1F5B2ED1F /* PowerProfiles_ProfileStore.swift in Sources */,
+				530ECCCA353C3D65679F1AA5 /* PowerProfiles_UndoStore.swift in Sources */,
+				D4B28DCDF83856CCF6EC71CC /* PowerProfiles_Coordinator.swift in Sources */,
+				29B0442673BEA166C5D0A626 /* PowerProfiles_ViewModel.swift in Sources */,
+				BF1C0C543D8DD3C2E7F31D1F /* PowerProfiles_View.swift in Sources */,
+				C62A537F0C7A3FF8868CBAA5 /* PowerProfiles_ProfilesPage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -5132,6 +5216,10 @@
 				B941AD9E2FFEA482A0063432 /* DirectConnect_StateTests.swift in Sources */,
 				6E3638F47CFE70F23DF31FA3 /* PowerPack_ModelFinderTests.swift in Sources */,
 				28C2416CB56B3E97580705D5 /* PowerPack_AIRequestOptionsTests.swift in Sources */,
+				32E925EC9AC6B38E401FBD67 /* PowerProfiles_ModelsTests.swift in Sources */,
+				1459B59F116F8D0A6C3A853A /* PowerProfiles_ScalerTests.swift in Sources */,
+				622726A81149466A37F58055 /* PowerProfiles_ProfileStoreTests.swift in Sources */,
+				15685E5C49EF273CDBD7AE80 /* PowerProfiles_UndoTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

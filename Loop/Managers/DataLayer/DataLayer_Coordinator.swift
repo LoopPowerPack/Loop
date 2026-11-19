@@ -233,6 +233,7 @@ final class DataLayer_Coordinator: ObservableObject {
         observeBolusProNotifications()
         observeGraphDetailViewNotifications()
         observeSiteAtlasNotifications()
+        observePowerProfilesNotifications()
     }
 
     /// GraphDetailView broadcasts when its long-press detail popup appears.
@@ -259,6 +260,27 @@ final class DataLayer_Coordinator: ObservableObject {
                 hasHeartRate:  (info["hasHeartRate"]  as? Bool) ?? false
             )
             self.collector.record(type: .graphDetailViewOpened, payload: payload)
+        }
+    }
+
+    /// PowerProfiles broadcasts after every save and Undo.
+    private func observePowerProfilesNotifications() {
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name("com.loopkit.Loop.powerProfilesSaved"),
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self = self,
+                  let info = notification.userInfo,
+                  let action = info["action"] as? String
+            else { return }
+
+            let payload = DataLayer_PowerProfilesSavedPayload(
+                action: action,
+                profileName: (info["profileName"] as? String) ?? "",
+                percents: (info["percents"] as? [String: Int]) ?? [:]
+            )
+            self.collector.record(type: .powerProfilesSaved, payload: payload)
         }
     }
 
