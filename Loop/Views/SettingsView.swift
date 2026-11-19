@@ -56,7 +56,8 @@ public struct SettingsView: View {
     @State private var actionSheet: Destination.ActionSheet?
     @State private var alert: Destination.Alert?
     @State private var sheet: Destination.Sheet?
-    
+    @State private var showProfiles = false
+
     var localizedAppNameAndVersion: String
 
     public init(viewModel: SettingsViewModel, localizedAppNameAndVersion: String) {
@@ -284,6 +285,32 @@ extension SettingsView {
                             imageView: Image("Therapy Icon"),
                             label: NSLocalizedString("Therapy Settings", comment: "Title text for button to Therapy Settings"),
                             descriptiveText: NSLocalizedString("Diabetes Treatment", comment: "Descriptive text for Therapy Settings"))
+            }
+
+            LargeButton(action: { showProfiles = true },
+                        includeArrow: true,
+                        imageView: AnyView(Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 30, weight: .bold))),
+                        label: NSLocalizedString("Profiles", comment: "Title text for button to Profiles"),
+                        descriptiveText: NSLocalizedString("Switch between profiles for different scenarios", comment: "Descriptive text for Profiles"))
+            .sheet(isPresented: $showProfiles) {
+                PowerProfiles_ProfilesPage(viewModel: ProfileViewModel(therapySettings: self.viewModel.therapySettings(),
+                                                        sensitivityOverridesEnabled: FeatureFlags.sensitivityOverridesEnabled,
+                                                        adultChildInsulinModelSelectionEnabled: FeatureFlags.adultChildInsulinModelSelectionEnabled,
+                                                        delegate: self.viewModel.therapySettingsViewModelDelegate))
+                .environmentObject(displayGlucosePreference)
+                .environment(\.dismissAction, self.dismiss)
+                .environment(\.appName, self.appName)
+                .environment(\.chartColorPalette, .primary)
+                .environment(\.carbTintColor, self.carbTintColor)
+                .environment(\.glucoseTintColor, self.glucoseTintColor)
+                .environment(\.guidanceColors, self.guidanceColors)
+                .environment(\.insulinTintColor, self.insulinTintColor)
+            }
+            // PowerPack: PowerProfiles is switched on and off on the Profiles page
+            Button(action: { showProfiles = true }) {
+                Text(NSLocalizedString("Includes PowerProfiles", comment: "PowerPack note under the Profiles button"))
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(Color(red: 107/255, green: 47/255, blue: 160/255))
             }
 
             ForEach(pluginMenuItems.filter {$0.section == .configuration}) { item in
