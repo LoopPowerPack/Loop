@@ -146,12 +146,20 @@ struct PowerProfiles_View: View {
                 Slider(value: Binding(get: { Double(percent) }, set: set),
                        in: Double(PowerProfiles_Slider.range.lowerBound)...Double(PowerProfiles_Slider.range.upperBound),
                        step: Double(PowerProfiles_Slider.step))
-                    .accentColor(Self.purple)
+                    .accentColor(Self.percentColor(percent))
                     .disabled(!enabled)
                 Text("+50%").font(.caption).foregroundColor(.secondary)
-                Text(Self.percentText(percent))
-                    .font(.body.monospacedDigit().bold())
-                    .frame(minWidth: 52, alignment: .trailing)
+                HStack(spacing: 2) {
+                    if percent != 0 {
+                        Image(systemName: percent > 0 ? "arrow.up" : "arrow.down")
+                            .font(.caption.bold())
+                    }
+                    Text(Self.percentText(percent))
+                        .font(.body.monospacedDigit().bold())
+                }
+                .foregroundColor(Self.percentColor(percent))
+                .frame(minWidth: 64, alignment: .trailing)
+                .accessibilityElement(children: .combine)
             }
         }
     }
@@ -217,6 +225,14 @@ struct PowerProfiles_View: View {
 
     static func percentText(_ percent: Int) -> String {
         percent > 0 ? "+\(percent)%" : "\(percent)%"
+    }
+
+    /// Increase green, decrease blue, zero grey. Red and orange are kept for
+    /// values outside Loop's limits, so the sign colours never look like a warning.
+    static func percentColor(_ percent: Int) -> Color {
+        if percent > 0 { return .green }
+        if percent < 0 { return .blue }
+        return .secondary
     }
 
     static func time(_ startTime: TimeInterval) -> String {
