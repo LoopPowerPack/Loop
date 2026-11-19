@@ -89,7 +89,7 @@ enum PowerProfiles_TestData {
             correctionRange: GlucoseRangeSchedule(unit: .milligramsPerDeciliter,
                                                   dailyItems: items(targets.map { DoubleRange(minValue: $0.0, maxValue: $0.1) }),
                                                   timeZone: utc)!,
-            carbRatioSchedule: CarbRatioSchedule(unit: .gramsPerUnit, dailyItems: items(carbRatios), timeZone: utc)!,
+            carbRatioSchedule: CarbRatioSchedule(unit: PowerProfiles_Units.gramsPerUnit, dailyItems: items(carbRatios), timeZone: utc)!,
             basalRateSchedule: BasalRateSchedule(dailyItems: items(basalRates), timeZone: utc)!,
             // Loop stores insulin sensitivity schedules in the glucose unit only.
             insulinSensitivitySchedule: InsulinSensitivitySchedule(unit: .milligramsPerDeciliter, dailyItems: items(sensitivities), timeZone: utc)!,

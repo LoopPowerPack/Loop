@@ -124,7 +124,7 @@ enum PowerProfiles_Review {
             case .carbRatios:
                 return zip(before.carbRatioSchedule.items, after.carbRatioSchedule.items).map {
                     row(setting, $0.startTime, [$0.value], [$1.value],
-                        check(Guardrail.carbRatio, HKQuantity(unit: .gramsPerUnit, doubleValue: $1.value)))
+                        check(Guardrail.carbRatio, HKQuantity(unit: PowerProfiles_Units.gramsPerUnit, doubleValue: $1.value)))
                 }
             case .insulinSensitivity:
                 let unit = HKUnit.milligramsPerDeciliter.unitDivided(by: .internationalUnit())
@@ -171,6 +171,11 @@ enum PowerProfiles_Review {
         if a == .warning || b == .warning { return .warning }
         return .ok
     }
+}
+
+enum PowerProfiles_Units {
+    /// g/U. LoopKit's `HKUnit.gramsPerUnit` is internal to LoopKit.
+    static let gramsPerUnit = HKUnit.gram().unitDivided(by: .internationalUnit())
 }
 
 enum PowerProfiles_Format {

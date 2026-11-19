@@ -44,7 +44,15 @@ final class PowerProfiles_ViewModel: ObservableObject {
     }
 
     var supportedBasalRates: [Double] {
-        profileViewModel.pumpSupportedIncrements()?.basalRates ?? []
+        Self.basalRates(of: profileViewModel.pumpSupportedIncrements())
+    }
+
+    /// `PumpSupportedIncrements.basalRates` is internal to LoopKitUI, and LoopKit
+    /// must stay unchanged (Option B installs onto LoopKit's own copy), so the
+    /// value is read by property name.
+    static func basalRates(of increments: PumpSupportedIncrements?) -> [Double] {
+        guard let increments else { return [] }
+        return Mirror(reflecting: increments).children.first { $0.label == "basalRates" }?.value as? [Double] ?? []
     }
 
     var maximumBasalRate: Double? {
