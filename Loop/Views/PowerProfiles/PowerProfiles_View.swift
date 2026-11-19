@@ -166,18 +166,27 @@ struct PowerProfiles_View: View {
 
     private var saveSection: some View {
         Section(header: Text(NSLocalizedString("Save", comment: "PowerProfiles save section"))) {
-            TextField(NSLocalizedString("Name for a new profile", comment: "PowerProfiles new profile name field"), text: $viewModel.newName)
-            Button(NSLocalizedString("Save as New Profile", comment: "PowerProfiles save new button")) {
-                withAuthentication(viewModel.saveNew)
+            // One row: type the new profile's name, then tap Save.
+            HStack {
+                TextField(NSLocalizedString("Save as New Profile: enter name", comment: "PowerProfiles new profile name field and save row"), text: $viewModel.newName)
+                Button(NSLocalizedString("Save", comment: "PowerProfiles save new button")) {
+                    withAuthentication(viewModel.saveNew)
+                }
+                .buttonStyle(.borderless)
+                .font(.body.bold())
+                .disabled(!viewModel.canSave || !viewModel.hasNewName)
             }
-            .disabled(!viewModel.canSave || !viewModel.hasNewName)
             if let baseProfile = viewModel.baseProfile {
                 Button(String(format: NSLocalizedString("Save to \"%@\"", comment: "PowerProfiles save to loaded profile button"), baseProfile.values.name)) {
                     withAuthentication(viewModel.saveExisting)
                 }
                 .disabled(!viewModel.canSave)
             }
-            Button(NSLocalizedString("Save & Load", comment: "PowerProfiles save and load button")) {
+            // From Current settings there is no saved profile to load, so Save & Load
+            // creates the profile named in the row above.
+            Button(viewModel.baseProfile == nil
+                   ? NSLocalizedString("Save as New & Load", comment: "PowerProfiles save new and load button")
+                   : NSLocalizedString("Save & Load", comment: "PowerProfiles save and load button")) {
                 withAuthentication(viewModel.saveAndLoad)
             }
             .disabled(!viewModel.canSave || viewModel.baseProfile == nil && !viewModel.hasNewName)

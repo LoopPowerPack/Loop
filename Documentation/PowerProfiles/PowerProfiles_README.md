@@ -42,11 +42,14 @@ PowerProfiles is off until you turn it on. When it is on, tap **Open**.
    - Red: outside the limits Loop allows, or a basal rate your pump cannot
      deliver. Saving is turned off until you choose a smaller change.
 5. **Save:**
-   - **Save as New Profile** — enter a name. It is saved, not loaded.
+   - **Save as New Profile** — type the name in the "Save as New Profile"
+     row and tap **Save** in that row. It is saved, not loaded.
    - **Save to "<profile>"** — replaces that saved profile's values. Shown
      when you started from a saved profile.
    - **Save & Load** — saves, then loads it: Loop sends the basal schedule
-     to the pump and starts using the new settings.
+     to the pump and starts using the new settings. When you started from
+     Current settings, this button reads **Save as New & Load** and uses the
+     name typed in the Save as New Profile row.
 6. **Undo Last PowerProfiles Save** puts back what the last save changed,
    including Loop's previous settings after a Save & Load. It still works
    after the app restarts. Only the most recent save can be undone.
