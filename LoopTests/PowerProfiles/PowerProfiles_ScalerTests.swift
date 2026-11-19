@@ -131,8 +131,8 @@ final class PowerProfiles_ScalerTests: XCTestCase {
         XCTAssertEqual(rows.last?.before, [100, 110])
     }
 
-    /// Taylor, 2026-11-19: a correction range up to 125 mg/dL is not a warning,
-    /// although Loop's own guardrail recommends at most 115.9.
+    /// Taylor, 2026-11-19: a correction range from 95 to 125 mg/dL is not a warning,
+    /// although Loop's own guardrail recommends 99.1–115.9.
     func testCorrectionRangeWarnsOnlyAbove125() {
         func check(_ low: Double, _ high: Double) -> PowerProfiles_Check? {
             let before = PowerProfiles_TestData.values(targets: [(100, 110)])
@@ -143,7 +143,8 @@ final class PowerProfiles_ScalerTests: XCTestCase {
         XCTAssertEqual(check(101, 116), .ok)
         XCTAssertEqual(check(110, 125), .ok)
         XCTAssertEqual(check(110, 126), .warning)
-        XCTAssertEqual(check(95, 110), .warning, "Loop's lower recommended limit still applies")
+        XCTAssertEqual(check(95, 110), .ok)
+        XCTAssertEqual(check(94, 110), .warning)
         XCTAssertEqual(check(110, 185), .blocked, "Loop's absolute limit still applies")
     }
 

@@ -159,17 +159,18 @@ enum PowerProfiles_Review {
         return guardrail.classification(for: value) == .withinRecommendedRange ? .ok : .warning
     }
 
-    /// Above this a correction range value is shown orange. Taylor, 2026-11-19:
-    /// Loop's own recommended maximum (115.9 mg/dL) marked ordinary targets such as 116.
+    /// Correction range values outside 95–125 mg/dL are shown orange. Taylor, 2026-11-19:
+    /// Loop's own recommended range (99.1–115.9 mg/dL) marked ordinary targets such as 116.
+    static let correctionRangeWarningBelow: Double = 95
     static let correctionRangeWarningAbove: Double = 125
 
-    /// Red outside Loop's absolute correction range limits; orange below Loop's
-    /// recommended minimum or above `correctionRangeWarningAbove`.
+    /// Red outside Loop's absolute correction range limits; orange below
+    /// `correctionRangeWarningBelow` or above `correctionRangeWarningAbove`.
     private static func correctionRangeCheck(_ mgdl: Double) -> PowerProfiles_Check {
         let guardrail = Guardrail.correctionRange
         let unit = HKUnit.milligramsPerDeciliter
         guard guardrail.absoluteBounds.contains(HKQuantity(unit: unit, doubleValue: mgdl)) else { return .blocked }
-        if mgdl < guardrail.recommendedBounds.lowerBound.doubleValue(for: unit) || mgdl > correctionRangeWarningAbove {
+        if mgdl < correctionRangeWarningBelow || mgdl > correctionRangeWarningAbove {
             return .warning
         }
         return .ok
