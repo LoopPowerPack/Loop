@@ -169,9 +169,10 @@ Before / After  (every time slot of every ticked setting)
 - Rounding:
   - Basal rates: to the pump's supported basal increments.
   - Carb ratios: 0.1 g/U.
-  - Insulin sensitivity: 1 mg/dL/U, or 0.1 mmol/L/U.
-  - Correction range: 1 mg/dL, or 0.1 mmol/L.
-- Display uses the user's glucose unit.
+  - Insulin sensitivity: 1 mg/dL/U.
+  - Correction range: 1 mg/dL.
+- Values are stored in mg/dL, as Profiles stores them. Display uses the
+  user's glucose unit; mmol/L is shown to 0.1.
 
 ### 7.4 Safety checks
 
