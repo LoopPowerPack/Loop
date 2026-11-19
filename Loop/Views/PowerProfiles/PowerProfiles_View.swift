@@ -16,12 +16,18 @@ import LoopKitUI
 
 struct PowerProfiles_View: View {
 
-    @ObservedObject var viewModel: PowerProfiles_ViewModel
+    // Owned here, not passed in: the sheet's content closure runs again whenever the
+    // Profiles page redraws, and a view model made there would reset the sliders.
+    @StateObject private var viewModel: PowerProfiles_ViewModel
     @EnvironmentObject private var displayGlucosePreference: DisplayGlucosePreference
     @Environment(\.authenticate) private var authenticate
     @Environment(\.presentationMode) private var presentationMode
 
     static let purple = Color(red: 107/255, green: 47/255, blue: 160/255)
+
+    init(profileViewModel: ProfileViewModel) {
+        _viewModel = StateObject(wrappedValue: PowerProfiles_ViewModel(profileViewModel: profileViewModel))
+    }
 
     var body: some View {
         NavigationView {

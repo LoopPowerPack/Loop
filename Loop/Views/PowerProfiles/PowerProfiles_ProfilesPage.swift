@@ -30,7 +30,7 @@ struct PowerProfiles_ProfilesPage: View {
             ProfileView(viewModel: viewModel)
         }
         .sheet(isPresented: $showPowerProfiles, onDismiss: { viewModel.loadProfiles() }) {
-            PowerProfiles_View(viewModel: PowerProfiles_ViewModel(profileViewModel: viewModel))
+            PowerProfiles_View(profileViewModel: viewModel)
                 .environmentObject(displayGlucosePreference)
         }
     }
