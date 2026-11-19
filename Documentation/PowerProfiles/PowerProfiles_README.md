@@ -31,12 +31,13 @@ PowerProfiles is off until you turn it on. When it is on, tap **Open**.
 1. **Start from:** Loop's current settings, or one of your saved profiles.
 2. **Tick** each setting to change: Basal Rates, Carb Ratios, Insulin
    Sensitivities, Correction Range.
-3. **Move the slider** from −50% to +50%, in 5% steps. +20% makes each value
+3. **Move the slider** from −50% to +50%, in 1% steps. +20% makes each value
    20% larger; −10% makes it 10% smaller. The numbers change as written; what
    a larger or smaller number means differs per setting, so check each one.
    - **Lock** applies one slider to every ticked setting.
    - **Unlocked**, each ticked setting has its own slider.
-4. **Before / After** lists every time slot of every ticked setting.
+4. **Before / After** appears under each ticked setting's slider, one line
+   per time slot.
    - Orange: outside the recommended range. You can still save.
    - Red: outside the limits Loop allows, or a basal rate your pump cannot
      deliver. Saving is turned off until you choose a smaller change.

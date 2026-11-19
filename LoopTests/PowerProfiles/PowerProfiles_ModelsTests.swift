@@ -14,13 +14,14 @@ import LoopKitUI
 
 final class PowerProfiles_ModelsTests: XCTestCase {
 
-    func testSnapRoundsToNearestFiveAndClamps() {
-        XCTAssertEqual(PowerProfiles_Slider.snap(7.4), 5)
-        XCTAssertEqual(PowerProfiles_Slider.snap(7.5), 10)
+    func testSnapRoundsToWholePercentAndClamps() {
+        XCTAssertEqual(PowerProfiles_Slider.snap(7.4), 7)
+        XCTAssertEqual(PowerProfiles_Slider.snap(7.5), 8)
+        XCTAssertEqual(PowerProfiles_Slider.snap(-3.5), -4)
         XCTAssertEqual(PowerProfiles_Slider.snap(-53), -50)
         XCTAssertEqual(PowerProfiles_Slider.snap(61), 50)
         XCTAssertEqual(PowerProfiles_Slider.range, -50...50)
-        XCTAssertEqual(PowerProfiles_Slider.step, 5)
+        XCTAssertEqual(PowerProfiles_Slider.step, 1)
     }
 
     func testPercentNilWhenNotTicked() {

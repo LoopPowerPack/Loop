@@ -69,7 +69,7 @@ this work.
 | Direction | Raw number change. +20% = value × 1.20, −10% = value × 0.90 |
 | Which settings | User picks one, some or all with ticks |
 | Sliders | Per setting, with a lock button that applies one value to all ticked settings |
-| Slider range | −50% to +50%, 5% steps |
+| Slider range | −50% to +50%, 1% steps (changed from 5% on 2026-11-19) |
 | Saving | Save as new, save to the loaded profile, Save & Load |
 | Undo | Required |
 | Existing profiles | Must not be touched unless the user loads one, applies changes and saves |
@@ -158,6 +158,9 @@ Before / After  (every time slot of every ticked setting)
   value and are disabled.
 - Unlocked: each ticked setting uses its own slider.
 - An unticked setting is not changed and shows no After column.
+- Changed 2026-11-19 (Taylor): the sliders and Before / After are one
+  section; each ticked setting's Before / After rows sit directly under its
+  slider.
 - "Current settings" means Loop's active therapy settings. "Save to this
   profile" is not offered for it.
 

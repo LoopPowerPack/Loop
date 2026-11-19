@@ -34,7 +34,6 @@ struct PowerProfiles_View: View {
             Form {
                 baseSection
                 changeSection
-                beforeAfterSection
                 saveSection
             }
             .navigationTitle(Text("PowerProfiles"))
@@ -64,19 +63,23 @@ struct PowerProfiles_View: View {
         }
     }
 
+    /// Sliders, ticks and Before / After in one section: each ticked setting
+    /// shows its slider and then every time slot's old and new value.
     private var changeSection: some View {
-        Section(header: Text(NSLocalizedString("Change", comment: "PowerProfiles sliders section")),
-                footer: Text(NSLocalizedString("+20% makes each value 20% larger. −10% makes it 10% smaller.", comment: "PowerProfiles slider explanation"))) {
-            HStack {
-                Button(action: viewModel.toggleLock) {
-                    Label(viewModel.adjustment.isLocked
-                          ? NSLocalizedString("Locked: one change for all ticked", comment: "PowerProfiles lock on")
-                          : NSLocalizedString("Unlocked: one change per setting", comment: "PowerProfiles lock off"),
-                          systemImage: viewModel.adjustment.isLocked ? "lock.fill" : "lock.open")
-                }
-                .buttonStyle(.borderless)
-                .foregroundColor(Self.purple)
+        Section(header: Text(NSLocalizedString("Change", comment: "PowerProfiles sliders and Before / After section")),
+                footer: changeFooter) {
+            if viewModel.before == nil {
+                Text(NSLocalizedString("Loop's therapy settings are not complete, so there is nothing to change.", comment: "PowerProfiles missing settings"))
+                    .foregroundColor(.secondary)
             }
+            Button(action: viewModel.toggleLock) {
+                Label(viewModel.adjustment.isLocked
+                      ? NSLocalizedString("Locked: one change for all ticked", comment: "PowerProfiles lock on")
+                      : NSLocalizedString("Unlocked: one change per setting", comment: "PowerProfiles lock off"),
+                      systemImage: viewModel.adjustment.isLocked ? "lock.fill" : "lock.open")
+            }
+            .buttonStyle(.borderless)
+            .foregroundColor(Self.purple)
             if viewModel.adjustment.isLocked {
                 sliderRow(title: NSLocalizedString("All ticked settings", comment: "PowerProfiles shared slider"),
                           percent: viewModel.adjustment.lockedPercent,
@@ -85,7 +88,7 @@ struct PowerProfiles_View: View {
             }
             ForEach(PowerProfiles_Setting.allCases) { setting in
                 let ticked = viewModel.adjustment.ticked.contains(setting)
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     Button(action: { viewModel.toggleTick(setting) }) {
                         Label(setting.title, systemImage: ticked ? "checkmark.square.fill" : "square")
                     }
@@ -96,7 +99,39 @@ struct PowerProfiles_View: View {
                             viewModel.setPercent($0, for: setting)
                         }
                     }
+                    if ticked {
+                        ForEach(viewModel.rows.filter { $0.setting == setting }) { row in
+                            beforeAfterRow(row)
+                        }
+                    }
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var changeFooter: some View {
+        let rows = viewModel.rows
+        if !PowerProfiles_Review.canSave(rows) {
+            Text(NSLocalizedString("Red values are outside the limits Loop allows. Choose a smaller change to save.", comment: "PowerProfiles blocked explanation"))
+                .foregroundColor(.red)
+        } else if rows.contains(where: { $0.check == .warning }) {
+            Text(NSLocalizedString("Orange values are outside the recommended range. You can still save them.", comment: "PowerProfiles warning explanation"))
+                .foregroundColor(.orange)
+        } else {
+            Text(NSLocalizedString("+20% makes each value 20% larger. −10% makes it 10% smaller.", comment: "PowerProfiles slider explanation"))
+        }
+    }
+
+    private func beforeAfterRow(_ row: PowerProfiles_Row) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(Self.time(row.startTime)).font(.callout.monospacedDigit()).foregroundColor(.secondary)
+            Spacer()
+            Text(format(row.before, row.setting)).font(.callout).foregroundColor(.secondary)
+            Image(systemName: "arrow.right").font(.caption).foregroundColor(.secondary)
+            Text(format(row.after, row.setting)).font(.callout).bold().foregroundColor(color(row.check))
+            if row.check != .ok {
+                Image(systemName: "exclamationmark.triangle.fill").font(.caption).foregroundColor(color(row.check))
             }
         }
     }
@@ -117,41 +152,6 @@ struct PowerProfiles_View: View {
                 Text(Self.percentText(percent))
                     .font(.body.monospacedDigit().bold())
                     .frame(minWidth: 52, alignment: .trailing)
-            }
-        }
-    }
-
-    private var beforeAfterSection: some View {
-        Section(header: Text(NSLocalizedString("Before / After", comment: "PowerProfiles comparison section"))) {
-            if viewModel.before == nil {
-                Text(NSLocalizedString("Loop's therapy settings are not complete, so there is nothing to change.", comment: "PowerProfiles missing settings"))
-                    .foregroundColor(.secondary)
-            } else if viewModel.rows.isEmpty {
-                Text(NSLocalizedString("Tick a setting to see its new values.", comment: "PowerProfiles nothing ticked"))
-                    .foregroundColor(.secondary)
-            } else {
-                ForEach(viewModel.rows) { row in
-                    HStack(alignment: .firstTextBaseline) {
-                        VStack(alignment: .leading) {
-                            Text(row.setting.title).font(.caption).foregroundColor(.secondary)
-                            Text(Self.time(row.startTime)).font(.body.monospacedDigit())
-                        }
-                        Spacer()
-                        Text(format(row.before, row.setting)).foregroundColor(.secondary)
-                        Image(systemName: "arrow.right").font(.caption).foregroundColor(.secondary)
-                        Text(format(row.after, row.setting)).bold().foregroundColor(color(row.check))
-                        if row.check != .ok {
-                            Image(systemName: "exclamationmark.triangle.fill").foregroundColor(color(row.check))
-                        }
-                    }
-                }
-                if !PowerProfiles_Review.canSave(viewModel.rows) {
-                    Text(NSLocalizedString("Red values are outside the limits Loop allows. Choose a smaller change to save.", comment: "PowerProfiles blocked explanation"))
-                        .font(.footnote).foregroundColor(.red)
-                } else if viewModel.rows.contains(where: { $0.check == .warning }) {
-                    Text(NSLocalizedString("Orange values are outside the recommended range. You can still save them.", comment: "PowerProfiles warning explanation"))
-                        .font(.footnote).foregroundColor(.orange)
-                }
             }
         }
     }

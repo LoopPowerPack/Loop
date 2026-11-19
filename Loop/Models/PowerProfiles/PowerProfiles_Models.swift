@@ -40,9 +40,9 @@ enum PowerProfiles_Setting: String, CaseIterable, Codable, Identifiable {
 
 enum PowerProfiles_Slider {
     static let range: ClosedRange<Int> = -50...50
-    static let step = 5
+    static let step = 1
 
-    /// The nearest step inside the range. Halves round away from zero.
+    /// The nearest whole percent inside the range. Halves round away from zero.
     /// - Parameter value: Raw slider position in percent.
     /// - Returns: A multiple of `step` within `range`.
     static func snap(_ value: Double) -> Int {
