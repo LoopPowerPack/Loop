@@ -134,8 +134,8 @@ enum PowerProfiles_Review {
                 }
             case .correctionRange:
                 return zip(before.correctionRange.items, after.correctionRange.items).map {
-                    let low = check(Guardrail.correctionRange, HKQuantity(unit: .milligramsPerDeciliter, doubleValue: $1.value.minValue))
-                    let high = check(Guardrail.correctionRange, HKQuantity(unit: .milligramsPerDeciliter, doubleValue: $1.value.maxValue))
+                    let low = correctionRangeCheck($1.value.minValue)
+                    let high = correctionRangeCheck($1.value.maxValue)
                     return row(setting, $0.startTime, [$0.value.minValue, $0.value.maxValue],
                                [$1.value.minValue, $1.value.maxValue], worst(low, high))
                 }
@@ -157,6 +157,22 @@ enum PowerProfiles_Review {
     private static func check(_ guardrail: Guardrail<HKQuantity>, _ value: HKQuantity) -> PowerProfiles_Check {
         guard guardrail.absoluteBounds.contains(value) else { return .blocked }
         return guardrail.classification(for: value) == .withinRecommendedRange ? .ok : .warning
+    }
+
+    /// Above this a correction range value is shown orange. Taylor, 2026-11-19:
+    /// Loop's own recommended maximum (115.9 mg/dL) marked ordinary targets such as 116.
+    static let correctionRangeWarningAbove: Double = 125
+
+    /// Red outside Loop's absolute correction range limits; orange below Loop's
+    /// recommended minimum or above `correctionRangeWarningAbove`.
+    private static func correctionRangeCheck(_ mgdl: Double) -> PowerProfiles_Check {
+        let guardrail = Guardrail.correctionRange
+        let unit = HKUnit.milligramsPerDeciliter
+        guard guardrail.absoluteBounds.contains(HKQuantity(unit: unit, doubleValue: mgdl)) else { return .blocked }
+        if mgdl < guardrail.recommendedBounds.lowerBound.doubleValue(for: unit) || mgdl > correctionRangeWarningAbove {
+            return .warning
+        }
+        return .ok
     }
 
     private static func basalCheck(_ value: Double, supportedBasalRates: [Double], maximumBasalRate: Double?) -> PowerProfiles_Check {
